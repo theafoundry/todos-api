@@ -1,0 +1,128 @@
+name: Production release
+
+# Single authoritative production deployment mechanism.
+#
+# Manual dispatch only: merge to master, then dispatch this workflow from the
+# Actions tab. There is intentionally no automatic trigger on push/merge yet.
+#
+# Ordering and secret isolation:
+#   1. The `Production` environment requires human approval before ANY job runs.
+#   2. The migrate job applies pending Prisma migrations as the migrator role.
+#      PROD_MIGRATOR_DATABASE_URL exists only in the Production environment and
+#      is referenced only by this job. It never reaches Railway or the app.
+#   3. The deploy job runs only if migration succeeded, checks out the EXACT
+#      same commit, and deploys it via the Railway CLI. It only ever sees
+#      RAILWAY_TOKEN (the runtime credential stays in Railway variables).
+#
+# Safety:
+#   - concurrency group `production-deploy` with cancel-in-progress: false, so
+#     releases serialize instead of cancelling a running migration/release.
+#   - The deployed SHA is stamped into the release and verified via /healthz.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  RELEASE_SHA: ${{ github.sha }}
+
+jobs:
+  migrate:
+    name: Apply Prisma migrations (production)
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Checkout exact release SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Confirm release SHA
+        run: |
+          test -n "${{ env.RELEASE_SHA }}"
+          test "$(git rev-parse HEAD)" = "${{ env.RELEASE_SHA }}"
+          echo "Migrating at release SHA ${{ env.RELEASE_SHA }}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        # postinstall runs `prisma generate`, which only needs DATABASE_URL to
+        # be present (it never connects). The real migrator credential is set
+        # only on the migration step below.
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply pending migrations as migrator role
+        env:
+          DATABASE_URL: ${{ secrets.PROD_MIGRATOR_DATABASE_URL }}
+        run: npx prisma migrate deploy
+
+  deploy:
+    name: Deploy to Railway (production)
+    needs: migrate
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Checkout exact release SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+
+      - name: Confirm release SHA
+        run: |
+          test -n "${{ env.RELEASE_SHA }}"
+          test "$(git rev-parse HEAD)" = "${{ env.RELEASE_SHA }}"
+          echo "Deploying release SHA ${{ env.RELEASE_SHA }}"
+
+      - name: Stamp release SHA for deployment
+        # Uploaded with the source by `railway up`; /healthz reports it back so
+        # the release can be verified end-to-end. Never committed to git.
+        run: printf '%s' "${{ env.RELEASE_SHA }}" > release-sha.txt
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy exact revision via Railway CLI
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --yes --detach \
+            --project 708a7c3b-8c2a-46c8-8fc9-7af9aa406f70 \
+            --environment production \
+            --service 890ed217-cc4c-4fa7-a3c4-ae22d1aa4a6c
+
+      - name: Verify production serves the release SHA
+        run: |
+          deadline=$(( $(date +%s) + 600 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            code="$(curl -s -o /tmp/healthz.json -w '%{http_code}' https://todos.karthikg.in/healthz || true)"
+            if [ "$code" = "200" ]; then
+              sha="$(python3 -c "import json; print(json.load(open('/tmp/healthz.json')).get('sha', ''))")"
+              if [ "$sha" = "${{ env.RELEASE_SHA }}" ]; then
+                echo "Production is serving release SHA ${{ env.RELEASE_SHA }}"
+                curl -sf https://todos.karthikg.in/readyz -o /dev/null
+                echo "readyz (todos.karthikg.in): 200"
+                curl -sf https://todos.theafoundry.com/readyz -o /dev/null
+                echo "readyz (todos.theafoundry.com): 200"
+                exit 0
+              fi
+              echo "Waiting: /healthz reachable but sha='${sha}' (want '${{ env.RELEASE_SHA }}')"
+            else
+              echo "Waiting: /healthz http=${code}"
+            fi
+            sleep 15
+          done
+          echo "Timed out waiting for production to serve ${{ env.RELEASE_SHA }}"
+          exit 1
+
+      - name: Report deployed SHA
+        run: |
+          echo "Deployed SHA: ${{ env.RELEASE_SHA }}"
