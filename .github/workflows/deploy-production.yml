@@ -53,12 +53,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # postinstall runs `prisma generate`, which only needs DATABASE_URL to
-        # be present (it never connects). The real migrator credential is set
-        # only on the migration step below.
-        env:
-          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
-        run: npm ci --no-audit --no-fund
+        # --ignore-scripts skips the repo's postinstall build (npm run build
+        # invokes tsc, which has known pre-existing errors on master). The
+        # migrate job only needs the locked dependency graph and the Prisma
+        # CLI: `prisma migrate deploy` reads prisma/schema.prisma and applies
+        # pending migration files directly, and does not require the generated
+        # Prisma Client (no application code runs in this job).
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Apply pending migrations as migrator role
         env:
