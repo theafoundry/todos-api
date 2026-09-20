@@ -233,7 +233,7 @@ model McpAuthorizationCode {
   assistantName       String?   @map("assistant_name") @db.VarChar(100)
   resource            String?   @db.VarChar(1000)
   timezone            String?   @db.VarChar(100)
-  state               String?   @db.VarChar(200)
+  state               String?   @db.VarChar(4096)
   codeChallenge       String    @map("code_challenge") @db.VarChar(128)
   codeChallengeMethod String    @map("code_challenge_method") @db.VarChar(10)
   expiresAt           DateTime  @map("expires_at")
