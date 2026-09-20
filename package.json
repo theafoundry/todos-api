@@ -6,7 +6,7 @@
     "td": "./dist/cli/index.js"
   },
   "scripts": {
-    "start": "npx prisma migrate deploy && node dist/server.js",
+    "start": "node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "build": "npx prisma generate && tsc",
     "postinstall": "npm run build",
