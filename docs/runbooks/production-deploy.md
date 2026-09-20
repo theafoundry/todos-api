@@ -9,7 +9,11 @@ manually. Railway's GitHub-integration auto-deploy path is not used.
 1. Merge to `master`, then dispatch **Production release** from the Actions tab
    (workflow_dispatch only; there is no automatic trigger on merge yet).
 2. The `Production` GitHub environment requires **human approval** before any
-   job runs.
+   job runs. Note: both the migrate and deploy jobs declare
+   `environment: Production`, so GitHub may prompt for approval a second time
+   when the deploy job becomes eligible after a successful migration. That is
+   acceptable for the first rollout; it does not change what each job can
+   access.
 3. The **migrate** job checks out the exact `${{ github.sha }}` of the run and
    applies pending Prisma migrations as the `todos_api_migrator` role.
 4. The **deploy** job runs only if migration succeeded. It checks out the same
