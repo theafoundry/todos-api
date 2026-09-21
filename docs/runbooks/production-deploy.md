@@ -64,3 +64,23 @@ changes only after the code no longer depends on the old shape.
 A normal API restart/redeploy performs **no** migration attempt: `npm start`
 does not invoke Prisma. Verify after any restart that the migration history is
 unchanged and no migrate step ran (see Stage A verification notes).
+
+## Source-connection invariant (recorded 2026-09-21)
+
+- The Production Railway service (`satisfied-determination`, production
+  environment) has **no connected source repository**. The GitHub repository
+  connection was disconnected on 2026-09-21: the Stage B incident showed that a
+  variable upsert could trigger a rebuild from the stale `production` branch,
+  so the source relationship was removed rather than repointed. Staging and
+  UAT keep their own source connections; this invariant is Production-only.
+- Production code deployments occur **only** through the GitHub Actions
+  `Production release` workflow using `railway up` with the pinned
+  project/environment/service IDs. Merge/push alone never deploys Production.
+- Production variable changes must use `--skip-deploys` (or staged dashboard
+  changes) and then be activated through the controlled deployment path
+  (redeploy of a known upload-based deployment). A bare production variable
+  mutation that implicitly creates a deployment must not be used.
+- Do not reconnect a source repository to the Production service, and do not
+  reinstall the Railway GitHub App for production. If Railway ever requires a
+  connected source, prefer `master` with automatic deployment disabled -- and
+  treat that as a deliberate, reviewed change to this invariant.
