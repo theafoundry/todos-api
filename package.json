@@ -45,6 +45,19 @@
     "prisma:migrate:status": "npx prisma migrate status",
     "prisma:migrate:check": "npx prisma validate",
     "snapshot:mcp-app:phase2": "tsc && node scripts/generate-mcp-app-phase2-snapshot.mjs",
+    "snapshot:mcp-app:check": "tsc && node scripts/generate-mcp-app-phase2-snapshot.mjs --check",
+    "review:reset": "ts-node scripts/review/reset-review-account.ts",
+    "review:metadata": "npm run snapshot:mcp-app:check",
+    "review:portal-scan": "node scripts/review/compare-portal-scan.mjs",
+    "review:challenge": "node scripts/review/run-http-check.mjs challenge",
+    "review:discovery": "node scripts/review/run-http-check.mjs discovery",
+    "review:oauth": "node scripts/review/run-http-check.mjs oauth",
+    "review:userinfo": "node scripts/review/run-http-check.mjs userinfo",
+    "review:policies": "node scripts/review/run-http-check.mjs policies",
+    "review:widget": "node scripts/review/run-http-check.mjs widget",
+    "review:accessibility": "playwright test tests/ui/today-plan-widget.spec.ts",
+    "review:security": "npm run test:mcp && npm run audit:prod",
+    "review:acceptance": "node scripts/review/acceptance.mjs",
     "prisma:studio": "npx prisma studio",
     "prisma:reset": "npx prisma migrate reset",
     "docker:up": "docker compose up -d postgres",
@@ -95,11 +108,11 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.4.1",
+    "express-rate-limit": "^8.6.2",
     "google-auth-library": "^10.6.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^9.0.5",
     "picocolors": "^1.1.1",
     "prisma": "^7.8.0",
     "swagger-jsdoc": "^6.2.8",
@@ -132,10 +145,19 @@
     "ts-node": "^10.9.2"
   },
   "overrides": {
-    "axios": "^1.15.0",
+    "@hono/node-server": "2.1.0",
+    "axios": "1.19.0",
+    "body-parser": "2.3.0",
+    "brace-expansion": "5.0.9",
     "effect": "^3.21.0",
+    "fast-uri": "4.1.2",
+    "hono": "4.13.1",
+    "ip-address": "10.5.0",
+    "js-yaml": "5.2.3",
+    "qs": "6.15.3",
     "swagger-jsdoc": {
       "glob": "^11.0.0"
-    }
+    },
+    "valibot": "1.4.2"
   }
 }

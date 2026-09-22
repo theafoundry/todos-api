@@ -559,19 +559,20 @@ The canonical schema is in `prisma/schema.prisma` and includes auth/user tables,
 
 ## Environment Variables
 
-| Variable                 | Description                               | Default                                                    |
-| ------------------------ | ----------------------------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`           | PostgreSQL connection for dev/prod        | `postgresql://postgres:postgres@localhost:5432/todos_dev`  |
-| `DATABASE_URL_TEST`      | PostgreSQL connection for tests           | `postgresql://postgres:postgres@localhost:5432/todos_test` |
-| `PORT`                   | Server port                               | `3000`                                                     |
-| `NODE_ENV`               | Environment (development/test/production) | `development`                                              |
-| `EMAIL_FEATURES_ENABLED` | Enable verification/reset email delivery  | `true`                                                     |
-| `BASE_URL`               | Public app/API base URL                   | `http://localhost:3000`                                    |
-| `REQUEST_BODY_LIMIT`     | JSON body size limit                      | `256kb`                                                    |
-| `FORM_BODY_LIMIT`        | Form body size limit                      | `64kb`                                                     |
-| `REQUEST_TIMEOUT_MS`     | Node request timeout                      | `30000`                                                    |
-| `HEADERS_TIMEOUT_MS`     | Node headers timeout                      | `35000`                                                    |
-| `KEEP_ALIVE_TIMEOUT_MS`  | Node keep-alive timeout                   | `5000`                                                     |
+| Variable                    | Description                                               | Default                                                    |
+| --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`              | PostgreSQL connection for dev/prod                        | `postgresql://postgres:postgres@localhost:5432/todos_dev`  |
+| `DATABASE_URL_TEST`         | PostgreSQL connection for tests                           | `postgresql://postgres:postgres@localhost:5432/todos_test` |
+| `PORT`                      | Server port                                               | `3000`                                                     |
+| `NODE_ENV`                  | Environment (development/test/production)                 | `development`                                              |
+| `EMAIL_FEATURES_ENABLED`    | Enable verification/reset email delivery                  | `true`                                                     |
+| `BASE_URL`                  | Public app/API base URL                                   | `http://localhost:3000`                                    |
+| `DOMAIN_VERIFICATION_TOKEN` | Hosted app-review domain challenge token; unset elsewhere | —                                                          |
+| `REQUEST_BODY_LIMIT`        | JSON body size limit                                      | `256kb`                                                    |
+| `FORM_BODY_LIMIT`           | Form body size limit                                      | `64kb`                                                     |
+| `REQUEST_TIMEOUT_MS`        | Node request timeout                                      | `30000`                                                    |
+| `HEADERS_TIMEOUT_MS`        | Node headers timeout                                      | `35000`                                                    |
+| `KEEP_ALIVE_TIMEOUT_MS`     | Node keep-alive timeout                                   | `5000`                                                     |
 
 ## Deployment
 

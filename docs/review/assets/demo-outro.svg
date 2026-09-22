@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f5f3ee"/>
+  <rect x="72" y="72" width="1136" height="576" rx="32" fill="#fff" stroke="#d8d5cc"/>
+  <text x="128" y="164" fill="#1f6b57" font-family="Arial, sans-serif" font-size="28" font-weight="700">TODOS</text>
+  <text x="128" y="248" fill="#202825" font-family="Arial, sans-serif" font-size="52" font-weight="700">Focused daily planning in ChatGPT</text>
+  <text x="128" y="332" fill="#4d5955" font-family="Arial, sans-serif" font-size="27">OAuth · OIDC · Six scoped tools · Interactive component</text>
+  <text x="128" y="430" fill="#202825" font-family="Arial, sans-serif" font-size="25">todos.theafoundry.com</text>
+  <text x="128" y="478" fill="#202825" font-family="Arial, sans-serif" font-size="25">todos.theafoundry.com/privacy</text>
+  <text x="128" y="526" fill="#202825" font-family="Arial, sans-serif" font-size="25">todos.theafoundry.com/support</text>
+  <text x="128" y="592" fill="#7a2922" font-family="Arial, sans-serif" font-size="21" font-weight="700">Reviewer demo · synthetic task data only</text>
+</svg>

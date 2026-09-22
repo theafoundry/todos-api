@@ -343,6 +343,7 @@ describe("Public MCP OAuth and discovery routes", () => {
       "oauth-verifier-public-flow-1111111111111111111111111111111",
     );
     const scope = "tasks.read tasks.write";
+    const state = `openai_platform_oauth_relay__${"a".repeat(512)}`;
     const agent = request.agent(app);
 
     const authorizeUrl = `/oauth/authorize?client_id=${encodeURIComponent(
@@ -351,7 +352,7 @@ describe("Public MCP OAuth and discovery routes", () => {
       "https://chat.openai.com/aip/callback",
     )}&response_type=code&scope=${encodeURIComponent(
       scope,
-    )}&state=state-123&code_challenge=${encodeURIComponent(
+    )}&state=${encodeURIComponent(state)}&code_challenge=${encodeURIComponent(
       pkce.challenge,
     )}&code_challenge_method=S256`;
 
@@ -374,7 +375,7 @@ describe("Public MCP OAuth and discovery routes", () => {
         redirect_uri: "https://chat.openai.com/aip/callback",
         response_type: "code",
         scope,
-        state: "state-123",
+        state,
         code_challenge: pkce.challenge,
         code_challenge_method: "S256",
       })
@@ -402,7 +403,7 @@ describe("Public MCP OAuth and discovery routes", () => {
         redirect_uri: "https://chat.openai.com/aip/callback",
         response_type: "code",
         scope,
-        state: "state-123",
+        state,
         code_challenge: pkce.challenge,
         code_challenge_method: "S256",
       })
@@ -419,7 +420,7 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(redirectUrl.origin + redirectUrl.pathname).toBe(
       "https://chat.openai.com/aip/callback",
     );
-    expect(redirectUrl.searchParams.get("state")).toBe("state-123");
+    expect(redirectUrl.searchParams.get("state")).toBe(state);
     expect(code).toEqual(expect.any(String));
 
     const token = await request(app)
@@ -441,6 +442,65 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(token.body.refresh_token).toEqual(expect.any(String));
     expect(token.body.refresh_token_expires_at).toEqual(expect.any(String));
     expect(token.body.refresh_token_expires_in).toBe(2592000);
+  });
+
+  it("preserves state and creates no authorization code when consent is cancelled", async () => {
+    const register = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "ChatGPT",
+      })
+      .expect(201);
+    const pkce = createPkcePair(
+      "oauth-verifier-cancel-flow-1111111111111111111111111111111",
+    );
+    const agent = request.agent(app);
+    const authorizeUrl = `/oauth/authorize?client_id=${encodeURIComponent(
+      register.body.client_id,
+    )}&redirect_uri=${encodeURIComponent(
+      "https://chat.openai.com/aip/callback",
+    )}&response_type=code&scope=tasks.read&state=cancel-state&code_challenge=${encodeURIComponent(
+      pkce.challenge,
+    )}&code_challenge_method=S256`;
+
+    await agent.get(authorizeUrl).expect(200);
+    const login = await agent
+      .post("/oauth/authorize/login")
+      .type("form")
+      .send({
+        email: "user-1@example.com",
+        password: "password123",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope: "tasks.read",
+        state: "cancel-state",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+      })
+      .expect(303);
+    await agent.get(login.headers.location).expect(200);
+
+    const cancelled = await agent
+      .post("/oauth/authorize/decision")
+      .type("form")
+      .send({
+        decision: "deny",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope: "tasks.read",
+        state: "cancel-state",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+      })
+      .expect(303);
+
+    const redirect = new URL(cancelled.headers.location);
+    expect(redirect.searchParams.get("error")).toBe("access_denied");
+    expect(redirect.searchParams.get("state")).toBe("cancel-state");
+    expect(redirect.searchParams.has("code")).toBe(false);
   });
 
   it("preserves OIDC identity scopes through code exchange and refresh rotation", async () => {

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f5f3ee"/>
+  <text x="72" y="70" fill="#1f6b57" font-family="Arial, sans-serif" font-size="24" font-weight="700">INTERACTIVE TODAY PLAN</text>
+  <text x="72" y="154" fill="#64716c" font-family="Arial, sans-serif" font-size="21">render_today_plan</text>
+  <text x="72" y="204" fill="#202825" font-family="Arial, sans-serif" font-size="32" font-weight="700">Authoritative task data</text>
+  <text x="72" y="254" fill="#4d5955" font-family="Arial, sans-serif" font-size="23">Available, planned, and</text>
+  <text x="72" y="288" fill="#4d5955" font-family="Arial, sans-serif" font-size="23">remaining time at a glance.</text>
+  <rect x="72" y="346" width="432" height="76" rx="18" fill="#ffffff" stroke="#d8d5cc"/>
+  <text x="104" y="378" fill="#1f6b57" font-family="Arial, sans-serif" font-size="19" font-weight="700">COMPLETE</text>
+  <text x="104" y="405" fill="#4d5955" font-family="Arial, sans-serif" font-size="19">Exact task ID, then reconcile</text>
+  <rect x="72" y="438" width="432" height="76" rx="18" fill="#ffffff" stroke="#d8d5cc"/>
+  <text x="104" y="470" fill="#1f6b57" font-family="Arial, sans-serif" font-size="19" font-weight="700">RESCHEDULE</text>
+  <text x="104" y="497" fill="#4d5955" font-family="Arial, sans-serif" font-size="19">Tomorrow or an explicit date</text>
+  <rect x="72" y="530" width="432" height="76" rx="18" fill="#ffffff" stroke="#d8d5cc"/>
+  <text x="104" y="562" fill="#1f6b57" font-family="Arial, sans-serif" font-size="19" font-weight="700">RESPONSIVE</text>
+  <text x="104" y="589" fill="#4d5955" font-family="Arial, sans-serif" font-size="19">ChatGPT web and mobile</text>
+  <rect x="606" y="32" width="570" height="656" rx="24" fill="#ffffff" stroke="#d8d5cc"/>
+  <image x="620" y="42" width="542" height="655" preserveAspectRatio="xMidYMid meet" xlink:href="../../../plugins/todos/assets/screenshot-today-plan.png"/>
+  <text x="502" y="686" text-anchor="end" fill="#7a827f" font-family="Arial, sans-serif" font-size="17">Synthetic reviewer fixture</text>
+</svg>

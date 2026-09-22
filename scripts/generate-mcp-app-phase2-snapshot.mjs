@@ -36,5 +36,18 @@ const outputPath = path.join(
 const formattedSnapshot = await format(JSON.stringify(snapshot), {
   parser: "json",
 });
-fs.writeFileSync(outputPath, formattedSnapshot, "utf8");
-console.info(path.relative(repoRoot, outputPath));
+const relativeOutputPath = path.relative(repoRoot, outputPath);
+
+if (process.argv.includes("--check")) {
+  const committedSnapshot = fs.readFileSync(outputPath, "utf8");
+  if (committedSnapshot !== formattedSnapshot) {
+    console.error(
+      `${relativeOutputPath} does not match generated MCP app metadata. Run npm run snapshot:mcp-app:phase2 and review the contract change.`,
+    );
+    process.exit(1);
+  }
+  console.info(`${relativeOutputPath} matches generated metadata.`);
+} else {
+  fs.writeFileSync(outputPath, formattedSnapshot, "utf8");
+  console.info(relativeOutputPath);
+}
