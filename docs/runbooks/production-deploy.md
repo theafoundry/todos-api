@@ -1,5 +1,9 @@
 # Production deploy runbook
 
+The verified Railway-to-self-hosted-Postgres migration and credential-rotation
+record is in
+[`../ops/production-migration-closeout-2026-09-29.md`](../ops/production-migration-closeout-2026-09-29.md).
+
 Production deploys go through **one** mechanism: the `Production release`
 GitHub Actions workflow (`.github/workflows/deploy-production.yml`), dispatched
 manually. Railway's GitHub-integration auto-deploy path is not used.

@@ -5,12 +5,18 @@ on:
     - cron: "0 4 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
+env:
+  NODE_VERSION: "22"
+  # Required for Prisma generation during npm ci; evals use isolated in-memory data.
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:1/todos_ci_codegen?schema=public
+
 jobs:
   harness:
     runs-on: ubuntu-latest
-    env:
-      # Required for Prisma generation during npm ci; evals use isolated in-memory data.
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:1/todos_ci_codegen?schema=public
 
     steps:
       - name: Checkout
@@ -19,7 +25,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -45,4 +51,6 @@ jobs:
 
       - name: Notify harness regression
         if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/harness/issue-alert.mjs
