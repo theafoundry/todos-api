@@ -688,7 +688,7 @@ CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
 ### Test Database Strategy
 
 - **Isolation:** Separate `todos_test` database
-- **Setup:** `prisma migrate reset --force --skip-seed` before integration tests
+- **Setup:** `prisma migrate reset --force` before integration tests; Prisma 7 does not run seeding or client generation during reset
 - **Safety guards:**
   - Refuses URLs without "test" in name
   - Refuses non-local hosts (unless `ALLOW_REMOTE_TEST_DB=true`)

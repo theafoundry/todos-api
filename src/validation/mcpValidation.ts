@@ -13,7 +13,10 @@ import { getMcpAppResource } from "../mcp/appContract";
 
 const MAX_ASSISTANT_NAME_LENGTH = 100;
 const MAX_CLIENT_ID_LENGTH = 5000;
-const MAX_STATE_LENGTH = 200;
+// OAuth state is opaque client data. OpenAI's portal relay currently encodes
+// signed routing context into this value, so allow a bounded URL-safe payload
+// while still rejecting unreasonably large authorization requests.
+const MAX_STATE_LENGTH = 4096;
 const MAX_CLIENT_NAME_LENGTH = 120;
 const PKCE_MIN_LENGTH = 43;
 const PKCE_MAX_LENGTH = 128;

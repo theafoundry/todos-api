@@ -1,4 +1,25 @@
 import { PrismaTodoService } from "./services/prismaTodoService";
+import { mapError } from "./errorHandling";
+
+function adapterInputError(dataType: string) {
+  return {
+    code: "P2007",
+    meta: {
+      driverAdapterError: {
+        cause: {
+          originalCode: "22P02",
+          kind: "InvalidInputValue",
+          message: `invalid input syntax for type ${dataType}: "bad-id"`,
+        },
+      },
+    },
+  };
+}
+
+const invalidUuidErrors = [
+  { source: "legacy Prisma", error: { code: "P2023" } },
+  { source: "Prisma 7 PostgreSQL adapter", error: adapterInputError("uuid") },
+];
 
 describe("PrismaTodoService error handling", () => {
   function createService(todoOverrides: Partial<any>) {
@@ -22,13 +43,16 @@ describe("PrismaTodoService error handling", () => {
     return new PrismaTodoService(prisma);
   }
 
-  it("findById should return null for invalid UUID errors", async () => {
-    const service = createService({
-      findFirst: jest.fn().mockRejectedValue({ code: "P2023" }),
-    });
+  it.each(invalidUuidErrors)(
+    "findById should return null for invalid UUID errors from $source",
+    async ({ error }) => {
+      const service = createService({
+        findFirst: jest.fn().mockRejectedValue(error),
+      });
 
-    await expect(service.findById("user-1", "bad-id")).resolves.toBeNull();
-  });
+      await expect(service.findById("user-1", "bad-id")).resolves.toBeNull();
+    },
+  );
 
   it("findById should rethrow unknown errors", async () => {
     const service = createService({
@@ -40,15 +64,18 @@ describe("PrismaTodoService error handling", () => {
     );
   });
 
-  it("update should return null for expected Prisma not-found/invalid-id errors", async () => {
-    const service = createService({
-      updateMany: jest.fn().mockRejectedValue({ code: "P2023" }),
-    });
+  it.each(invalidUuidErrors)(
+    "update should return null for invalid UUID errors from $source",
+    async ({ error }) => {
+      const service = createService({
+        findFirst: jest.fn().mockRejectedValue(error),
+      });
 
-    await expect(
-      service.update("user-1", "bad-id", { title: "x" }),
-    ).resolves.toBeNull();
-  });
+      await expect(
+        service.update("user-1", "bad-id", { title: "x" }),
+      ).resolves.toBeNull();
+    },
+  );
 
   it("update should rethrow unknown errors", async () => {
     const service = createService({
@@ -60,12 +87,41 @@ describe("PrismaTodoService error handling", () => {
     ).rejects.toThrow("database unavailable");
   });
 
-  it("delete should return false for expected Prisma not-found/invalid-id errors", async () => {
-    const service = createService({
-      deleteMany: jest.fn().mockRejectedValue({ code: "P2023" }),
-    });
+  it.each(invalidUuidErrors)(
+    "delete should return false for invalid UUID errors from $source",
+    async ({ error }) => {
+      const service = createService({
+        deleteMany: jest.fn().mockRejectedValue(error),
+      });
 
-    await expect(service.delete("user-1", "bad-id")).resolves.toBe(false);
+      await expect(service.delete("user-1", "bad-id")).resolves.toBe(false);
+    },
+  );
+
+  it("should preserve other P2007 input errors", async () => {
+    for (const error of [{ code: "P2007" }, adapterInputError("integer")]) {
+      const service = createService({
+        findFirst: jest.fn().mockRejectedValue(error),
+        deleteMany: jest.fn().mockRejectedValue(error),
+      });
+
+      await expect(service.findById("user-1", "todo-1")).rejects.toBe(error);
+      await expect(
+        service.update("user-1", "todo-1", { title: "x" }),
+      ).rejects.toBe(error);
+      await expect(service.delete("user-1", "todo-1")).rejects.toBe(error);
+    }
+  });
+
+  it("maps adapter UUID errors to invalid ID format without masking other input errors", () => {
+    expect(mapError(adapterInputError("uuid"))).toMatchObject({
+      status: 400,
+      message: "Invalid ID format",
+    });
+    expect(mapError(adapterInputError("integer"))).toMatchObject({
+      status: 500,
+      message: "Internal server error",
+    });
   });
 
   it("delete should rethrow unknown errors", async () => {

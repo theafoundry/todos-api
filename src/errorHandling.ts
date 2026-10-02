@@ -3,6 +3,13 @@ import { ValidationError } from "./validation/validation";
 import { AppError } from "./domains/tasks/domainErrors";
 
 type ErrorCodeCarrier = { code?: unknown };
+type DriverErrorCarrier = {
+  meta?: {
+    driverAdapterError?: {
+      cause?: { originalCode?: unknown; kind?: unknown; message?: unknown };
+    };
+  };
+};
 
 export class HttpError extends Error {
   status: number;
@@ -19,6 +26,21 @@ export function hasPrismaCode(error: unknown, codes: string[]): boolean {
   }
   const code = (error as ErrorCodeCarrier).code;
   return typeof code === "string" && codes.includes(code);
+}
+
+export function isPrismaInvalidUuidError(error: unknown): boolean {
+  if (hasPrismaCode(error, ["P2023"])) return true;
+  if (!hasPrismaCode(error, ["P2007"])) return false;
+
+  // Prisma 7's PostgreSQL adapter reports malformed UUID filters as P2007.
+  // Other invalid input values must retain their original error behavior.
+  const cause = (error as DriverErrorCarrier).meta?.driverAdapterError?.cause;
+  return (
+    cause?.originalCode === "22P02" &&
+    cause.kind === "InvalidInputValue" &&
+    typeof cause.message === "string" &&
+    cause.message.startsWith("invalid input syntax for type uuid:")
+  );
 }
 
 export function mapError(error: unknown): HttpError {
@@ -79,7 +101,7 @@ export function mapError(error: unknown): HttpError {
     }
   }
 
-  if (hasPrismaCode(error, ["P2023"])) {
+  if (isPrismaInvalidUuidError(error)) {
     return new HttpError(400, "Invalid ID format");
   }
   if (hasPrismaCode(error, ["P2025"])) {

@@ -3,10 +3,12 @@ import { TODAY_PLAN_RESOURCE_URI } from "./appContract";
 
 export const TODAY_PLAN_RESOURCE_MIME_TYPE =
   "text/html;profile=mcp-app" as const;
+export const TODAY_PLAN_WIDGET_DOMAIN = "https://todos.theafoundry.com";
 
 export const TODAY_PLAN_RESOURCE_META = {
   ui: {
     prefersBorder: true,
+    domain: TODAY_PLAN_WIDGET_DOMAIN,
     csp: {
       connectDomains: [],
       resourceDomains: [],

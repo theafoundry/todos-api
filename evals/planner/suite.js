@@ -142,6 +142,7 @@ module.exports = {
       async run() {
         const emptyProject = makeProject("project-1", "Admin");
         const blockedProject = makeProject("project-2", "Launch");
+        const now = Date.now();
         const { plannerService, todoService } = createPlannerHarness([
           emptyProject,
           blockedProject,
@@ -153,9 +154,9 @@ module.exports = {
           category: blockedProject.name,
           status: "waiting",
           waitingOn: "legal approval",
-          dueDate: new Date("2026-03-14T12:00:00.000Z"),
+          dueDate: new Date(now + 2 * 24 * 60 * 60 * 1000),
         });
-        waitingTask.updatedAt = new Date("2026-01-01T12:00:00.000Z");
+        waitingTask.updatedAt = new Date(now - 60 * 24 * 60 * 60 * 1000);
 
         const result = await plannerService.weeklyReview({
           userId: USER_ID,

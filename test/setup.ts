@@ -66,8 +66,8 @@ export default async function globalSetup() {
   }
 
   try {
-    // Reset and apply migrations for deterministic test schema.
-    execSync("npx prisma migrate reset --force --skip-seed --skip-generate", {
+    // Prisma 7 resets and applies migrations without running seed or generation.
+    execSync("npx prisma migrate reset --force", {
       stdio: "inherit",
       env: {
         ...process.env,

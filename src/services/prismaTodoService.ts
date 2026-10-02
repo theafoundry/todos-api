@@ -17,7 +17,7 @@ import {
   TodoSortBy,
   SortOrder,
 } from "../types";
-import { hasPrismaCode } from "../errorHandling";
+import { hasPrismaCode, isPrismaInvalidUuidError } from "../errorHandling";
 import {
   reconcileStatusAndCompletion,
   isValidTransition,
@@ -513,7 +513,7 @@ export class PrismaTodoService implements ITodoService {
       return todo ? this.mapPrismaToTodo(todo) : null;
     } catch (error: unknown) {
       // Invalid UUID in id filter.
-      if (hasPrismaCode(error, ["P2023"])) {
+      if (isPrismaInvalidUuidError(error)) {
         return null;
       }
       throw error;
@@ -726,7 +726,7 @@ export class PrismaTodoService implements ITodoService {
 
       return todo ? this.mapPrismaToTodo(todo) : null;
     } catch (error: unknown) {
-      if (hasPrismaCode(error, ["P2023"])) return null;
+      if (isPrismaInvalidUuidError(error)) return null;
       if (
         error instanceof Error &&
         error.message === PrismaTodoService.INVALID_HEADING_ERROR
@@ -745,7 +745,7 @@ export class PrismaTodoService implements ITodoService {
       return result.count === 1;
     } catch (error: unknown) {
       // Invalid UUID format.
-      if (hasPrismaCode(error, ["P2023"])) {
+      if (isPrismaInvalidUuidError(error)) {
         return false;
       }
       throw error;
@@ -855,7 +855,7 @@ export class PrismaTodoService implements ITodoService {
       ) {
         return null;
       }
-      if (hasPrismaCode(error, ["P2023"])) {
+      if (isPrismaInvalidUuidError(error)) {
         return null;
       }
       throw error;
@@ -880,7 +880,7 @@ export class PrismaTodoService implements ITodoService {
       });
       return subtasks.map((subtask) => this.mapPrismaToSubtask(subtask));
     } catch (error: unknown) {
-      if (hasPrismaCode(error, ["P2023"])) {
+      if (isPrismaInvalidUuidError(error)) {
         return null;
       }
       throw error;
@@ -926,7 +926,7 @@ export class PrismaTodoService implements ITodoService {
 
       return subtask ? this.mapPrismaToSubtask(subtask) : null;
     } catch (error: unknown) {
-      if (hasPrismaCode(error, ["P2023"])) {
+      if (isPrismaInvalidUuidError(error)) {
         return null;
       }
       throw error;
@@ -1028,7 +1028,7 @@ export class PrismaTodoService implements ITodoService {
 
       return updatedSubtask ? this.mapPrismaToSubtask(updatedSubtask) : null;
     } catch (error: unknown) {
-      if (hasPrismaCode(error, ["P2023", "P2025"])) {
+      if (isPrismaInvalidUuidError(error) || hasPrismaCode(error, ["P2025"])) {
         return null;
       }
       throw error;
@@ -1053,7 +1053,7 @@ export class PrismaTodoService implements ITodoService {
       });
       return deleted.count === 1;
     } catch (error: unknown) {
-      if (hasPrismaCode(error, ["P2023", "P2025"])) {
+      if (isPrismaInvalidUuidError(error) || hasPrismaCode(error, ["P2025"])) {
         return false;
       }
       throw error;

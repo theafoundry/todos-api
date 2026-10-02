@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f5f3ee"/>
+  <rect x="72" y="72" width="1136" height="576" rx="32" fill="#fff" stroke="#d8d5cc"/>
+  <text x="128" y="154" fill="#1f6b57" font-family="Arial, sans-serif" font-size="28" font-weight="700">TODOS</text>
+  <text x="128" y="252" fill="#202825" font-family="Arial, sans-serif" font-size="64" font-weight="700">Plan and manage daily tasks</text>
+  <text x="128" y="316" fill="#4d5955" font-family="Arial, sans-serif" font-size="30">A ChatGPT plugin by Thea Foundry LLC</text>
+  <rect x="128" y="392" width="252" height="54" rx="27" fill="#e1f0ea"/>
+  <text x="254" y="428" text-anchor="middle" fill="#1f6b57" font-family="Arial, sans-serif" font-size="22" font-weight="700">6 focused tools</text>
+  <rect x="400" y="392" width="300" height="54" rx="27" fill="#eceae4"/>
+  <text x="550" y="428" text-anchor="middle" fill="#36413d" font-family="Arial, sans-serif" font-size="22" font-weight="700">OAuth + OIDC</text>
+  <rect x="720" y="392" width="360" height="54" rx="27" fill="#eceae4"/>
+  <text x="900" y="428" text-anchor="middle" fill="#36413d" font-family="Arial, sans-serif" font-size="22" font-weight="700">Interactive Today Plan</text>
+  <text x="128" y="554" fill="#7a2922" font-family="Arial, sans-serif" font-size="22" font-weight="700">Reviewer demo · synthetic task data only</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f7f7f5"/>
+  <text x="72" y="70" fill="#1f6b57" font-family="Arial, sans-serif" font-size="24" font-weight="700">SAFE CONVERSATIONAL ACTIONS</text>
+  <rect x="72" y="108" width="1136" height="142" rx="24" fill="#ffffff" stroke="#dce2df"/>
+  <text x="104" y="148" fill="#64716c" font-family="Arial, sans-serif" font-size="20">capture_task</text>
+  <text x="104" y="190" fill="#202825" font-family="Arial, sans-serif" font-size="26" font-weight="700">“Add send reviewer follow-up tomorrow.”</text>
+  <text x="104" y="224" fill="#1f6b57" font-family="Arial, sans-serif" font-size="21">Captured once with the requested due date.</text>
+  <rect x="72" y="274" width="1136" height="142" rx="24" fill="#ffffff" stroke="#dce2df"/>
+  <text x="104" y="314" fill="#64716c" font-family="Arial, sans-serif" font-size="20">complete_task</text>
+  <text x="104" y="356" fill="#202825" font-family="Arial, sans-serif" font-size="26" font-weight="700">“Mark Review launch checklist complete.”</text>
+  <text x="104" y="390" fill="#1f6b57" font-family="Arial, sans-serif" font-size="21">Completed with the exact task ID and reconciled state.</text>
+  <rect x="72" y="440" width="1136" height="142" rx="24" fill="#ffffff" stroke="#dce2df"/>
+  <text x="104" y="480" fill="#64716c" font-family="Arial, sans-serif" font-size="20">reschedule_task</text>
+  <text x="104" y="522" fill="#202825" font-family="Arial, sans-serif" font-size="26" font-weight="700">“Move Draft release notes to tomorrow at 9.”</text>
+  <text x="104" y="556" fill="#1f6b57" font-family="Arial, sans-serif" font-size="21">Rescheduled with timezone-aware date and time.</text>
+  <rect x="72" y="614" width="520" height="48" rx="12" fill="#e1f0ea"/>
+  <text x="332" y="645" text-anchor="middle" fill="#1f6b57" font-family="Arial, sans-serif" font-size="20" font-weight="700">Every mutation returns authoritative state</text>
+  <text x="1188" y="686" text-anchor="end" fill="#7a827f" font-family="Arial, sans-serif" font-size="17">Synthetic reviewer fixture</text>
+</svg>

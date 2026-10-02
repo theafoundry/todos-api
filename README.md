@@ -289,7 +289,7 @@ Integration test DB behavior:
 - If `TEST_DATABASE_URL` or `DATABASE_URL_TEST` is set, integration tests use that URL.
 - If neither is set, integration tests default to:
   - `postgresql://postgres:postgres@localhost:5432/todos_test?schema=public`
-- The test bootstrap runs `prisma migrate reset --force --skip-seed --skip-generate` for a deterministic schema.
+- The test bootstrap runs `prisma migrate reset --force` for a deterministic schema. Prisma 7 does not run seeding or client generation during reset.
 - Safety guardrails:
   - Refuses URLs that do not look like a test database.
   - Refuses non-local DB hosts by default (`localhost`, `127.0.0.1`, `::1` only).
@@ -559,19 +559,20 @@ The canonical schema is in `prisma/schema.prisma` and includes auth/user tables,
 
 ## Environment Variables
 
-| Variable                 | Description                               | Default                                                    |
-| ------------------------ | ----------------------------------------- | ---------------------------------------------------------- |
-| `DATABASE_URL`           | PostgreSQL connection for dev/prod        | `postgresql://postgres:postgres@localhost:5432/todos_dev`  |
-| `DATABASE_URL_TEST`      | PostgreSQL connection for tests           | `postgresql://postgres:postgres@localhost:5432/todos_test` |
-| `PORT`                   | Server port                               | `3000`                                                     |
-| `NODE_ENV`               | Environment (development/test/production) | `development`                                              |
-| `EMAIL_FEATURES_ENABLED` | Enable verification/reset email delivery  | `true`                                                     |
-| `BASE_URL`               | Public app/API base URL                   | `http://localhost:3000`                                    |
-| `REQUEST_BODY_LIMIT`     | JSON body size limit                      | `256kb`                                                    |
-| `FORM_BODY_LIMIT`        | Form body size limit                      | `64kb`                                                     |
-| `REQUEST_TIMEOUT_MS`     | Node request timeout                      | `30000`                                                    |
-| `HEADERS_TIMEOUT_MS`     | Node headers timeout                      | `35000`                                                    |
-| `KEEP_ALIVE_TIMEOUT_MS`  | Node keep-alive timeout                   | `5000`                                                     |
+| Variable                    | Description                                               | Default                                                    |
+| --------------------------- | --------------------------------------------------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`              | PostgreSQL connection for dev/prod                        | `postgresql://postgres:postgres@localhost:5432/todos_dev`  |
+| `DATABASE_URL_TEST`         | PostgreSQL connection for tests                           | `postgresql://postgres:postgres@localhost:5432/todos_test` |
+| `PORT`                      | Server port                                               | `3000`                                                     |
+| `NODE_ENV`                  | Environment (development/test/production)                 | `development`                                              |
+| `EMAIL_FEATURES_ENABLED`    | Enable verification/reset email delivery                  | `true`                                                     |
+| `BASE_URL`                  | Public app/API base URL                                   | `http://localhost:3000`                                    |
+| `DOMAIN_VERIFICATION_TOKEN` | Hosted app-review domain challenge token; unset elsewhere | —                                                          |
+| `REQUEST_BODY_LIMIT`        | JSON body size limit                                      | `256kb`                                                    |
+| `FORM_BODY_LIMIT`           | Form body size limit                                      | `64kb`                                                     |
+| `REQUEST_TIMEOUT_MS`        | Node request timeout                                      | `30000`                                                    |
+| `HEADERS_TIMEOUT_MS`        | Node headers timeout                                      | `35000`                                                    |
+| `KEEP_ALIVE_TIMEOUT_MS`     | Node keep-alive timeout                                   | `5000`                                                     |
 
 ## Deployment
 

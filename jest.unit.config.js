@@ -5,6 +5,7 @@ module.exports = {
   roots: ["<rootDir>/src", "<rootDir>/tests/eval"],
   testMatch: [
     "**/src/app.test.ts",
+    "**/src/staticPagesRouter.test.ts",
     "**/src/authValidation.test.ts",
     "**/src/todoService.test.ts",
     "**/src/validation.test.ts",

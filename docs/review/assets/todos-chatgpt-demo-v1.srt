@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:08,000
+Todos turns your own tasks into a focused daily plan on ChatGPT web and mobile.
+
+2
+00:00:08,000 --> 00:00:23,000
+Todos lists today's tasks, then creates a deterministic plan from an explicit time budget and energy level.
+
+3
+00:00:23,000 --> 00:00:38,000
+The Today Plan component renders authoritative task data with completion and rescheduling actions.
+
+4
+00:00:38,000 --> 00:00:54,000
+Capture, complete, and reschedule actions use exact identifiers, timezone-aware dates, and authoritative server state.
+
+5
+00:00:54,000 --> 00:01:05,000
+Deletion is not an exposed tool, so ChatGPT declines the request and no task is changed.
+
+6
+00:01:05,000 --> 00:01:20,000
+Six focused tools use resource-bound OAuth and treat task content as data. This demo uses synthetic reviewer fixtures.

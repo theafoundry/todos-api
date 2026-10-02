@@ -21,6 +21,7 @@ import {
   TODAY_PLAN_RESOURCE_DESCRIPTOR,
   TODAY_PLAN_RESOURCE_META,
   TODAY_PLAN_RESOURCE_MIME_TYPE,
+  TODAY_PLAN_WIDGET_DOMAIN,
 } from "./mcp/todayPlanResource";
 import { AuthService } from "./services/authService";
 import { TodoService } from "./services/todoService";
@@ -131,6 +132,8 @@ describe("ChatGPT-native MCP app profile", () => {
         }),
       }),
     ]);
+    expect(TODAY_PLAN_RESOURCE_META.ui.domain).toBe(TODAY_PLAN_WIDGET_DOMAIN);
+    expect(TODAY_PLAN_WIDGET_DOMAIN).toBe("https://todos.theafoundry.com");
   });
 
   test("every advertised output schema accepts the shared tool error contract", () => {
@@ -637,6 +640,7 @@ describe("ChatGPT-native MCP app profile", () => {
     expect(resource._meta).toEqual({
       ui: {
         prefersBorder: true,
+        domain: TODAY_PLAN_WIDGET_DOMAIN,
         csp: { connectDomains: [], resourceDomains: [] },
       },
     });

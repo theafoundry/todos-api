@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f7f7f5"/>
+  <text x="72" y="70" fill="#1f6b57" font-family="Arial, sans-serif" font-size="24" font-weight="700">CHATGPT + TODOS</text>
+  <rect x="548" y="104" width="660" height="94" rx="34" fill="#e6eef8"/>
+  <text x="588" y="143" fill="#202825" font-family="Arial, sans-serif" font-size="24">Plan my day. I have two hours</text>
+  <text x="588" y="176" fill="#202825" font-family="Arial, sans-serif" font-size="24">and medium energy.</text>
+  <text x="92" y="254" fill="#64716c" font-family="Arial, sans-serif" font-size="21">Called list_today, then plan_today</text>
+  <text x="92" y="316" fill="#202825" font-family="Arial, sans-serif" font-size="29" font-weight="700">Here is your focused two-hour plan:</text>
+  <text x="112" y="378" fill="#202825" font-family="Arial, sans-serif" font-size="25"><tspan font-weight="700">1. Review launch checklist</tspan><tspan> — 30 min</tspan></text>
+  <text x="112" y="428" fill="#202825" font-family="Arial, sans-serif" font-size="25"><tspan font-weight="700">2. Draft release notes</tspan><tspan> — 30 min</tspan></text>
+  <text x="112" y="478" fill="#202825" font-family="Arial, sans-serif" font-size="25"><tspan font-weight="700">3. Confirm rollout owner</tspan><tspan> — 30 min</tspan></text>
+  <text x="92" y="548" fill="#4d5955" font-family="Arial, sans-serif" font-size="24">90 minutes planned · 30 minutes remaining</text>
+  <rect x="92" y="590" width="310" height="54" rx="12" fill="#1f6b57"/>
+  <text x="247" y="625" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="22" font-weight="700">Show Today Plan</text>
+  <text x="1188" y="686" text-anchor="end" fill="#7a827f" font-family="Arial, sans-serif" font-size="17">Synthetic reviewer fixture</text>
+</svg>

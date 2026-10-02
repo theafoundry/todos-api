@@ -289,4 +289,62 @@ describe("McpOAuthService durability", () => {
       }),
     ).resolves.toMatchObject({ resource });
   });
+
+  it("rejects replay of an authorization code after a successful exchange", async () => {
+    const service = new McpOAuthService();
+    const verifier = "pkce-verifier-replay-111111111111111111111111111111111";
+    const challenge = createHash("sha256")
+      .update(verifier, "utf8")
+      .digest("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+    const created = await service.createAuthorizationCode({
+      userId: "user-1",
+      email: "user-1@example.com",
+      clientId: "chatgpt-client",
+      redirectUri: "https://chat.openai.com/aip/callback",
+      scopes: ["tasks.read"],
+      codeChallenge: challenge,
+      codeChallengeMethod: "S256",
+    });
+    const exchange = {
+      code: created.code,
+      clientId: "chatgpt-client",
+      redirectUri: "https://chat.openai.com/aip/callback",
+      codeVerifier: verifier,
+    };
+
+    await expect(
+      service.exchangeAuthorizationCode(exchange),
+    ).resolves.toMatchObject({
+      userId: "user-1",
+    });
+    await expect(service.exchangeAuthorizationCode(exchange)).rejects.toThrow(
+      "Invalid authorization code",
+    );
+  });
+
+  it("rejects replay of a refresh token after rotation", async () => {
+    const service = new McpOAuthService();
+    const issued = await service.createRefreshToken({
+      userId: "user-1",
+      email: "user-1@example.com",
+      scopes: ["tasks.read"],
+      clientId: "chatgpt-client",
+    });
+    const exchange = {
+      refreshToken: issued.refreshToken,
+      clientId: "chatgpt-client",
+    };
+
+    await expect(service.exchangeRefreshToken(exchange)).resolves.toMatchObject(
+      {
+        userId: "user-1",
+      },
+    );
+    await expect(service.exchangeRefreshToken(exchange)).rejects.toThrow(
+      "Invalid refresh token",
+    );
+  });
 });

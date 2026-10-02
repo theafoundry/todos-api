@@ -55,7 +55,7 @@ describe("Phase 3 installable plugin package", () => {
     }
   });
 
-  it("does not alter the accepted Phase 2 runtime contract", () => {
+  it("preserves the accepted tool surface with the reviewed Phase 4 metadata", () => {
     expect(buildNativeAppToolsList().map((tool) => tool.name)).toEqual([
       "list_today",
       "plan_today",
@@ -70,7 +70,7 @@ describe("Phase 3 installable plugin package", () => {
       path.join(root, "test", "fixtures", "mcp-app-metadata.phase2.json"),
     );
     expect(createHash("sha256").update(snapshot).digest("hex")).toBe(
-      "9aaa5b358c3342a9b83a966e9be290af93b2ea53228bea9c94270dc32dcb140c",
+      "6e385ca644964340578b20149d48136ee7f9d0ed454764c3c86db6a3c244fe33",
     );
   });
 });

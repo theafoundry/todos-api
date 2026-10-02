@@ -1081,6 +1081,7 @@
       "_meta": {
         "ui": {
           "prefersBorder": true,
+          "domain": "https://todos.theafoundry.com",
           "csp": { "connectDomains": [], "resourceDomains": [] }
         }
       }
@@ -1093,6 +1094,7 @@
       "_meta": {
         "ui": {
           "prefersBorder": true,
+          "domain": "https://todos.theafoundry.com",
           "csp": { "connectDomains": [], "resourceDomains": [] }
         }
       }

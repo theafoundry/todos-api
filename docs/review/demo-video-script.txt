@@ -1,0 +1,13 @@
+Todos for ChatGPT turns your own tasks into a focused daily plan, on the web and in ChatGPT's mobile containers.
+
+In ChatGPT, a user gives an explicit time budget and energy level. Todos first lists today's tasks, then ranks them with a deterministic planner and returns a plan that fits the available time.
+
+The Today Plan component renders authoritative task data in a compact interface. It shows the available, planned, and remaining time, plus actions to complete or reschedule each task.
+
+Todos also supports safe conversational mutations. A user can capture a new task, complete a task by exact identifier, or reschedule it with timezone-aware dates. Each action returns authoritative server state.
+
+The app also respects its capability boundary. A request to delete all overdue tasks is declined because deletion is not an exposed tool, and no task is changed.
+
+Together, list today, plan today, render today plan, capture task, complete task, and reschedule task form six focused tools. Todos uses OAuth with resource-bound access tokens and keeps task content as data rather than instructions.
+
+This reviewer demo uses synthetic or redacted data. The production endpoint, privacy policy, terms, and support page are all hosted at todos dot theafoundry dot com.
