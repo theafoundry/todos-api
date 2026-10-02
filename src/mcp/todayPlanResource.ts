@@ -456,7 +456,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
         });
         warningsElement.hidden = warningsElement.children.length === 0;
         tasksElement.replaceChildren();
-        plan.tasks.slice(0, 12).forEach(function (task) { tasksElement.appendChild(renderTask(task)); });
+        plan.tasks.forEach(function (task) { tasksElement.appendChild(renderTask(task)); });
         tasksElement.hidden = plan.tasks.length === 0;
         emptyElement.hidden = plan.tasks.length !== 0;
         refreshButton.disabled = phase === "mutation-pending";
@@ -464,7 +464,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
 
       function applyPlan(nextPlan, message) {
         if (!nextPlan || !Array.isArray(nextPlan.tasks)) throw new Error("Todos returned an invalid plan.");
-        plan = Object.assign({}, nextPlan, { tasks: nextPlan.tasks.slice(0, 12) });
+        plan = Object.assign({}, nextPlan, { tasks: nextPlan.tasks.slice() });
         pendingTaskId = null;
         openFormTaskId = null;
         var isStale = (plan.warnings || []).some(function (warning) { return /omitted|order changed|refresh/i.test(String(warning)); });

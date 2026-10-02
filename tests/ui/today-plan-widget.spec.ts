@@ -407,6 +407,90 @@ test("requires explicit planning inputs and preserves submitted values for refre
   expect(errors).toEqual([]);
 });
 
+for (const panel of [true, false]) {
+  test(`shows all tasks and correct totals for plans with more than 12 tasks after ${panel ? "panel planning" : "inline refresh"}`, async ({
+    page,
+  }) => {
+    const plannedTasks = Array.from({ length: 15 }, (_, index) =>
+      task(
+        "00000000-0000-4000-8000-" + String(200 + index).padStart(12, "0"),
+        `Planned task ${index + 1}`,
+        index + 1,
+        { estimateMinutes: 10 },
+      ),
+    );
+    const fullPlan = plan({
+      availableMinutes: 180,
+      tasks: plannedTasks,
+      totalMinutes: 150,
+      remainingMinutes: 30,
+    });
+    const { frame } = await mountWidget(page, {
+      panel,
+      initialPlan: plan({ availableMinutes: 180, remainingMinutes: 90 }),
+      refreshPlan: fullPlan,
+    });
+    await expect(frame.locator("#card")).toHaveAttribute(
+      "data-state",
+      panel ? "setup" : "ready",
+    );
+    if (panel) {
+      await frame.getByLabel("Available minutes").fill("180");
+      await frame.getByLabel("Energy", { exact: true }).selectOption("medium");
+      await frame
+        .getByRole("button", { name: "Make plan", exact: true })
+        .click();
+    } else {
+      await frame.getByRole("button", { name: "Refresh plan" }).click();
+    }
+    await expect(frame.locator("#available")).toHaveText("180 min");
+    await expect(frame.locator("#planned")).toHaveText("150 min");
+    await expect(frame.locator("#remaining")).toHaveText("30 min");
+    const rows = frame
+      .getByRole("list", { name: "Planned tasks" })
+      .locator("li");
+    await expect(rows).toHaveCount(plannedTasks.length);
+    await expect(rows.locator(".task-title")).toHaveText(
+      plannedTasks.map((entry) => entry.title),
+    );
+    await expect(rows.locator(".task-meta")).toContainText(
+      plannedTasks.map(() => "10 min"),
+    );
+    await expect(
+      frame.getByRole("heading", { name: "Planned task 15", exact: true }),
+    ).toBeVisible();
+    await frame
+      .getByRole("button", { name: "Complete Planned task 15", exact: true })
+      .click();
+    await expect(
+      frame.locator(`[data-task-id="${plannedTasks[14].id}"]`),
+    ).toHaveAttribute("data-completed", "true");
+    await expect(rows).toHaveCount(plannedTasks.length);
+    await expect(frame.locator("#planned")).toHaveText("150 min");
+    await expect(frame.locator("#remaining")).toHaveText("30 min");
+    const calls = (await bridgeCalls(page)).filter(
+      (call: any) => call.method === "tools/call",
+    );
+    expect(calls.at(-1).params).toEqual({
+      name: "complete_task",
+      arguments: { taskId: plannedTasks[14].id, completed: true },
+    });
+    await frame
+      .getByRole("button", {
+        name: "Undo completion for Planned task 15",
+        exact: true,
+      })
+      .click();
+    await expect(
+      frame.locator(`[data-task-id="${plannedTasks[14].id}"]`),
+    ).toHaveAttribute("data-completed", "false");
+    await frame.getByRole("button", { name: "Refresh plan" }).click();
+    await expect(rows).toHaveCount(plannedTasks.length);
+    await expect(frame.locator("#planned")).toHaveText("150 min");
+    await expect(frame.locator("#remaining")).toHaveText("30 min");
+  });
+}
+
 test("keeps panel setup retryable on planning failure and disables it on auth expiry", async ({
   page,
 }) => {

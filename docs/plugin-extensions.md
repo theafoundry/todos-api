@@ -36,6 +36,13 @@ same rendering, complete/undo, rescheduling, and refresh paths as the inline
 widget. Refresh keeps the last successful planning inputs; draft edits require
 Update plan. Each iframe holds its own state, with no shared browser storage.
 
+Direct `plan_today` results can contain more than twelve tasks. The component
+preserves and displays their complete returned order, so the visible tasks match
+the authoritative totals. This supersedes the historical Phase 0 compact-card
+presentation cap. The original `render_today_plan` input still allows at most
+twelve selected IDs and returns totals for that selected subset; its contract
+is unchanged. Panel planning and inline refresh keep the full direct plan.
+
 The original six model tools and their metadata/input contracts stay unchanged.
 Text-only clients continue to use them. No additional task operations or scopes
 are introduced. The widget still has no direct network access; CSP origin lists
