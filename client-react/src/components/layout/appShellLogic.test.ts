@@ -90,14 +90,14 @@ describe("appShellLogic", () => {
 
   describe("buildDocumentTitle", () => {
     it("uses headerTitle for todos page", () => {
-      expect(buildDocumentTitle("todos", "Focus")).toBe("Focus — Todos");
+      expect(buildDocumentTitle("todos", "Focus")).toBe("Focus — Planwren");
     });
 
     it.each([
-      ["settings", "Settings — Todos"],
-      ["admin", "Admin — Todos"],
-      ["feedback", "Feedback — Todos"],
-      ["review", "Weekly Review — Todos"],
+      ["settings", "Settings — Planwren"],
+      ["admin", "Admin — Planwren"],
+      ["feedback", "Feedback — Planwren"],
+      ["review", "Weekly Review — Planwren"],
     ])("uses page label for %s page", (page, expected) => {
       expect(buildDocumentTitle(page as any, "Ignored")).toBe(expected);
     });

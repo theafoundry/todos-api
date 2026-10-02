@@ -120,7 +120,7 @@ export function buildDocumentTitle(
   headerTitle: string,
 ): string {
   const pageLabel = page === "todos" ? headerTitle : getPageLabel(page);
-  return `${pageLabel} — Todos`;
+  return `${pageLabel} — Planwren`;
 }
 
 // ── Header title derivation ───────────────────────────────────────────────

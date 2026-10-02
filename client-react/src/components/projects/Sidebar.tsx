@@ -158,7 +158,7 @@ export function Sidebar({
       <div className="sidebar-header">
         <div className="sidebar-header__brand">
           <BrandMark size={24} className="sidebar-header__mark" />
-          <span className="sidebar-header__logo">Todos</span>
+          <span className="sidebar-header__logo">Planwren</span>
         </div>
         <button
           className="sidebar-header__collapse"

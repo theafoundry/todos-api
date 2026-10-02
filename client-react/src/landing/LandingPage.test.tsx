@@ -11,7 +11,7 @@ describe("LandingPage", () => {
 
   it("renders the navigation bar with logo", () => {
     const { container } = render(createElement(LandingPage));
-    expect(screen.getByText("Todos")).toBeTruthy();
+    expect(screen.getByText("Planwren")).toBeTruthy();
     expect(container.querySelector(".landing-nav")).toBeTruthy();
   });
 
@@ -101,7 +101,7 @@ describe("LandingPage", () => {
   it("renders the footer with copyright", () => {
     render(createElement(LandingPage));
     const year = new Date().getFullYear();
-    expect(screen.getByText(new RegExp(`© ${year} Todos`))).toBeTruthy();
+    expect(screen.getByText(new RegExp(`© ${year} Planwren`))).toBeTruthy();
   });
 
   it("has correct anchor links in navigation", () => {

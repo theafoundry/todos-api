@@ -1,8 +1,10 @@
-# Todos — AI Planning Workspace
+# Planwren — AI Planning Workspace
+
+Planwren is the standalone app formerly named Todos. Repository/package names, API paths, MCP identifiers and existing domains stay compatible. The staged domain plan is in [the Planwren launch runbook](docs/runbooks/planwren-launch.md).
 
 A calm workspace for turning scattered tasks into focused days, reviewed weeks, and clear next actions.
 
-## What Todos Does
+## What Planwren Does
 
 **Plan your days** — AI generates time-boxed daily plans based on your priorities, energy level, and deadlines. Review, adjust, and start working.
 

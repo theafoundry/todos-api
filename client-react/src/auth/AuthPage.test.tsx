@@ -49,7 +49,7 @@ describe("AuthPage", () => {
 
   it("renders the auth page container with logo", () => {
     const { container } = render(createElement(AuthPage));
-    expect(screen.getByText("Todos")).toBeTruthy();
+    expect(screen.getByText("Planwren")).toBeTruthy();
     expect(container.querySelector(".auth-card")).toBeTruthy();
   });
 

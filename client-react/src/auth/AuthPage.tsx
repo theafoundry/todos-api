@@ -77,7 +77,7 @@ export function AuthPage() {
       <div className="auth-card">
         <div className="auth-card__header">
           <button className="auth-card__back" onClick={goHome} title="Back to home">←</button>
-          <span className="auth-card__logo">Todos</span>
+          <span className="auth-card__logo">Planwren</span>
         </div>
 
         {message && (
