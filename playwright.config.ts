@@ -9,7 +9,7 @@ const webServerUrl =
 export default defineConfig({
   testDir: "./tests/ui",
   snapshotPathTemplate:
-    "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
+    "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}-{platform}{ext}",
   timeout: 30_000,
   expect: {
     timeout: 5_000,
