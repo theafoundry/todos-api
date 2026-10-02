@@ -33,8 +33,17 @@ The component consumes that initial result and shows a date, available-minutes
 input, and energy selector. Time and energy have no defaults. Only an explicit
 submission calls `plan_today` with all three inputs. A successful plan uses the
 same rendering, complete/undo, rescheduling, and refresh paths as the inline
-widget. Refresh keeps the last successful planning inputs; draft edits require
-Update plan. Each iframe holds its own state, with no shared browser storage.
+widget. Refresh keeps the last successful raw date, minutes, and energy inputs;
+draft edits require Update plan. The server's effective budget can differ from
+the submitted minutes: account travel mode turns 100 into 70, and rescue mode
+turns 100 into 60. Repeated refresh resubmits the original 100, avoiding compound
+reductions. Initial inline inputs come from the host's tool-input notification;
+only successful plan results commit pending inputs. Failed updates, failed
+refreshes, and task-mutation notifications preserve the prior successful inputs.
+While a local tool RPC is outstanding, its correlated reply remains authoritative
+and forwarded results cannot unlock the form or overwrite a newer request.
+Pending notification inputs are cleared when the RPC settles, including errors.
+Each iframe holds its own state, with no shared browser storage.
 
 Direct `plan_today` results can contain more than twelve tasks. The component
 preserves and displays their complete returned order, so the visible tasks match
@@ -84,7 +93,9 @@ changes, or app submission are part of this implementation.
 After separately authorized host setup, check on a supported ChatGPT surface:
 
 1. Refresh server metadata and open a new conversation. Verify a single
-   `Today Plan` panel entry and its fallback icon.
+   `Today Plan` panel entry and its fallback icon. On both an existing connection
+   and a fresh connection, confirm the current template renders the setup form.
+   Host template-cache behavior remains unverified and is an acceptance gate.
 2. Open it with `{}`. Confirm server-local date/timezone, blank time/energy,
    no automatic planning, and successful fullscreen placement.
 3. With isolated review data, submit explicit inputs. Verify the plan, keyboard

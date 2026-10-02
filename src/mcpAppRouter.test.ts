@@ -25,6 +25,7 @@ import {
   TODAY_PLAN_WIDGET_DOMAIN,
 } from "./mcp/todayPlanResource";
 import { AuthService } from "./services/authService";
+import { DayContextService } from "./services/dayContextService";
 import { TodoService } from "./services/todoService";
 
 const mcpHeaders = {
@@ -765,6 +766,128 @@ describe("ChatGPT-native MCP app profile", () => {
       /score|attribution|decisionRunId|trace|must-not-leak/,
     );
   });
+
+  test.each([
+    { mode: "travel" as const, rawMinutes: 100, effectiveMinutes: 70 },
+    { mode: "rescue" as const, rawMinutes: 100, effectiveMinutes: 60 },
+    { mode: "normal" as const, rawMinutes: 100, effectiveMinutes: 100 },
+    { mode: "travel" as const, rawMinutes: 1, effectiveMinutes: 1 },
+    { mode: "rescue" as const, rawMinutes: 1, effectiveMinutes: 1 },
+    { mode: "normal" as const, rawMinutes: 1, effectiveMinutes: 1 },
+  ])(
+    "keeps repeated raw $rawMinutes-minute plans stable in $mode mode with an effective $effectiveMinutes-minute budget",
+    async ({ mode, rawMinutes, effectiveMinutes }) => {
+      const userId = "synthetic-budget-user";
+      const date = "2026-10-02";
+      const todoService = new TodoService();
+      const syntheticTask = await todoService.create(userId, {
+        title: "Synthetic ten-minute task",
+        status: "next",
+        priority: "high",
+        estimateMinutes: 10,
+        effortScore: 10,
+        energy: "medium",
+      });
+      const dayContext = jest
+        .spyOn(DayContextService.prototype, "getContext")
+        .mockResolvedValue({
+          id: "synthetic-day-context",
+          contextDate: date,
+          mode,
+          energy: "high",
+          notes: null,
+          createdAt: new Date(`${date}T00:00:00Z`),
+          updatedAt: new Date(`${date}T00:00:00Z`),
+        });
+      const agentExecutor = new AgentExecutor({ todoService });
+      // Observe the real executor; only account context and storage are isolated.
+      const execute = jest.spyOn(agentExecutor, "execute");
+      const inputs = Object.freeze({
+        date,
+        availableMinutes: rawMinutes,
+        energy: "medium",
+      });
+      const nativeRuntime = {
+        agentExecutor,
+        userId,
+        requestId: "synthetic-budget-request",
+        actor: "Synthetic contract test",
+        prisma: {
+          agentEnrollment: {
+            findUnique: jest
+              .fn()
+              .mockResolvedValue({ timezone: "Pacific/Kiritimati" }),
+          },
+        } as any,
+      };
+      const expectedTasks =
+        rawMinutes === 1
+          ? []
+          : [{ id: syntheticTask.id, estimateMinutes: 10, rank: 1 }];
+      const totalMinutes = rawMinutes === 1 ? 0 : 10;
+
+      try {
+        const first = await executeNativeAppTool(
+          "plan_today",
+          inputs,
+          nativeRuntime,
+        );
+        expect(first).toMatchObject({
+          date,
+          timezone: "Pacific/Kiritimati",
+          energy: "medium",
+          availableMinutes: effectiveMinutes,
+          totalMinutes,
+          remainingMinutes: effectiveMinutes - totalMinutes,
+          tasks: expectedTasks,
+        });
+
+        for (let refresh = 0; refresh < 2; refresh += 1) {
+          await expect(
+            executeNativeAppTool("plan_today", inputs, nativeRuntime),
+          ).resolves.toEqual(first);
+        }
+
+        expect(execute).toHaveBeenCalledTimes(3);
+        expect(dayContext).toHaveBeenCalledTimes(3);
+        for (let call = 1; call <= 3; call += 1) {
+          expect(execute).toHaveBeenNthCalledWith(
+            call,
+            "plan_today",
+            inputs,
+            expect.objectContaining({
+              userId,
+              effectiveDate: date,
+              timezone: "Pacific/Kiritimati",
+            }),
+          );
+          expect(dayContext).toHaveBeenNthCalledWith(call, userId, date);
+          expect(await execute.mock.results[call - 1].value).toMatchObject({
+            body: {
+              ok: true,
+              data: {
+                plan: {
+                  date,
+                  energy: "medium",
+                  availableMinutes: effectiveMinutes,
+                  totalMinutes,
+                  remainingMinutes: effectiveMinutes - totalMinutes,
+                },
+              },
+            },
+          });
+        }
+        expect(inputs).toEqual({
+          date,
+          availableMinutes: rawMinutes,
+          energy: "medium",
+        });
+      } finally {
+        execute.mockRestore();
+        dayContext.mockRestore();
+      }
+    },
+  );
 
   test("reruns the planner with identical inputs and intersects authoritative tasks in requested order", async () => {
     const secondTaskId = "00000000-0000-4000-8000-000000000011";

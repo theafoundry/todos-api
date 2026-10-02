@@ -201,6 +201,8 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       var connected = false;
       var hostCapabilities = {};
       var plan = null;
+      var lastPlanningInputs = null;
+      var pendingPlanningInputs = null;
       var phase = "initializing";
       var pendingTaskId = null;
       var openFormTaskId = null;
@@ -228,7 +230,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
         var id = nextRequestId++;
         send({ jsonrpc: "2.0", id: id, method: method, params: params });
         return new Promise(function (resolve, reject) {
-          pendingRequests.set(id, { resolve: resolve, reject: reject });
+          pendingRequests.set(id, { resolve: resolve, reject: reject, method: method });
         });
       }
 
@@ -462,8 +464,14 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
         refreshButton.disabled = phase === "mutation-pending";
       }
 
-      function applyPlan(nextPlan, message) {
+      function readPlanningInputs(value) {
+        if (!value || typeof value.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.date) || !Number.isInteger(value.availableMinutes) || value.availableMinutes < 1 || value.availableMinutes > 1440 || ["low", "medium", "high"].indexOf(value.energy) === -1) return null;
+        return { date: value.date, availableMinutes: value.availableMinutes, energy: value.energy };
+      }
+
+      function applyPlan(nextPlan, message, inputs) {
         if (!nextPlan || !Array.isArray(nextPlan.tasks)) throw new Error("Todos returned an invalid plan.");
+        if (inputs) lastPlanningInputs = readPlanningInputs(inputs) || lastPlanningInputs;
         plan = Object.assign({}, nextPlan, { tasks: nextPlan.tasks.slice() });
         pendingTaskId = null;
         openFormTaskId = null;
@@ -477,6 +485,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       function showSetup(setup) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(setup.date) || typeof setup.timezone !== "string") throw new Error("Todos returned invalid planning settings.");
         plan = null;
+        lastPlanningInputs = null;
         skeleton.hidden = true;
         content.hidden = true;
         planningControls.hidden = false;
@@ -503,7 +512,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
           }
           var error = resultError(result);
           if (error) throw new Error(error);
-          applyPlan(result.structuredContent, "Plan made from Todos.");
+          applyPlan(result.structuredContent, "Plan made from Todos.", inputs);
           planSubmit.textContent = "Update plan";
         } catch (error) {
           plan = previousPlan;
@@ -544,16 +553,13 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       async function refreshPlan() {
         if (!plan) return;
         var previousPlan = plan;
+        var inputs = lastPlanningInputs || { date: plan.date, availableMinutes: plan.availableMinutes, energy: plan.energy };
         setPhase("mutation-pending", "Refreshing your plan…");
         render();
         try {
           var result = await request("tools/call", {
             name: "plan_today",
-            arguments: {
-              date: plan.date,
-              availableMinutes: plan.availableMinutes,
-              energy: plan.energy
-            }
+            arguments: inputs
           });
           if (isAuthError(result)) {
             plan = previousPlan;
@@ -563,7 +569,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
           }
           var error = resultError(result);
           if (error) throw new Error(error);
-          applyPlan(result.structuredContent, "Plan refreshed from Todos.");
+          applyPlan(result.structuredContent, "Plan refreshed from Todos.", inputs);
         } catch (error) {
           plan = previousPlan;
           setPhase("recoverable-failure", error && error.message ? error.message : "The plan could not be refreshed. Try again.", "error");
@@ -578,11 +584,19 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
         if (message.id !== undefined && pendingRequests.has(message.id)) {
           var pending = pendingRequests.get(message.id);
           pendingRequests.delete(message.id);
+          if (pending.method === "tools/call") pendingPlanningInputs = null;
           if (message.error) pending.reject(message.error);
           else pending.resolve(message.result);
           return;
         }
+        if (message.method === "ui/notifications/tool-input") {
+          pendingPlanningInputs = readPlanningInputs((message.params || {}).arguments);
+          return;
+        }
         if (message.method === "ui/notifications/tool-result") {
+          var inputs = pendingPlanningInputs;
+          pendingPlanningInputs = null;
+          if (Array.from(pendingRequests.values()).some(function (pending) { return pending.method === "tools/call"; })) return;
           var result = message.params || {};
           if (isAuthError(result)) {
             setPhase("auth-expired", authExpiredMessage(), "error");
@@ -592,6 +606,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
             else if (result.structuredContent && result.structuredContent.state === "setup") showSetup(result.structuredContent);
             else if (result.structuredContent && Array.isArray(result.structuredContent.tasks)) {
               var nextPlan = result.structuredContent;
+              if (inputs) lastPlanningInputs = inputs;
               if (!plan || phase === "auth-expired" || phase === "recoverable-failure" || JSON.stringify(plan) !== JSON.stringify(nextPlan)) applyPlan(nextPlan);
             }
           }
