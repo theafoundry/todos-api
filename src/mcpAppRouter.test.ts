@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import request from "supertest";
 import { createApp } from "./app";
+import { AgentExecutor } from "./agent/agentExecutor";
 import {
   buildNativeAppToolsList,
   MCP_APP_SERVER_INSTRUCTIONS,
@@ -24,6 +25,7 @@ import {
   TODAY_PLAN_WIDGET_DOMAIN,
 } from "./mcp/todayPlanResource";
 import { AuthService } from "./services/authService";
+import { DayContextService } from "./services/dayContextService";
 import { TodoService } from "./services/todoService";
 
 const mcpHeaders = {
@@ -91,10 +93,19 @@ describe("ChatGPT-native MCP app profile", () => {
     }
   });
 
-  test("metadata matches the committed human-readable Phase 2 snapshot", () => {
-    const snapshot = JSON.parse(
+  test("extension metadata preserves the reviewed six-tool contract", () => {
+    const reviewedSnapshot = JSON.parse(
       fs.readFileSync(
         path.join(process.cwd(), "test/fixtures/mcp-app-metadata.phase2.json"),
+        "utf8",
+      ),
+    );
+    const snapshot = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          process.cwd(),
+          "test/fixtures/mcp-app-metadata.extensions.json",
+        ),
         "utf8",
       ),
     );
@@ -116,6 +127,7 @@ describe("ChatGPT-native MCP app profile", () => {
         },
       ],
     }).toEqual(snapshot);
+    expect(tools.slice(0, 6)).toEqual(reviewedSnapshot.tools);
     expect(tools.map((tool) => tool.name)).toEqual([
       "list_today",
       "plan_today",
@@ -123,6 +135,7 @@ describe("ChatGPT-native MCP app profile", () => {
       "complete_task",
       "reschedule_task",
       "render_today_plan",
+      "open_today_plan",
     ]);
     expect(tools.filter((tool) => "ui" in tool._meta)).toEqual([
       expect.objectContaining({
@@ -131,9 +144,273 @@ describe("ChatGPT-native MCP app profile", () => {
           ui: { resourceUri: TODAY_PLAN_RESOURCE_URI },
         }),
       }),
+      expect.objectContaining({
+        name: "open_today_plan",
+        title: "Today Plan",
+        _meta: expect.objectContaining({
+          ui: {
+            resourceUri: TODAY_PLAN_RESOURCE_URI,
+            visibility: ["app"],
+          },
+          "openai/ui": { entrypoints: [{ type: "thread" }] },
+        }),
+      }),
     ]);
     expect(TODAY_PLAN_RESOURCE_META.ui.domain).toBe(TODAY_PLAN_WIDGET_DOMAIN);
     expect(TODAY_PLAN_WIDGET_DOMAIN).toBe("https://todos.theafoundry.com");
+  });
+
+  test("declares one strict, read-only thread entrypoint with no planning defaults", () => {
+    const tools = buildNativeAppToolsList();
+    const opener = tools.find((tool) => tool.name === "open_today_plan")!;
+    const definition = nativeAppToolDefinitions.find(
+      (tool) => tool.name === "open_today_plan",
+    )!;
+
+    expect(opener.inputSchema).toEqual({
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    });
+    expect(opener._meta).toEqual({
+      securitySchemes: [
+        { type: "oauth2", scopes: ["tasks.read", "projects.read"] },
+      ],
+      ui: { resourceUri: TODAY_PLAN_RESOURCE_URI, visibility: ["app"] },
+      "openai/ui": { entrypoints: [{ type: "thread" }] },
+      "openai/toolInvocation/invoking": "Running today plan…",
+      "openai/toolInvocation/invoked": "Today Plan complete",
+    });
+    expect(opener.annotations).toEqual({
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    });
+    expect(tools.filter((tool) => "openai/ui" in tool._meta)).toEqual([opener]);
+    expect(definition.inputSchema.safeParse({}).success).toBe(true);
+    for (const argumentsValue of [
+      { date: "2026-10-02" },
+      { availableMinutes: 120 },
+      { energy: "medium" },
+      { userId: "other-user" },
+      { taskIds: [taskId] },
+    ]) {
+      expect(definition.inputSchema.safeParse(argumentsValue).success).toBe(
+        false,
+      );
+    }
+    const setup = { state: "setup", date: "2026-10-02", timezone: "UTC" };
+    expect(definition.outputSchema.safeParse(setup).success).toBe(true);
+    expect(
+      definition.outputSchema.safeParse({ ...setup, tasks: [task] }).success,
+    ).toBe(false);
+  });
+
+  test("opens setup with the account calendar without fetching tasks or planning", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-10-02T12:00:00Z"));
+    const execute = jest.fn();
+    const findProjects = jest.fn();
+    const enrollmentTimezone = jest
+      .fn()
+      .mockResolvedValue({ timezone: "Pacific/Kiritimati" });
+    const sessionTimezone = jest
+      .fn()
+      .mockResolvedValue({ timezone: "America/Los_Angeles" });
+
+    try {
+      const result = await executeNativeAppTool(
+        "open_today_plan",
+        {},
+        {
+          ...runtime(execute),
+          sessionId: "private-session",
+          projectService: { findAll: findProjects } as any,
+          prisma: {
+            agentEnrollment: { findUnique: enrollmentTimezone },
+            mcpAssistantSession: { findUnique: sessionTimezone },
+          } as any,
+        },
+      );
+
+      expect(result).toEqual({
+        state: "setup",
+        date: "2026-10-03",
+        timezone: "Pacific/Kiritimati",
+      });
+      expect(execute).not.toHaveBeenCalled();
+      expect(findProjects).not.toHaveBeenCalled();
+      expect(enrollmentTimezone).toHaveBeenCalledWith({
+        where: { userId: "user-1" },
+        select: { timezone: true },
+      });
+      expect(sessionTimezone).toHaveBeenCalledWith({
+        where: { id: "private-session" },
+        select: { timezone: true },
+      });
+      expect(JSON.stringify(result)).not.toMatch(
+        /user-1|private-session|request-1|task|email|token|trace|availableMinutes|energy/,
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("requires account linking before opening the thread panel", async () => {
+    const verifyMcpToken = jest.fn();
+    const getPrismaClient = jest.fn();
+    const execute = jest.spyOn(AgentExecutor.prototype, "execute");
+
+    try {
+      const response = await request(
+        createApp({
+          authService: { verifyMcpToken, getPrismaClient } as any,
+        }),
+      )
+        .post("/mcp/app")
+        .set(mcpHeaders)
+        .send({
+          jsonrpc: "2.0",
+          id: 23,
+          method: "tools/call",
+          params: { name: "open_today_plan", arguments: {} },
+        });
+      const result = parseMcpResponse(response).result;
+
+      expect(response.status).toBe(200);
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error.code).toBe("MCP_UNAUTHENTICATED");
+      expect(result._meta["mcp/www_authenticate"][0]).toContain(
+        'scope="tasks.read projects.read"',
+      );
+      expect(verifyMcpToken).not.toHaveBeenCalled();
+      expect(getPrismaClient).not.toHaveBeenCalled();
+      expect(execute).not.toHaveBeenCalled();
+    } finally {
+      execute.mockRestore();
+    }
+  });
+
+  test.each([
+    { label: "no task scopes", scopes: [] },
+    { label: "only task read", scopes: ["tasks.read"] },
+    { label: "only project read", scopes: ["projects.read"] },
+    { label: "identity scopes", scopes: ["openid", "email"] },
+  ])("denies the panel opener with $label", async ({ scopes }) => {
+    const getPrismaClient = jest.fn();
+    const execute = jest.spyOn(AgentExecutor.prototype, "execute");
+    const authService = {
+      verifyMcpToken: jest.fn().mockResolvedValue({
+        userId: "user-1",
+        email: "synthetic@example.com",
+        tokenType: "mcp",
+        scopes,
+        resource: "http://localhost:3000/mcp/app",
+      }),
+      getUserById: jest.fn().mockResolvedValue({
+        id: "user-1",
+        email: "synthetic@example.com",
+        name: "Synthetic User",
+        isVerified: true,
+        role: "user",
+        plan: "free",
+      }),
+      getPrismaClient,
+    } as any;
+
+    try {
+      const response = await request(createApp({ authService }))
+        .post("/mcp/app")
+        .set(mcpHeaders)
+        .set("Authorization", "Bearer synthetic-panel-token")
+        .send({
+          jsonrpc: "2.0",
+          id: 24,
+          method: "tools/call",
+          params: { name: "open_today_plan", arguments: {} },
+        });
+      const result = parseMcpResponse(response).result;
+
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent.error.code).toBe(
+        "MCP_INSUFFICIENT_SCOPE",
+      );
+      expect(result._meta["mcp/www_authenticate"][0]).toContain(
+        'error="insufficient_scope"',
+      );
+      expect(result._meta["mcp/www_authenticate"][0]).toContain(
+        'scope="tasks.read projects.read"',
+      );
+      expect(authService.verifyMcpToken).toHaveBeenCalledWith(
+        "synthetic-panel-token",
+        {
+          resource: "http://localhost:3000/mcp/app",
+          requireResource: true,
+        },
+      );
+      expect(getPrismaClient).not.toHaveBeenCalled();
+      expect(execute).not.toHaveBeenCalled();
+    } finally {
+      execute.mockRestore();
+    }
+  });
+
+  test("returns only setup and a usable text fallback after scoped panel opening", async () => {
+    const execute = jest.spyOn(AgentExecutor.prototype, "execute");
+    const authService = {
+      verifyMcpToken: jest.fn().mockResolvedValue({
+        userId: "private-user",
+        email: "synthetic@example.com",
+        tokenType: "mcp",
+        scopes: ["tasks.read", "projects.read"],
+        resource: "http://localhost:3000/mcp/app",
+      }),
+      getUserById: jest.fn().mockResolvedValue({
+        id: "private-user",
+        email: "synthetic@example.com",
+        name: "Synthetic User",
+        isVerified: true,
+        role: "user",
+        plan: "free",
+      }),
+      getPrismaClient: () => undefined,
+    } as any;
+
+    try {
+      const response = await request(createApp({ authService }))
+        .post("/mcp/app")
+        .set(mcpHeaders)
+        .set("Authorization", "Bearer synthetic-panel-token")
+        .send({
+          jsonrpc: "2.0",
+          id: 25,
+          method: "tools/call",
+          params: { name: "open_today_plan", arguments: {} },
+        });
+      const result = parseMcpResponse(response).result;
+
+      expect(response.status).toBe(200);
+      expect(result.isError).not.toBe(true);
+      expect(result.structuredContent).toEqual({
+        state: "setup",
+        date: formatCalendarDate(new Date(), "America/New_York"),
+        timezone: "America/New_York",
+      });
+      expect(result.content).toEqual([
+        {
+          type: "text",
+          text: expect.stringMatching(
+            /^Today Plan is ready for \d{4}-\d{2}-\d{2} in America\/New_York\. Choose your available minutes and energy to create a plan\.$/,
+          ),
+        },
+      ]);
+      expect(execute).not.toHaveBeenCalled();
+      expect(JSON.stringify(result)).not.toMatch(
+        /private-user|synthetic@example.com|synthetic-panel-token|requestId|trace/,
+      );
+    } finally {
+      execute.mockRestore();
+    }
   });
 
   test("every advertised output schema accepts the shared tool error contract", () => {
@@ -490,6 +767,128 @@ describe("ChatGPT-native MCP app profile", () => {
     );
   });
 
+  test.each([
+    { mode: "travel" as const, rawMinutes: 100, effectiveMinutes: 70 },
+    { mode: "rescue" as const, rawMinutes: 100, effectiveMinutes: 60 },
+    { mode: "normal" as const, rawMinutes: 100, effectiveMinutes: 100 },
+    { mode: "travel" as const, rawMinutes: 1, effectiveMinutes: 1 },
+    { mode: "rescue" as const, rawMinutes: 1, effectiveMinutes: 1 },
+    { mode: "normal" as const, rawMinutes: 1, effectiveMinutes: 1 },
+  ])(
+    "keeps repeated raw $rawMinutes-minute plans stable in $mode mode with an effective $effectiveMinutes-minute budget",
+    async ({ mode, rawMinutes, effectiveMinutes }) => {
+      const userId = "synthetic-budget-user";
+      const date = "2026-10-02";
+      const todoService = new TodoService();
+      const syntheticTask = await todoService.create(userId, {
+        title: "Synthetic ten-minute task",
+        status: "next",
+        priority: "high",
+        estimateMinutes: 10,
+        effortScore: 10,
+        energy: "medium",
+      });
+      const dayContext = jest
+        .spyOn(DayContextService.prototype, "getContext")
+        .mockResolvedValue({
+          id: "synthetic-day-context",
+          contextDate: date,
+          mode,
+          energy: "high",
+          notes: null,
+          createdAt: new Date(`${date}T00:00:00Z`),
+          updatedAt: new Date(`${date}T00:00:00Z`),
+        });
+      const agentExecutor = new AgentExecutor({ todoService });
+      // Observe the real executor; only account context and storage are isolated.
+      const execute = jest.spyOn(agentExecutor, "execute");
+      const inputs = Object.freeze({
+        date,
+        availableMinutes: rawMinutes,
+        energy: "medium",
+      });
+      const nativeRuntime = {
+        agentExecutor,
+        userId,
+        requestId: "synthetic-budget-request",
+        actor: "Synthetic contract test",
+        prisma: {
+          agentEnrollment: {
+            findUnique: jest
+              .fn()
+              .mockResolvedValue({ timezone: "Pacific/Kiritimati" }),
+          },
+        } as any,
+      };
+      const expectedTasks =
+        rawMinutes === 1
+          ? []
+          : [{ id: syntheticTask.id, estimateMinutes: 10, rank: 1 }];
+      const totalMinutes = rawMinutes === 1 ? 0 : 10;
+
+      try {
+        const first = await executeNativeAppTool(
+          "plan_today",
+          inputs,
+          nativeRuntime,
+        );
+        expect(first).toMatchObject({
+          date,
+          timezone: "Pacific/Kiritimati",
+          energy: "medium",
+          availableMinutes: effectiveMinutes,
+          totalMinutes,
+          remainingMinutes: effectiveMinutes - totalMinutes,
+          tasks: expectedTasks,
+        });
+
+        for (let refresh = 0; refresh < 2; refresh += 1) {
+          await expect(
+            executeNativeAppTool("plan_today", inputs, nativeRuntime),
+          ).resolves.toEqual(first);
+        }
+
+        expect(execute).toHaveBeenCalledTimes(3);
+        expect(dayContext).toHaveBeenCalledTimes(3);
+        for (let call = 1; call <= 3; call += 1) {
+          expect(execute).toHaveBeenNthCalledWith(
+            call,
+            "plan_today",
+            inputs,
+            expect.objectContaining({
+              userId,
+              effectiveDate: date,
+              timezone: "Pacific/Kiritimati",
+            }),
+          );
+          expect(dayContext).toHaveBeenNthCalledWith(call, userId, date);
+          expect(await execute.mock.results[call - 1].value).toMatchObject({
+            body: {
+              ok: true,
+              data: {
+                plan: {
+                  date,
+                  energy: "medium",
+                  availableMinutes: effectiveMinutes,
+                  totalMinutes,
+                  remainingMinutes: effectiveMinutes - totalMinutes,
+                },
+              },
+            },
+          });
+        }
+        expect(inputs).toEqual({
+          date,
+          availableMinutes: rawMinutes,
+          energy: "medium",
+        });
+      } finally {
+        execute.mockRestore();
+        dayContext.mockRestore();
+      }
+    },
+  );
+
   test("reruns the planner with identical inputs and intersects authoritative tasks in requested order", async () => {
     const secondTaskId = "00000000-0000-4000-8000-000000000011";
     const staleTaskId = "00000000-0000-4000-8000-000000000099";
@@ -643,6 +1042,7 @@ describe("ChatGPT-native MCP app profile", () => {
         domain: TODAY_PLAN_WIDGET_DOMAIN,
         csp: { connectDomains: [], resourceDomains: [] },
       },
+      "openai/ui": { availableDisplayModes: ["inline", "fullscreen"] },
     });
     expect(resource.text).toContain('href="https://todos.example/app"');
     expect(resource.text).not.toContain("window.openai");

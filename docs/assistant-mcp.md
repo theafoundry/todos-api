@@ -21,9 +21,10 @@ Runtime endpoints:
 - `POST /mcp`
   Streamable HTTP JSON-RPC endpoint for MCP methods and tool calls.
 - `POST /mcp/app`
-  Stateless SDK-backed Streamable HTTP endpoint advertising exactly six tools:
+  Stateless SDK-backed Streamable HTTP endpoint advertising six model tools:
   `list_today`, `plan_today`, `capture_task`, `complete_task`, and
-  `reschedule_task` from Phase 1 plus Phase 2's `render_today_plan`.
+  `reschedule_task` from Phase 1 plus Phase 2's `render_today_plan`. An additional
+  app-only `open_today_plan` opens the Today Plan conversation panel.
 - `GET /.well-known/oauth-protected-resource`
   OAuth protected-resource metadata for remote clients.
 - `GET /.well-known/oauth-protected-resource/mcp/app`
@@ -64,7 +65,7 @@ resource-audience-bound access tokens, tool-result authorization challenges,
 and a committed metadata snapshot. The broad `/mcp` contract below remains
 available for existing connectors.
 
-Phase 2 associates only `render_today_plan` with the versioned MCP Apps
+Phase 2 introduced `render_today_plan` with the versioned MCP Apps
 resource `ui://todos/today-plan/v1.html`. The render handler reruns the same
 canonical planner inputs and intersects its fresh authorized result with the
 ordered task IDs from `plan_today`; it does not accept client-provided display
@@ -72,6 +73,19 @@ fields. The self-contained component calls `complete_task`, `reschedule_task`,
 and `plan_today` through the portable MCP Apps bridge, while the five data and
 action tools remain complete in text-only clients. Its CSP allows no direct
 network or external static-resource origins.
+
+The Plugin Extension adds an app-only, read-only `open_today_plan` thread
+entrypoint on the same resource. It accepts only `{}` and returns a setup state
+with the authenticated account's server-authoritative date and timezone. Opening
+does not run the planner or mutate tasks. The user supplies available minutes
+and energy in the component before calling the existing `plan_today` flow.
+Original model-tool metadata and schemas remain unchanged, including the strict
+`render_today_plan` contract. Both inline and fullscreen display modes are
+advertised; ordinary model renders retain their inline default. See
+[Plugin Extensions](plugin-extensions.md) for the host contract and acceptance
+checks. Current metadata is captured in
+`test/fixtures/mcp-app-metadata.extensions.json`; historical Phase 1/2 snapshots
+remain unchanged.
 
 ## Local Plugin Installation
 

@@ -3,7 +3,7 @@
 Status: pending portal scan
 
 The canonical local contract is
-`test/fixtures/mcp-app-metadata.phase2.json`. `npm run review:metadata`
+`test/fixtures/mcp-app-metadata.extensions.json`. `npm run review:metadata`
 regenerates the same structure and fails on any byte-level drift from the
 committed, Prettier-formatted JSON.
 

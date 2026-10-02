@@ -29,9 +29,10 @@ const snapshot = {
   ],
 };
 
+// The script name remains compatible; the reviewed Phase 2 golden is immutable.
 const outputPath = path.join(
   repoRoot,
-  "test/fixtures/mcp-app-metadata.phase2.json",
+  "test/fixtures/mcp-app-metadata.extensions.json",
 );
 const formattedSnapshot = await format(JSON.stringify(snapshot), {
   parser: "json",
