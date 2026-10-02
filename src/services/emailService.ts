@@ -1,9 +1,9 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import { randomBytes } from "crypto";
 import { config } from "../config";
 
 export class EmailService {
-  private transporter: nodemailer.Transporter | null;
+  private transporter: Transporter | null;
   private baseUrl: string;
 
   constructor() {

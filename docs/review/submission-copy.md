@@ -29,18 +29,25 @@ send external messages.
 - MCP: `https://todos.theafoundry.com/mcp/app`
 - Demo recording: `https://todos.theafoundry.com/review/todos-chatgpt-demo-v1.mp4`
 
-The demo recording uses synthetic or redacted task data. It shows the verified
-ChatGPT developer-mode planning flow, the Today Plan component, completion and
-rescheduling behavior, task capture, and the unsupported-delete boundary without
-exposing private account content.
+The demo recording is an illustrated walkthrough built from synthetic task
+data and the versioned component screenshot. It explains planning, the Today
+Plan component, completion and rescheduling, task capture, and the
+unsupported-delete boundary without exposing private account content. It is
+not a recording of authenticated acceptance against the current candidate.
+
+The August 12, 2026 ChatGPT developer-mode evidence belongs to an earlier
+implementation. Fresh hosted and authenticated evidence is still required for
+this candidate. The URLs above are intended review destinations; their presence
+in this copy does not establish that the candidate is deployed there.
 
 ## Reviewer notes
 
-Use the protected credentials stored in the portal. Start with “Plan my day. I
-have two hours and medium energy” to exercise planning and the Today Plan
-component. The reviewer account is reset immediately before review using the
-versioned runbook. No MFA, SMS, email confirmation, VPN, or private network is
-required.
+Once a dedicated reviewer account and its protected portal credentials have
+been verified, start with “Plan my day. I have two hours and medium energy” to
+exercise planning and the Today Plan component. Before hosted review, confirm
+that the account works without MFA, SMS, email confirmation, VPN, or a private
+network, and restore its synthetic fixtures using the versioned runbook. These
+hosted account and credential checks remain pending.
 
 Do not select **Submit for Review** during Phase 4B. Phase 5 owns formal
 submission, review responses, and publication.

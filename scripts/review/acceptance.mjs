@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { reviewBaseUrl } from "./http-checks.mjs";
 
 const commands = [
   ["npm", ["run", "review:metadata"]],
@@ -19,7 +20,7 @@ for (const [command, args] of commands) {
   if (result.status !== 0) process.exit(result.status || 1);
 }
 
-console.log("Automated hosted acceptance checks passed.");
+console.log(`Automated HTTP acceptance checks passed at ${reviewBaseUrl()}.`);
 console.log(
   "Complete authenticated OAuth, ChatGPT conversation, portal scan, and accessibility evidence manually before merge.",
 );

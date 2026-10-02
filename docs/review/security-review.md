@@ -32,19 +32,25 @@ Status: pending external acceptance
 
 ## Dependency audit
 
-Audit date: 2026-08-13
+Audit date: 2026-10-02
 
-Before the Phase 4B lockfile refresh, the production audit reported 36 findings:
-1 low, 27 moderate, and 8 high. The direct high-risk package was Nodemailer;
-other high findings were transitive.
+The previous candidate's production lockfile now reports 8 high findings and
+29 moderate findings. The August 13 audit is historical and does not describe
+the current advisory database.
 
-Phase 4B updates Nodemailer, Express Rate Limit, and pins fixed transitive
-versions for Axios, Hono, `ip-address`, and other vulnerable parser/runtime
-packages. After the refresh, `npm run audit:prod` reports 20 moderate findings
-and no high or critical findings. The remaining moderate findings are in the
-Sentry/OpenTelemetry chain and the Prisma CLI/tooling chain; neither is used to
-parse MCP tool inputs or authorize requests. They remain tracked for normal
-framework upgrades.
+The source refresh updates Nodemailer to 10.0.13, Axios to 1.20.0,
+`brace-expansion` to 5.0.12, and `fast-uri` to 4.1.5. Scoped overrides update
+Prisma's `deepmerge-ts` and `mysql2` dependencies while keeping Prisma 7.8.0.
+Nodemailer 10's Node 20 minimum is compatible with the project's supported
+Node range; its existing transport API and Prisma's plain-object config merge
+were checked locally.
+
+After the refresh, `npm run audit:prod` passes its high-severity gate with
+33 moderate findings and no high or critical findings. The React client audit
+reports no findings after compatible Vite/Vitest and transitive lock updates.
+The remaining production moderate advisories remain open; this report does
+not treat a passing high-severity gate as a clean audit or external security
+acceptance.
 
 Do not mark this review complete while an applicable high or critical finding
 remains unmitigated.

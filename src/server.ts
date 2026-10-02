@@ -1,5 +1,7 @@
 import "./instrument";
 import * as Sentry from "@sentry/node";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { createApp } from "./app";
 import { PrismaTodoService } from "./services/prismaTodoService";
 import { AuthService } from "./services/authService";
@@ -26,10 +28,26 @@ const app = createApp({
   },
 });
 
+// Release SHA stamped at deploy time by the production release workflow
+// (release-sha.txt, written from the exact released commit). "unknown" when
+// absent, e.g. local dev or deploys predating the release workflow.
+const RELEASE_SHA = (() => {
+  try {
+    const sha = readFileSync(
+      path.join(process.cwd(), "release-sha.txt"),
+      "utf8",
+    ).trim();
+    return sha === "" ? "unknown" : sha;
+  } catch {
+    return "unknown";
+  }
+})();
+
 app.get("/healthz", (_req, res) => {
   res.status(200).json({
     ok: true,
     service: "todos-api",
+    sha: RELEASE_SHA,
     now: new Date().toISOString(),
   });
 });

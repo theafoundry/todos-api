@@ -289,7 +289,7 @@ Integration test DB behavior:
 - If `TEST_DATABASE_URL` or `DATABASE_URL_TEST` is set, integration tests use that URL.
 - If neither is set, integration tests default to:
   - `postgresql://postgres:postgres@localhost:5432/todos_test?schema=public`
-- The test bootstrap runs `prisma migrate reset --force --skip-seed --skip-generate` for a deterministic schema.
+- The test bootstrap runs `prisma migrate reset --force` for a deterministic schema. Prisma 7 does not run seeding or client generation during reset.
 - Safety guardrails:
   - Refuses URLs that do not look like a test database.
   - Refuses non-local DB hosts by default (`localhost`, `127.0.0.1`, `::1` only).

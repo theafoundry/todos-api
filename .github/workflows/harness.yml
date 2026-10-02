@@ -8,6 +8,9 @@ on:
 jobs:
   harness:
     runs-on: ubuntu-latest
+    env:
+      # Required for Prisma generation during npm ci; evals use isolated in-memory data.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:1/todos_ci_codegen?schema=public
 
     steps:
       - name: Checkout
