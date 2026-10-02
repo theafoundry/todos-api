@@ -7,13 +7,15 @@ on:
   push:
     branches: [master]
 
+env:
+  NODE_VERSION: "22"
+  # Required for Prisma generation during npm ci; no database connection is used.
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:1/todos_ci_codegen?schema=public
+
 jobs:
   ui-visual:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      # Required for Prisma generation during npm ci; no database connection is used.
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:1/todos_ci_codegen?schema=public
 
     steps:
       - name: Checkout
@@ -22,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install dependencies
