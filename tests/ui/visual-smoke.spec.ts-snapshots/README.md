@@ -18,6 +18,12 @@ was visually inspected before being added here. The two landing illustrations
 in `client-react/public/images/landing` are real light/dark app screenshots
 captured with mocked local data; they contain no user account data.
 
+The Planwren branding refresh re-rendered both landing illustrations and all
+eight platform baselines from the current UI. Illustration captures use the
+fixed clock 2026-01-15 12:00 UTC. Linux captures use a checksum-verified official
+Node 22.22.1 arm64 runtime inside the matching Playwright image, rather than the
+image's bundled Node runtime.
+
 Build all three client surfaces before running the suite, as the visual workflow
 does:
 

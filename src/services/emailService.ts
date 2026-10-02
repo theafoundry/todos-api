@@ -47,12 +47,13 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        from: config.smtpFrom || '"Planwren" <noreply@todoapp.com>',
         to: email,
         subject: "Verify your email address",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome to Todo App!</h2>
+            <h2>Welcome to Planwren!</h2>
+            <p>Planwren was previously called Todos. Account links continue to use the existing service domain.</p>
             <p>Please verify your email address by clicking the button below:</p>
             <p style="margin: 30px 0;">
               <a href="${verificationUrl}"
@@ -91,12 +92,13 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        from: config.smtpFrom || '"Planwren" <noreply@todoapp.com>',
         to: email,
         subject: "Reset your password",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Password Reset Request</h2>
+            <p>Planwren was previously called Todos. Account links continue to use the existing service domain.</p>
             <p>You requested to reset your password. Click the button below to reset it:</p>
             <p style="margin: 30px 0;">
               <a href="${resetUrl}"
@@ -142,7 +144,7 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        from: config.smtpFrom || '"Planwren" <noreply@todoapp.com>',
         to: email,
         subject: "We received your feedback",
         html: `
@@ -163,7 +165,7 @@ export class EmailService {
               </a>
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 40px;">
-              You're receiving this because you submitted feedback on Todo App.
+              You're receiving this because you submitted feedback on Planwren.
             </p>
           </div>
         `,
@@ -223,7 +225,7 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        from: config.smtpFrom || '"Planwren" <noreply@todoapp.com>',
         to: email,
         subject: `${total} task${total === 1 ? "" : "s"} need${total === 1 ? "s" : ""} attention`,
         html: `
@@ -235,7 +237,7 @@ export class EmailService {
               <a href="${this.baseUrl}"
                  style="background-color: #667eea; color: white; padding: 12px 24px;
                         text-decoration: none; border-radius: 5px; display: inline-block;">
-                Open Todo App
+                Open Planwren
               </a>
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 40px;">
@@ -308,7 +310,7 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        from: config.smtpFrom || '"Planwren" <noreply@todoapp.com>',
         to: email,
         subject,
         html: `
@@ -327,7 +329,7 @@ export class EmailService {
               </a>
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 40px;">
-              You're receiving this because you submitted feedback on Todo App.
+              You're receiving this because you submitted feedback on Planwren.
             </p>
           </div>
         `,

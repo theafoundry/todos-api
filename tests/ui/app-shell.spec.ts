@@ -22,7 +22,7 @@ test.describe("App shell (desktop)", () => {
 
     // Sidebar header with logo.
     await expect(page.locator(".sidebar-header__logo")).toBeVisible();
-    await expect(page.locator(".sidebar-header__logo")).toHaveText("Todos");
+    await expect(page.locator(".sidebar-header__logo")).toHaveText("Planwren");
 
     // Main content area.
     const mainArea = page.locator(".app-main");

@@ -1,6 +1,6 @@
 {
-  "name": "Todos",
-  "short_name": "Todos",
+  "name": "Planwren",
+  "short_name": "Planwren",
   "start_url": "/app",
   "display": "standalone",
   "background_color": "#FFFCF5",

@@ -207,7 +207,7 @@ function LandingNav() {
     <nav className="landing-nav">
       <div className="landing-nav__inner">
         <a href="/" className="landing-nav__logo">
-          Todos
+          Planwren
         </a>
         <div className="landing-nav__links">
           <a href="#landing-features" className="landing-nav__link">
@@ -429,7 +429,7 @@ function LandingFooter() {
     <footer className="landing-footer">
       <div className="landing-section__inner">
         <span className="landing-footer__copy">
-          © {new Date().getFullYear()} Todos. Built for focused work.
+          © {new Date().getFullYear()} Planwren. Built for focused work.
         </span>
       </div>
     </footer>
