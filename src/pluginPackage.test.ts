@@ -55,8 +55,14 @@ describe("Phase 3 installable plugin package", () => {
     }
   });
 
-  it("preserves the accepted tool surface with the reviewed Phase 4 metadata", () => {
-    expect(buildNativeAppToolsList().map((tool) => tool.name)).toEqual([
+  it("preserves the reviewed model tools while adding only an app panel opener", () => {
+    const tools = buildNativeAppToolsList();
+    const modelTools = tools.filter((tool) => {
+      const visibility: readonly string[] | undefined =
+        tool._meta.ui?.visibility;
+      return !visibility || visibility.includes("model");
+    });
+    expect(modelTools.map((tool) => tool.name)).toEqual([
       "list_today",
       "plan_today",
       "capture_task",
@@ -72,5 +78,24 @@ describe("Phase 3 installable plugin package", () => {
     expect(createHash("sha256").update(snapshot).digest("hex")).toBe(
       "6e385ca644964340578b20149d48136ee7f9d0ed454764c3c86db6a3c244fe33",
     );
+    expect(modelTools).toEqual(JSON.parse(snapshot.toString()).tools);
+    expect(tools.filter((tool) => !modelTools.includes(tool))).toEqual([
+      expect.objectContaining({
+        name: "open_today_plan",
+        title: "Today Plan",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          additionalProperties: false,
+        },
+        _meta: expect.objectContaining({
+          ui: {
+            resourceUri: TODAY_PLAN_RESOURCE_URI,
+            visibility: ["app"],
+          },
+          "openai/ui": { entrypoints: [{ type: "thread" }] },
+        }),
+      }),
+    ]);
   });
 });

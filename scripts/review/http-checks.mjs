@@ -163,7 +163,14 @@ export async function checkWidget() {
     "initialize result",
   );
   const tools = await mcpRequest(baseUrl, 2, "tools/list");
-  const names = tools.result?.tools?.map((tool) => tool.name) || [];
+  const catalog = tools.result?.tools || [];
+  const names = catalog
+    .filter(
+      (tool) =>
+        !tool._meta?.ui?.visibility ||
+        tool._meta.ui.visibility.includes("model"),
+    )
+    .map((tool) => tool.name);
   const expected = [
     "list_today",
     "plan_today",
@@ -174,6 +181,22 @@ export async function checkWidget() {
   ];
   if (JSON.stringify(names) !== JSON.stringify(expected)) {
     throw new Error(`Unexpected tool surface: ${JSON.stringify(names)}`);
+  }
+  const opener = catalog.find((tool) => tool.name === "open_today_plan");
+  if (
+    catalog.length !== 7 ||
+    JSON.stringify(opener?._meta?.ui) !==
+      JSON.stringify({
+        resourceUri: "ui://todos/today-plan/v1.html",
+        visibility: ["app"],
+      }) ||
+    JSON.stringify(opener?._meta?.["openai/ui"]?.entrypoints) !==
+      JSON.stringify([{ type: "thread" }]) ||
+    (opener?.inputSchema?.required || []).length !== 0
+  ) {
+    throw new Error(
+      "Today Plan app-only thread entrypoint metadata is invalid",
+    );
   }
   const resources = await mcpRequest(baseUrl, 3, "resources/list");
   const resource = resources.result?.resources?.find(
@@ -192,8 +215,16 @@ export async function checkWidget() {
       "Today Plan CSP expanded beyond its self-contained widget contract",
     );
   }
+  if (
+    JSON.stringify(resource._meta["openai/ui"]?.availableDisplayModes) !==
+    JSON.stringify(["inline", "fullscreen"])
+  ) {
+    throw new Error(
+      "Today Plan must support inline rendering and fullscreen entrypoints",
+    );
+  }
   console.log(
-    "widget: six-tool surface, resource, ui.domain, and empty CSP verified",
+    "widget: six model tools, app-only thread entrypoint, display modes, resource, ui.domain, and empty CSP verified",
   );
   console.log(
     "widget: authenticated tool mutations remain manual acceptance checks",

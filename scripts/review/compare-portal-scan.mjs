@@ -10,7 +10,9 @@ if (!portalPath) {
   process.exit(2);
 }
 
-const expectedPath = path.resolve("test/fixtures/mcp-app-metadata.phase2.json");
+const expectedPath = path.resolve(
+  "test/fixtures/mcp-app-metadata.extensions.json",
+);
 const expected = JSON.parse(fs.readFileSync(expectedPath, "utf8"));
 const rawPortal = JSON.parse(fs.readFileSync(path.resolve(portalPath), "utf8"));
 const portal = rawPortal.contract || rawPortal.metadata || rawPortal;

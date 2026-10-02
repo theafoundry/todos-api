@@ -50,6 +50,7 @@ function plan(overrides: Record<string, unknown> = {}) {
 }
 
 type MountOptions = {
+  panel?: boolean;
   initialPlan?: ReturnType<typeof plan>;
   deferInitialize?: boolean;
   initialAuthError?: boolean;
@@ -101,22 +102,42 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
       }
 
       function respondToToolCall(id: number, params: any) {
+        post({
+          jsonrpc: "2.0",
+          method: "ui/notifications/tool-input",
+          params: { arguments: params.arguments },
+        });
+        function reply(value: unknown) {
+          result(id, value);
+          post({
+            jsonrpc: "2.0",
+            method: "ui/notifications/tool-result",
+            params: value,
+          });
+        }
         if (authNext) {
           authNext = false;
-          result(id, toolError("Your connection expired.", true));
+          reply(toolError("Your connection expired.", true));
           return;
         }
         if (failNext) {
           failNext = false;
-          result(id, toolError("That change could not be saved."));
+          reply(toolError("That change could not be saved."));
           return;
         }
         if (params.name === "plan_today") {
           const nextPlan = options.refreshPlan
             ? structuredClone(options.refreshPlan)
             : structuredClone(authoritativePlan);
+          Object.assign(nextPlan, {
+            date: params.arguments.date,
+            availableMinutes: params.arguments.availableMinutes,
+            energy: params.arguments.energy,
+            remainingMinutes:
+              params.arguments.availableMinutes - nextPlan.totalMinutes,
+          });
           authoritativePlan = nextPlan;
-          result(id, { structuredContent: nextPlan, content: [] });
+          reply({ structuredContent: nextPlan, content: [] });
           return;
         }
         const taskId = params.arguments.taskId;
@@ -124,7 +145,7 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
           (entry: any) => entry.id === taskId,
         );
         if (!currentTask) {
-          result(id, toolError("That task is no longer in this plan."));
+          reply(toolError("That task is no longer in this plan."));
           return;
         }
         if (params.name === "complete_task") {
@@ -132,7 +153,7 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
             completed: params.arguments.completed,
             status: params.arguments.completed ? "done" : "next",
           });
-          result(id, {
+          reply({
             structuredContent: {
               task: structuredClone(currentTask),
               changed: true,
@@ -146,7 +167,7 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
           Object.assign(currentTask, {
             scheduledDate: params.arguments.scheduledDate,
           });
-          result(id, {
+          reply({
             structuredContent: {
               task: structuredClone(currentTask),
               changed: true,
@@ -158,7 +179,7 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
           });
           return;
         }
-        result(id, toolError("Unexpected tool call."));
+        reply(toolError("Unexpected tool call."));
       }
 
       window.addEventListener("message", (event) => {
@@ -173,7 +194,10 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
               protocolVersion: "2026-01-26",
               hostInfo: { name: "widget-test-host", version: "1.0.0" },
               hostCapabilities: { openLinks: {}, serverTools: {} },
-              hostContext: { displayMode: "inline", theme: "light" },
+              hostContext: {
+                displayMode: options.panel ? "fullscreen" : "inline",
+                theme: "light",
+              },
             });
           }
           return;
@@ -183,12 +207,14 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
             jsonrpc: "2.0",
             method: "ui/notifications/tool-input",
             params: {
-              arguments: {
-                date: initialPlan.date,
-                taskIds: initialPlan.tasks.map((entry: any) => entry.id),
-                availableMinutes: initialPlan.availableMinutes,
-                energy: initialPlan.energy,
-              },
+              arguments: options.panel
+                ? {}
+                : {
+                    date: initialPlan.date,
+                    taskIds: initialPlan.tasks.map((entry: any) => entry.id),
+                    availableMinutes: initialPlan.availableMinutes,
+                    energy: initialPlan.energy,
+                  },
             },
           });
           post({
@@ -197,7 +223,13 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
             params: options.initialAuthError
               ? toolError("Your connection expired.", true)
               : {
-                  structuredContent: structuredClone(initialPlan),
+                  structuredContent: options.panel
+                    ? {
+                        state: "setup",
+                        date: initialPlan.date,
+                        timezone: initialPlan.timezone,
+                      }
+                    : structuredClone(initialPlan),
                   content: [],
                 },
           });
@@ -228,7 +260,10 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
               protocolVersion: "2026-01-26",
               hostInfo: { name: "widget-test-host", version: "1.0.0" },
               hostCapabilities: { openLinks: {}, serverTools: {} },
-              hostContext: { displayMode: "inline", theme: "light" },
+              hostContext: {
+                displayMode: options.panel ? "fullscreen" : "inline",
+                theme: "light",
+              },
             });
           },
         },
@@ -245,6 +280,190 @@ async function mountWidget(page: Page, options: MountOptions = {}) {
 async function bridgeCalls(page: Page) {
   return page.evaluate(() => (window as any).__bridgeCalls);
 }
+
+test("opens the conversation panel from the initial setup result without planning or writes", async ({
+  page,
+}) => {
+  const { frame } = await mountWidget(page, { panel: true });
+  await expect(frame.locator("#card")).toHaveAttribute("data-state", "setup");
+  await expect(frame.locator("#skeleton")).toBeHidden();
+  await expect(frame.getByLabel("Date", { exact: true })).toHaveValue(
+    "2026-08-11",
+  );
+  await expect(frame.getByText("America/New_York")).toBeVisible();
+  await expect(frame.getByLabel("Available minutes")).toHaveValue("");
+  await expect(frame.getByLabel("Energy", { exact: true })).toHaveValue("");
+  await expect(frame.getByRole("list", { name: "Planned tasks" })).toBeHidden();
+  const calls = await bridgeCalls(page);
+  expect(calls.filter((call: any) => call.method === "tools/call")).toEqual([]);
+  expect(
+    calls.find((call: any) => call.method === "ui/initialize").params
+      .appCapabilities.availableDisplayModes,
+  ).toEqual(["inline", "fullscreen"]);
+  await frame.locator("#card").screenshot({
+    path: test.info().outputPath("panel-setup.png"),
+    animations: "disabled",
+  });
+});
+
+test("requires explicit planning inputs and preserves submitted values for refresh and existing mutations", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const { frame } = await mountWidget(page, { panel: true });
+  await expect(frame.locator("#card")).toHaveAttribute("data-state", "setup");
+  await frame.getByRole("button", { name: "Make plan", exact: true }).click();
+  expect(
+    (await bridgeCalls(page)).filter(
+      (call: any) => call.method === "tools/call",
+    ),
+  ).toEqual([]);
+  await frame.getByLabel("Available minutes").fill("90");
+  await frame.getByRole("button", { name: "Make plan", exact: true }).click();
+  expect(
+    (await bridgeCalls(page)).filter(
+      (call: any) => call.method === "tools/call",
+    ),
+  ).toEqual([]);
+  await frame.getByLabel("Energy", { exact: true }).selectOption("low");
+  await frame.getByRole("button", { name: "Make plan", exact: true }).click();
+  await expect(frame.locator("#card")).toHaveAttribute("data-state", "ready");
+  await expect(frame.locator("#skeleton")).toBeHidden();
+  await expect(frame.locator(".reschedule").first()).toBeHidden();
+  const height = await frame
+    .locator("#card")
+    .evaluate((card) => card.scrollHeight);
+  await page.locator("#widget").evaluate((iframe, height) => {
+    (iframe as HTMLElement).style.height = height + "px";
+  }, height);
+  await frame.locator("#card").screenshot({
+    path: test.info().outputPath("panel-plan.png"),
+    animations: "disabled",
+  });
+  const planningCall = (await bridgeCalls(page)).filter(
+    (call: any) => call.method === "tools/call",
+  );
+  expect(planningCall).toEqual([
+    {
+      method: "tools/call",
+      params: {
+        name: "plan_today",
+        arguments: { date: "2026-08-11", availableMinutes: 90, energy: "low" },
+      },
+    },
+  ]);
+  await frame
+    .getByRole("button", { name: "Complete Review launch plan", exact: true })
+    .click();
+  await expect(
+    frame.getByRole("button", {
+      name: "Undo completion for Review launch plan",
+    }),
+  ).toBeVisible();
+  await frame
+    .getByRole("button", { name: "Undo completion for Review launch plan" })
+    .click();
+  await expect(
+    frame.getByRole("button", {
+      name: "Complete Review launch plan",
+      exact: true,
+    }),
+  ).toBeVisible();
+  // Draft controls do not change Refresh until Update plan succeeds.
+  await frame.getByLabel("Available minutes").fill("60");
+  await page.evaluate(() => (window as any).__widgetControls.failNext());
+  await frame.getByRole("button", { name: "Update plan", exact: true }).click();
+  await expect(frame.locator("#card")).toHaveAttribute(
+    "data-state",
+    "recoverable-failure",
+  );
+  await frame.getByRole("button", { name: "Refresh plan" }).click();
+  await expect(frame.getByRole("status")).toHaveText(
+    "Plan refreshed from Todos.",
+  );
+  const calls = (await bridgeCalls(page)).filter(
+    (call: any) => call.method === "tools/call",
+  );
+  expect(calls.at(-1).params).toEqual({
+    name: "plan_today",
+    arguments: { date: "2026-08-11", availableMinutes: 90, energy: "low" },
+  });
+  await frame.getByLabel("Available minutes").fill("120");
+  await frame.getByLabel("Energy", { exact: true }).selectOption("high");
+  await frame.getByRole("button", { name: "Update plan", exact: true }).click();
+  await expect(frame.locator("#card")).toHaveAttribute("data-state", "ready");
+  await frame.getByRole("button", { name: "Refresh plan" }).click();
+  await expect(frame.getByRole("status")).toHaveText(
+    "Plan refreshed from Todos.",
+  );
+  const refreshed = (await bridgeCalls(page)).filter(
+    (call: any) => call.method === "tools/call",
+  );
+  expect(refreshed.at(-1).params).toEqual({
+    name: "plan_today",
+    arguments: { date: "2026-08-11", availableMinutes: 120, energy: "high" },
+  });
+  expect(errors).toEqual([]);
+});
+
+test("keeps panel setup retryable on planning failure and disables it on auth expiry", async ({
+  page,
+}) => {
+  const { frame } = await mountWidget(page, { panel: true });
+  await expect(frame.locator("#card")).toHaveAttribute("data-state", "setup");
+  await frame.getByLabel("Available minutes").fill("90");
+  await frame.getByLabel("Energy", { exact: true }).selectOption("medium");
+  await page.evaluate(() => (window as any).__widgetControls.failNext());
+  await frame.getByRole("button", { name: "Make plan", exact: true }).click();
+  await expect(frame.locator("#card")).toHaveAttribute(
+    "data-state",
+    "recoverable-failure",
+  );
+  await expect(frame.getByRole("list", { name: "Planned tasks" })).toBeHidden();
+  await expect(
+    frame.getByRole("button", { name: "Make plan", exact: true }),
+  ).toBeEnabled();
+  await page.evaluate(() => (window as any).__widgetControls.authNext());
+  await frame.getByRole("button", { name: "Make plan", exact: true }).click();
+  await expect(frame.locator("#card")).toHaveAttribute(
+    "data-state",
+    "auth-expired",
+  );
+  await expect(frame.getByLabel("Available minutes")).toBeDisabled();
+  await expect(
+    frame.getByRole("button", { name: "Make plan", exact: true }),
+  ).toBeDisabled();
+});
+
+test("keeps panel instances independent and setup usable at narrow width and 200% zoom", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 820 });
+  const { frame } = await mountWidget(page, { panel: true });
+  await expect(frame.locator("#card")).toHaveAttribute("data-state", "setup");
+  await frame.locator("html").evaluate((element) => {
+    (element as HTMLElement).style.fontSize = "200%";
+  });
+  await frame.getByLabel("Available minutes").fill("90");
+  const otherPage = await page.context().newPage();
+  const other = await mountWidget(otherPage, { panel: true });
+  await expect(other.frame.locator("#card")).toHaveAttribute(
+    "data-state",
+    "setup",
+  );
+  await expect(other.frame.getByLabel("Available minutes")).toHaveValue("");
+  await expect(frame.getByLabel("Available minutes")).toHaveValue("90");
+  expect(
+    await frame
+      .locator("body")
+      .evaluate((body) => body.scrollWidth <= window.innerWidth),
+  ).toBe(true);
+  await expect(
+    frame.getByRole("button", { name: "Make plan", exact: true }),
+  ).toBeVisible();
+  await otherPage.close();
+});
 
 test("shows an initializing state until the MCP Apps handshake completes", async ({
   page,

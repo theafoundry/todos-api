@@ -201,6 +201,9 @@ export function buildNativeAppSuccessText(
   name: NativeAppToolName,
   output: Record<string, unknown>,
 ): string {
+  if (name === "open_today_plan") {
+    return `Today Plan is ready for ${String(output.date)} in ${String(output.timezone)}. Choose your available minutes and energy to create a plan.`;
+  }
   const tasks = Array.isArray(output.tasks) ? output.tasks : [];
   if (name === "list_today") {
     const overdue = tasks.filter(
@@ -263,6 +266,9 @@ export async function executeNativeAppTool(
     typeof args.date === "string"
       ? args.date
       : formatCalendarDate(new Date(), timezone);
+  if (name === "open_today_plan") {
+    return { state: "setup" as const, date: effectiveDate, timezone };
+  }
   const context: AgentExecutionContext = {
     userId: runtime.userId,
     requestId: runtime.requestId,

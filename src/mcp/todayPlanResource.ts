@@ -6,6 +6,7 @@ export const TODAY_PLAN_RESOURCE_MIME_TYPE =
 export const TODAY_PLAN_WIDGET_DOMAIN = "https://todos.theafoundry.com";
 
 export const TODAY_PLAN_RESOURCE_META = {
+  "openai/ui": { availableDisplayModes: ["inline", "fullscreen"] },
   ui: {
     prefersBorder: true,
     domain: TODAY_PLAN_WIDGET_DOMAIN,
@@ -57,9 +58,10 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       --focus: var(--color-ring-primary, #156f55);
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     html, body { margin: 0; padding: 0; background: transparent; color: var(--ink); }
     body { min-width: 0; }
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
     button, a { -webkit-tap-highlight-color: transparent; }
     .card {
       width: 100%;
@@ -73,6 +75,41 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
     .eyebrow { margin: 0 0 4px; color: var(--accent); font-size: .75rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
     h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.7rem); line-height: 1.15; }
     .subhead { margin: 6px 0 0; color: var(--muted); font-size: .85rem; }
+    .planning-controls { margin: 16px 0; }
+    .planning-controls fieldset {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .planning-controls legend {
+      margin-bottom: 10px;
+      font-size: .9rem;
+      font-weight: 650;
+    }
+    .planning-field {
+      display: grid;
+      gap: 5px;
+      flex: 1 1 120px;
+      min-width: 0;
+    }
+    .planning-field label {
+      color: var(--muted);
+      font-size: .78rem;
+    }
+    .planning-field input, .planning-field select {
+      width: 100%;
+      min-width: 0;
+      min-height: 36px;
+      padding: 7px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--ink);
+    }
+    .planning-controls .button { margin-top: 10px; }
     .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
     .stat { min-width: 0; padding: 10px; background: var(--surface-soft); border-radius: 12px; }
     .stat strong { display: block; font-size: 1rem; line-height: 1.2; }
@@ -130,8 +167,17 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
     <h1 id="plan-title">Today's plan</h1>
     <p id="subhead" class="subhead">Connecting to your authoritative plan…</p>
     <div id="skeleton" class="skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
+    <form id="planning-controls" class="planning-controls" hidden>
+      <fieldset id="planning-fields">
+        <legend>Make a plan for your day</legend>
+        <div class="planning-field"><label for="plan-date">Date</label><input id="plan-date" name="date" type="date" required></div>
+        <div class="planning-field"><label for="plan-minutes">Available minutes</label><input id="plan-minutes" name="availableMinutes" type="number" min="1" max="1440" step="1" required></div>
+        <div class="planning-field"><label for="plan-energy">Energy</label><select id="plan-energy" name="energy" required><option value="">Choose energy</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+      </fieldset>
+      <button id="plan-submit" class="button primary" type="submit">Make plan</button>
+    </form>
     <section id="content" hidden>
-      <div class="summary" aria-label="Plan summary">
+      <div class="summary" role="group" aria-label="Plan summary">
         <div class="stat"><strong id="available">—</strong><span>available</span></div>
         <div class="stat"><strong id="planned">—</strong><span>planned</span></div>
         <div class="stat"><strong id="remaining">—</strong><span>remaining</span></div>
@@ -154,7 +200,6 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       var nextRequestId = 1;
       var connected = false;
       var hostCapabilities = {};
-      var toolInput = null;
       var plan = null;
       var phase = "initializing";
       var pendingTaskId = null;
@@ -168,6 +213,12 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       var emptyElement = document.getElementById("empty");
       var refreshButton = document.getElementById("refresh");
       var openLink = document.getElementById("open");
+      var planningControls = document.getElementById("planning-controls");
+      var planningFields = document.getElementById("planning-fields");
+      var planDate = document.getElementById("plan-date");
+      var planMinutes = document.getElementById("plan-minutes");
+      var planEnergy = document.getElementById("plan-energy");
+      var planSubmit = document.getElementById("plan-submit");
 
       function send(message) {
         window.parent.postMessage(message, "*");
@@ -193,7 +244,13 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       function setPhase(nextPhase, message, kind) {
         phase = nextPhase;
         card.dataset.state = nextPhase;
+        planningFields.disabled = nextPhase === "mutation-pending" || nextPhase === "auth-expired";
+        planSubmit.disabled = planningFields.disabled;
         if (message !== undefined) setStatus(message, kind);
+      }
+
+      function authExpiredMessage() {
+        return plan ? "Your Todos connection expired. Reconnect in ChatGPT, then refresh." : "Your Todos connection expired. Reconnect in ChatGPT, then reopen Today Plan.";
       }
 
       function minutes(value) {
@@ -417,6 +474,44 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
         render();
       }
 
+      function showSetup(setup) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(setup.date) || typeof setup.timezone !== "string") throw new Error("Todos returned invalid planning settings.");
+        plan = null;
+        skeleton.hidden = true;
+        content.hidden = true;
+        planningControls.hidden = false;
+        planDate.value = setup.date;
+        planMinutes.value = "";
+        planEnergy.value = "";
+        document.getElementById("subhead").textContent = formatPlanDate(setup.date) + " · " + setup.timezone;
+        setPhase("setup", "Choose your available time and energy, then make a plan.");
+      }
+
+      async function submitPlan(event) {
+        event.preventDefault();
+        if (!connected || phase === "mutation-pending" || phase === "auth-expired" || !planningControls.reportValidity()) return;
+        var inputs = { date: planDate.value, availableMinutes: Number(planMinutes.value), energy: planEnergy.value };
+        var previousPlan = plan;
+        setPhase("mutation-pending", "Making your plan…");
+        render();
+        try {
+          var result = await request("tools/call", { name: "plan_today", arguments: inputs });
+          if (isAuthError(result)) {
+            setPhase("auth-expired", authExpiredMessage(), "error");
+            render();
+            return;
+          }
+          var error = resultError(result);
+          if (error) throw new Error(error);
+          applyPlan(result.structuredContent, "Plan made from Todos.");
+          planSubmit.textContent = "Update plan";
+        } catch (error) {
+          plan = previousPlan;
+          setPhase("recoverable-failure", error && error.message ? error.message : "The plan could not be made. Try again.", "error");
+          render();
+        }
+      }
+
       async function runTaskMutation(task, name, argumentsValue, successMessage) {
         var previousPlan = plan;
         pendingTaskId = task.id;
@@ -427,7 +522,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
           if (isAuthError(result)) {
             plan = previousPlan;
             pendingTaskId = null;
-            setPhase("auth-expired", "Your Todos connection expired. Reconnect in ChatGPT, then refresh.", "error");
+            setPhase("auth-expired", authExpiredMessage(), "error");
             render();
             return;
           }
@@ -447,7 +542,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       }
 
       async function refreshPlan() {
-        if (!plan || !toolInput) return;
+        if (!plan) return;
         var previousPlan = plan;
         setPhase("mutation-pending", "Refreshing your plan…");
         render();
@@ -455,14 +550,14 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
           var result = await request("tools/call", {
             name: "plan_today",
             arguments: {
-              date: toolInput.date || plan.date,
-              availableMinutes: toolInput.availableMinutes || plan.availableMinutes,
-              energy: toolInput.energy || plan.energy
+              date: plan.date,
+              availableMinutes: plan.availableMinutes,
+              energy: plan.energy
             }
           });
           if (isAuthError(result)) {
             plan = previousPlan;
-            setPhase("auth-expired", "Your Todos connection expired. Reconnect in ChatGPT, then refresh.", "error");
+            setPhase("auth-expired", authExpiredMessage(), "error");
             render();
             return;
           }
@@ -487,22 +582,24 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
           else pending.resolve(message.result);
           return;
         }
-        if (message.method === "ui/notifications/tool-input") {
-          toolInput = message.params && message.params.arguments ? message.params.arguments : {};
-        }
         if (message.method === "ui/notifications/tool-result") {
           var result = message.params || {};
           if (isAuthError(result)) {
-            setPhase("auth-expired", "Your Todos connection expired. Reconnect in ChatGPT, then refresh.", "error");
+            setPhase("auth-expired", authExpiredMessage(), "error");
           } else {
             var error = resultError(result);
             if (error) setPhase("recoverable-failure", error, "error");
-            else if (result.structuredContent) applyPlan(result.structuredContent);
+            else if (result.structuredContent && result.structuredContent.state === "setup") showSetup(result.structuredContent);
+            else if (result.structuredContent && Array.isArray(result.structuredContent.tasks)) {
+              var nextPlan = result.structuredContent;
+              if (!plan || phase === "auth-expired" || phase === "recoverable-failure" || JSON.stringify(plan) !== JSON.stringify(nextPlan)) applyPlan(nextPlan);
+            }
           }
         }
       }, { passive: true });
 
       refreshButton.addEventListener("click", refreshPlan);
+      planningControls.addEventListener("submit", submitPlan);
       openLink.addEventListener("click", function (event) {
         if (!connected || !hostCapabilities.openLinks) return;
         event.preventDefault();
@@ -513,7 +610,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
 
       request("ui/initialize", {
         appInfo: { name: "todos-today-plan", version: "1.0.0" },
-        appCapabilities: { availableDisplayModes: ["inline"] },
+        appCapabilities: { availableDisplayModes: ["inline", "fullscreen"] },
         protocolVersion: PROTOCOL_VERSION
       }).then(function (result) {
         connected = true;
