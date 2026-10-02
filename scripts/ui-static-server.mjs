@@ -6,18 +6,26 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const root = path.resolve(__dirname, "../client");
 const reactRoot = resolveFirstBuildRoot(
-  [path.resolve(__dirname, "../client-react/dist"), path.resolve(__dirname, "../dist")],
+  [
+    path.resolve(__dirname, "../client-react/dist"),
+    path.resolve(__dirname, "../dist"),
+  ],
   "index.html",
 );
 const landingRoot = resolveFirstBuildRoot(
-  [path.resolve(__dirname, "../client-react/dist-landing"), path.resolve(__dirname, "../dist-landing")],
-  "index.html",
+  [
+    path.resolve(__dirname, "../client-react/dist-landing"),
+    path.resolve(__dirname, "../dist-landing"),
+  ],
+  "landing.html",
 );
 const authRoot = resolveFirstBuildRoot(
-  [path.resolve(__dirname, "../client-react/dist-auth"), path.resolve(__dirname, "../dist-auth")],
-  "index.html",
+  [
+    path.resolve(__dirname, "../client-react/dist-auth"),
+    path.resolve(__dirname, "../dist-auth"),
+  ],
+  "auth.html",
 );
 const vendorRoots = [
   {
@@ -71,44 +79,71 @@ const contentTypes = {
   ".webmanifest": "application/manifest+json; charset=utf-8",
 };
 
-function safePathForRoot(requestPath, baseRoot) {
-  const decoded = decodeURIComponent(requestPath.split("?")[0]);
+// Resolve a URL path (already stripped of its mount prefix) inside baseRoot.
+// Returns null for malformed encodings, NUL bytes, or paths escaping baseRoot.
+function safePathForRoot(requestPath, baseRoot, indexFile = "index.html") {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(requestPath.split("?")[0]);
+  } catch {
+    return null;
+  }
+  if (decoded.includes("\0")) {
+    return null;
+  }
   const normalized = path.normalize(decoded).replace(/^([/\\])+/, "");
-  const resolved = path.resolve(baseRoot, normalized || "index.html");
-  if (!resolved.startsWith(baseRoot)) {
+  const resolved = path.resolve(baseRoot, normalized || indexFile);
+  if (resolved !== baseRoot && !resolved.startsWith(baseRoot + path.sep)) {
     return null;
   }
   return resolved;
 }
 
-function safePath(requestPath) {
-  const decoded = decodeURIComponent(requestPath.split("?")[0]);
-
-  for (const vendorRoot of vendorRoots) {
-    if (!decoded.startsWith(vendorRoot.prefix)) continue;
-    const relativePath = decoded.slice(vendorRoot.prefix.length);
-    return safePathForRoot(relativePath, vendorRoot.root);
+// Serve a regular file if it exists; returns false (without responding) if not.
+async function sendFileIfExists(res, filePath) {
+  if (!filePath) return false;
+  try {
+    const stat = await fs.stat(filePath);
+    if (!stat.isFile()) return false;
+  } catch {
+    return false;
   }
-
-  return safePathForRoot(decoded, root);
+  const ext = path.extname(filePath).toLowerCase();
+  const body = await fs.readFile(filePath);
+  res.writeHead(200, {
+    "Content-Type": contentTypes[ext] || "application/octet-stream",
+    "Cache-Control": "no-store",
+  });
+  res.end(body);
+  return true;
 }
+
+function sendNotFound(res) {
+  res.writeHead(404, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  res.end("Not found");
+}
+
+// Mirrors src/app.ts: /app (+ /feedback) from dist, / and its static assets
+// from dist-landing, /auth and /auth/assets from dist-auth.
+const reactIndex = path.join(reactRoot, "index.html");
+const landingIndex = resolveFirstExistingFile([
+  path.join(landingRoot, "landing.html"),
+  path.join(landingRoot, "index.html"),
+]);
+const authIndex = resolveFirstExistingFile([
+  path.join(authRoot, "auth.html"),
+  path.join(authRoot, "index.html"),
+]);
+const authAssetsRoot = path.join(authRoot, "assets");
 
 // Standalone page routes — map product URLs to their HTML files
 const standaloneRoutes = {
-  "/auth": resolveFirstExistingFile([
-    path.join(authRoot, "auth.html"),
-    path.join(authRoot, "index.html"),
-    path.join(root, "public", "auth.html"),
-  ]),
-  "/feedback": resolveFirstExistingFile([
-    path.join(landingRoot, "index.html"),
-    path.join(reactRoot, "index.html"),
-    path.join(root, "public", "feedback.html"),
-  ]),
-  "/feedback/new": resolveFirstExistingFile([
-    path.join(landingRoot, "index.html"),
-    path.join(root, "public", "feedback-new.html"),
-  ]),
+  "/": landingIndex,
+  "/auth": authIndex,
+  "/feedback": reactIndex,
 };
 
 const server = http.createServer(async (req, res) => {
@@ -122,9 +157,14 @@ const server = http.createServer(async (req, res) => {
         JSON.stringify({
           token: "mock",
           refreshToken: "mock",
-          user: { id: "mock-user", name: "Test User", email: "test@example.com" },
+          user: {
+            id: "mock-user",
+            name: "Test User",
+            email: "test@example.com",
+          },
         }),
-      "POST:/auth/refresh": () => JSON.stringify({ token: "mock", refreshToken: "mock" }),
+      "POST:/auth/refresh": () =>
+        JSON.stringify({ token: "mock", refreshToken: "mock" }),
       "GET:/users/me": () =>
         JSON.stringify({
           id: "mock-user",
@@ -136,11 +176,21 @@ const server = http.createServer(async (req, res) => {
       "GET:/users/me/settings": () => JSON.stringify({}),
       "GET:/todos": () => JSON.stringify([]),
       "GET:/projects": () => JSON.stringify([]),
-      "GET:/tuneup": () => JSON.stringify({ stale: [], staleByCategory: [], myopic: [], myopicByCategory: [] }),
+      "GET:/tuneup": () =>
+        JSON.stringify({
+          stale: [],
+          staleByCategory: [],
+          myopic: [],
+          myopicByCategory: [],
+        }),
       "GET:/ai/focus-brief": () =>
         JSON.stringify({
           pinned: {
-            rightNow: { narrative: "No tasks to focus on right now.", urgentItems: [], topRecommendation: null },
+            rightNow: {
+              narrative: "No tasks to focus on right now.",
+              urgentItems: [],
+              topRecommendation: null,
+            },
             todayAgenda: [],
             rightNowProvenance: { source: "deterministic" },
             todayAgendaProvenance: { source: "deterministic" },
@@ -159,7 +209,8 @@ const server = http.createServer(async (req, res) => {
     const apiMethod = (req.method || "GET").toUpperCase();
     const apiHandlerKey = `${apiMethod}:${pathname}`;
 
-    const handler = apiHandlers[apiHandlerKey] || apiHandlers[`GET:${pathname}`];
+    const handler =
+      apiHandlers[apiHandlerKey] || apiHandlers[`GET:${pathname}`];
     if (handler) {
       res.writeHead(200, {
         "Content-Type": "application/json; charset=utf-8",
@@ -170,8 +221,20 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const apiPaths = ["/users", "/todos", "/projects", "/tuneup", "/ai/", "/activity", "/search", "/auth/", "/agent-profiles"];
-    const isApiPath = apiPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
+    const apiPaths = [
+      "/users",
+      "/todos",
+      "/projects",
+      "/tuneup",
+      "/ai/",
+      "/activity",
+      "/search",
+      "/auth/",
+      "/agent-profiles",
+    ];
+    const isApiPath = apiPaths.some(
+      (p) => pathname === p || pathname.startsWith(p + "/"),
+    );
     if (["POST", "PUT", "PATCH", "DELETE"].includes(apiMethod) && isApiPath) {
       if (req.readable) {
         await new Promise((resolve) => {
@@ -188,68 +251,21 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (pathname === "/") {
-      const landingFile = resolveFirstExistingFile([
-        path.join(landingRoot, "landing.html"),
-        path.join(landingRoot, "index.html"),
-        path.join(root, "index.html"),
-      ]);
-      if (landingFile && fsSync.existsSync(landingFile)) {
-        const body = await fs.readFile(landingFile);
-        res.writeHead(200, {
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-store",
-        });
-        res.end(body);
-        return;
+    const standaloneFile =
+      standaloneRoutes[pathname] ??
+      (pathname.startsWith("/feedback/") ? reactIndex : undefined);
+    if (standaloneFile) {
+      if (!(await sendFileIfExists(res, standaloneFile))) {
+        sendNotFound(res);
       }
-    }
-
-    const standaloneFile = standaloneRoutes[pathname];
-    if (standaloneFile && fsSync.existsSync(standaloneFile)) {
-      const body = await fs.readFile(standaloneFile);
-      res.writeHead(200, {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      });
-      res.end(body);
-      return;
-    }
-
-    if (pathname === "/app-classic" || pathname.startsWith("/app-classic/")) {
-      const relative = pathname.replace(/^\/app-classic\/?/, "") || "app.html";
-      const classicRoot = path.join(root, "public");
-      const classicFile = safePathForRoot(relative, classicRoot);
-      if (classicFile) {
-        try {
-          const stat = await fs.stat(classicFile);
-          if (stat.isFile()) {
-            const ext = path.extname(classicFile).toLowerCase();
-            const body = await fs.readFile(classicFile);
-            res.writeHead(200, {
-              "Content-Type": contentTypes[ext] || "application/octet-stream",
-              "Cache-Control": "no-store",
-            });
-            res.end(body);
-            return;
-          }
-        } catch {
-          // File not found — fall through to SPA fallback
-        }
-      }
-      const fallback = path.join(classicRoot, "app.html");
-      const body = await fs.readFile(fallback);
-      res.writeHead(200, {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      });
-      res.end(body);
       return;
     }
 
     if (pathname === "/app-react" || pathname.startsWith("/app-react/")) {
       const newPath = pathname.replace(/^\/app-react/, "/app") || "/app";
-      const qs = urlPath.includes("?") ? urlPath.slice(urlPath.indexOf("?")) : "";
+      const qs = urlPath.includes("?")
+        ? urlPath.slice(urlPath.indexOf("?"))
+        : "";
       res.writeHead(302, { Location: newPath + qs });
       res.end();
       return;
@@ -257,61 +273,44 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/app" || pathname.startsWith("/app/")) {
       const relative = pathname.replace(/^\/app\/?/, "") || "index.html";
-      const reactFile = safePathForRoot(relative, reactRoot);
-      if (reactFile) {
-        try {
-          const stat = await fs.stat(reactFile);
-          if (stat.isFile()) {
-            const ext = path.extname(reactFile).toLowerCase();
-            const body = await fs.readFile(reactFile);
-            res.writeHead(200, {
-              "Content-Type": contentTypes[ext] || "application/octet-stream",
-              "Cache-Control": "no-store",
-            });
-            res.end(body);
-            return;
-          }
-        } catch {
-          // File not found — fall through to SPA fallback
-        }
+      if (await sendFileIfExists(res, safePathForRoot(relative, reactRoot))) {
+        return;
       }
-      const fallback = path.join(reactRoot, "index.html");
-      const body = await fs.readFile(fallback);
-      res.writeHead(200, {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      });
-      res.end(body);
+      // Missing build assets must 404 rather than masquerade as the SPA shell.
+      if (pathname.startsWith("/app/assets/")) {
+        sendNotFound(res);
+        return;
+      }
+      if (!(await sendFileIfExists(res, reactIndex))) {
+        sendNotFound(res);
+      }
       return;
     }
 
-    let filePath = safePath(urlPath);
-
-    if (!filePath) {
-      res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(
-        "<h1>404 — Page not found</h1><p>Use /app/ for the React app, /auth for auth, or / for the landing page.</p>",
-      );
+    if (pathname.startsWith("/auth/assets/")) {
+      const relative = pathname.slice("/auth/assets/".length);
+      const authFile = safePathForRoot(relative, authAssetsRoot, "");
+      if (!(await sendFileIfExists(res, authFile))) {
+        sendNotFound(res);
+      }
       return;
     }
 
-    try {
-      const stat = await fs.stat(filePath);
-      if (stat.isDirectory()) {
-        filePath = path.join(filePath, "index.html");
+    for (const vendorRoot of vendorRoots) {
+      if (!pathname.startsWith(vendorRoot.prefix)) continue;
+      const relative = pathname.slice(vendorRoot.prefix.length);
+      const vendorFile = safePathForRoot(relative, vendorRoot.root, "");
+      if (!(await sendFileIfExists(res, vendorFile))) {
+        sendNotFound(res);
       }
-    } catch {
-      filePath = path.join(root, "index.html");
+      return;
     }
 
-    const ext = path.extname(filePath).toLowerCase();
-    const body = await fs.readFile(filePath);
-
-    res.writeHead(200, {
-      "Content-Type": contentTypes[ext] || "application/octet-stream",
-      "Cache-Control": "no-store",
-    });
-    res.end(body);
+    // Landing static assets (bundles, favicon, manifest, public images).
+    const landingFile = safePathForRoot(pathname, landingRoot, "");
+    if (!(await sendFileIfExists(res, landingFile))) {
+      sendNotFound(res);
+    }
   } catch (error) {
     res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("Internal server error");
