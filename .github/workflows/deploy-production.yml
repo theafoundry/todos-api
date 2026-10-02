@@ -21,13 +21,19 @@ name: Production release
 
 on:
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: "Reviewed full commit SHA to release; empty uses the workflow commit"
+        required: false
+        type: string
+        default: ""
 
 concurrency:
   group: production-deploy
   cancel-in-progress: false
 
 env:
-  RELEASE_SHA: ${{ github.sha }}
+  RELEASE_SHA: ${{ inputs.release_sha || github.sha }}
 
 jobs:
   migrate:
@@ -35,6 +41,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     steps:
+      - name: Validate release SHA
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release_sha must be a full 40-character lowercase hexadecimal commit SHA." >&2
+            exit 1
+          fi
+
       - name: Checkout exact release SHA
         uses: actions/checkout@v4
         with:
@@ -42,9 +56,8 @@ jobs:
 
       - name: Confirm release SHA
         run: |
-          test -n "${{ env.RELEASE_SHA }}"
-          test "$(git rev-parse HEAD)" = "${{ env.RELEASE_SHA }}"
-          echo "Migrating at release SHA ${{ env.RELEASE_SHA }}"
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          echo "Migrating at release SHA $RELEASE_SHA"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -72,6 +85,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: Production
     steps:
+      - name: Validate release SHA
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release_sha must be a full 40-character lowercase hexadecimal commit SHA." >&2
+            exit 1
+          fi
+
       - name: Checkout exact release SHA
         uses: actions/checkout@v4
         with:
@@ -79,14 +100,13 @@ jobs:
 
       - name: Confirm release SHA
         run: |
-          test -n "${{ env.RELEASE_SHA }}"
-          test "$(git rev-parse HEAD)" = "${{ env.RELEASE_SHA }}"
-          echo "Deploying release SHA ${{ env.RELEASE_SHA }}"
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          echo "Deploying release SHA $RELEASE_SHA"
 
       - name: Stamp release SHA for deployment
         # Uploaded with the source by `railway up`; /healthz reports it back so
         # the release can be verified end-to-end. Never committed to git.
-        run: printf '%s' "${{ env.RELEASE_SHA }}" > release-sha.txt
+        run: printf '%s' "$RELEASE_SHA" > release-sha.txt
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
@@ -104,26 +124,24 @@ jobs:
         run: |
           deadline=$(( $(date +%s) + 600 ))
           while [ "$(date +%s)" -lt "$deadline" ]; do
-            code="$(curl -s -o /tmp/healthz.json -w '%{http_code}' https://todos.karthikg.in/healthz || true)"
+            code="$(curl -s -o /tmp/healthz.json -w '%{http_code}' https://todos.theafoundry.com/healthz || true)"
             if [ "$code" = "200" ]; then
               sha="$(python3 -c "import json; print(json.load(open('/tmp/healthz.json')).get('sha', ''))")"
-              if [ "$sha" = "${{ env.RELEASE_SHA }}" ]; then
-                echo "Production is serving release SHA ${{ env.RELEASE_SHA }}"
-                curl -sf https://todos.karthikg.in/readyz -o /dev/null
-                echo "readyz (todos.karthikg.in): 200"
+              if [ "$sha" = "$RELEASE_SHA" ]; then
+                echo "Production is serving release SHA $RELEASE_SHA"
                 curl -sf https://todos.theafoundry.com/readyz -o /dev/null
                 echo "readyz (todos.theafoundry.com): 200"
                 exit 0
               fi
-              echo "Waiting: /healthz reachable but sha='${sha}' (want '${{ env.RELEASE_SHA }}')"
+              echo "Waiting: /healthz reachable but sha='${sha}' (want '$RELEASE_SHA')"
             else
               echo "Waiting: /healthz http=${code}"
             fi
             sleep 15
           done
-          echo "Timed out waiting for production to serve ${{ env.RELEASE_SHA }}"
+          echo "Timed out waiting for production to serve $RELEASE_SHA"
           exit 1
 
       - name: Report deployed SHA
         run: |
-          echo "Deployed SHA: ${{ env.RELEASE_SHA }}"
+          echo "Deployed SHA: $RELEASE_SHA"
