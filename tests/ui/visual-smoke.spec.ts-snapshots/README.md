@@ -14,7 +14,7 @@ are masked or cropped. Windows baselines are not provided.
 Capture environment: Node 22.22.1, Playwright 1.59.1 and its matching Chromium.
 Linux images were inspected from `mcr.microsoft.com/playwright:v1.59.1-noble`
 (Ubuntu 24.04, arm64); macOS images were captured natively on arm64. Every PNG
-was visually inspected before being added here. The two landing illustrations
+was visually inspected before being added here. The landing illustrations
 in `client-react/public/images/landing` are real light/dark app screenshots
 captured with mocked local data; they contain no user account data.
 
@@ -28,6 +28,14 @@ capture so the sticky header appears in its correct position.
 Linux captures use a checksum-verified official
 Node 22.22.1 arm64 runtime inside the matching Playwright image, rather than the
 image's bundled Node runtime.
+
+The narrow landing uses real 390 × 844 light/dark mobile Today captures with
+five synthetic tasks and the default palette. Below 640px, the hero follows the
+saved app appearance (or the system theme), while the Dark Mode card always
+shows the dark capture. At 640px and above, both desktop illustrations remain
+in use. Portrait frames preserve their native ratio without cropping. Browser
+checks cover 320, 390, 639, 640, 768, 1024 and 1440px with saved preferences
+opposite the system theme.
 
 Build all three client surfaces before running the suite, as the visual workflow
 does:

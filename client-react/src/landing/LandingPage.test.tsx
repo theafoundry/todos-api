@@ -1,8 +1,33 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { LandingPage } from "./LandingPage";
+
+const NARROW = "(max-width: 639px)";
+const DARK = "(prefers-color-scheme: dark)";
+const MOBILE_LIGHT = "/images/landing/hero-mobile-light.png";
+const MOBILE_DARK = "/images/landing/hero-mobile-dark.png";
+
+/** Install a matchMedia stub answering per query; returns a restore fn. */
+function mockMatchMedia(matching: Partial<Record<string, boolean>>) {
+  const original = window.matchMedia;
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: matching[query] ?? false,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
+  return () => {
+    window.matchMedia = original;
+  };
+}
+
+function heroSource(container: HTMLElement) {
+  const source = container.querySelector(".landing-hero__picture > source");
+  expect(source).not.toBeNull();
+  return source as HTMLSourceElement;
+}
 
 describe("LandingPage", () => {
   beforeEach(() => {
@@ -105,6 +130,113 @@ describe("LandingPage", () => {
     const img = screen.getByAltText(/Planning workspace with home dashboard/);
     expect(img).toBeTruthy();
     expect(img).toHaveAttribute("src", "/images/landing/hero-desktop.png");
+  });
+
+  it("art-directs the hero with a narrow mobile source and desktop fallback", () => {
+    const { container } = render(createElement(LandingPage));
+    const picture = container.querySelector(".landing-hero__picture");
+    expect(picture?.tagName).toBe("PICTURE");
+
+    const source = heroSource(container);
+    expect(source).toHaveAttribute("media", NARROW);
+    expect(source).toHaveAttribute("srcset", MOBILE_LIGHT);
+    expect(source).toHaveAttribute("width", "390");
+    expect(source).toHaveAttribute("height", "844");
+
+    // The <img> stays last in <picture> and keeps the desktop fallback.
+    const img = picture?.querySelector("img");
+    expect(picture?.lastElementChild).toBe(img);
+    expect(img).toHaveAttribute("src", "/images/landing/hero-desktop.png");
+    expect(img).toHaveAttribute("loading", "eager");
+    expect(img).toHaveClass("landing-hero__img");
+  });
+
+  it("uses the dark mobile hero when a saved preference overrides a light system", () => {
+    window.localStorage.setItem("darkMode", "true");
+    const restore = mockMatchMedia({ [DARK]: false });
+    try {
+      const { container } = render(createElement(LandingPage));
+      expect(document.body).toHaveClass("dark-mode");
+      expect(heroSource(container)).toHaveAttribute("srcset", MOBILE_DARK);
+    } finally {
+      restore();
+    }
+  });
+
+  it("uses the light mobile hero when a saved preference overrides a dark system", () => {
+    window.localStorage.setItem("darkMode", "false");
+    const restore = mockMatchMedia({ [DARK]: true });
+    try {
+      const { container } = render(createElement(LandingPage));
+      expect(document.body).not.toHaveClass("dark-mode");
+      expect(heroSource(container)).toHaveAttribute("srcset", MOBILE_LIGHT);
+    } finally {
+      restore();
+    }
+  });
+
+  it("follows the system theme for the mobile hero when nothing is saved", () => {
+    const restore = mockMatchMedia({ [DARK]: true });
+    try {
+      const { container } = render(createElement(LandingPage));
+      expect(heroSource(container)).toHaveAttribute("srcset", MOBILE_DARK);
+      expect(window.localStorage.getItem("darkMode")).toBeNull();
+    } finally {
+      restore();
+    }
+  });
+
+  it("switches the mobile hero when the saved theme changes in another tab", () => {
+    const { container } = render(createElement(LandingPage));
+    expect(heroSource(container)).toHaveAttribute("srcset", MOBILE_LIGHT);
+
+    window.localStorage.setItem("darkMode", "true");
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: "darkMode" }));
+    });
+    expect(document.body).toHaveClass("dark-mode");
+    expect(heroSource(container)).toHaveAttribute("srcset", MOBILE_DARK);
+  });
+
+  it("gives only the dark mode card a mobile source with a desktop fallback", () => {
+    const { container } = render(createElement(LandingPage));
+    const pictures = container.querySelectorAll(".landing-card__picture");
+    expect(pictures).toHaveLength(1);
+
+    const card = screen.getByText("Dark Mode").closest(".landing-card");
+    const picture = card?.querySelector(".landing-card__picture");
+    expect(picture?.tagName).toBe("PICTURE");
+    const source = picture?.querySelector("source");
+    expect(source).toHaveAttribute("media", NARROW);
+    // The card always demonstrates dark mode, independent of page theme.
+    expect(source).toHaveAttribute("srcset", MOBILE_DARK);
+    expect(source).toHaveAttribute("width", "390");
+    expect(source).toHaveAttribute("height", "844");
+
+    const img = picture?.querySelector("img");
+    expect(img).toHaveAttribute("src", "/images/landing/dark-mode.png");
+    expect(img).toHaveAttribute("loading", "lazy");
+  });
+
+  it("describes the mobile screenshots in alt text on narrow viewports", () => {
+    const restore = mockMatchMedia({ [NARROW]: true });
+    try {
+      render(createElement(LandingPage));
+      const hero = screen.getByAltText(
+        "Mobile Today view with a list of tasks",
+      );
+      expect(hero).toHaveClass("landing-hero__img");
+      // Fallback src is unchanged; only the matched <source> differs.
+      expect(hero).toHaveAttribute("src", "/images/landing/hero-desktop.png");
+      expect(
+        screen.getByAltText("Mobile Today view in dark mode"),
+      ).toHaveAttribute("src", "/images/landing/dark-mode.png");
+      expect(
+        screen.queryByAltText(/Planning workspace with home dashboard/),
+      ).toBeNull();
+    } finally {
+      restore();
+    }
   });
 
   it("renders the features section with heading", () => {

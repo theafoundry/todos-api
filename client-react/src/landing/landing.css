@@ -55,6 +55,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
+  min-width: var(--pw-target);
   min-height: var(--pw-target);
   padding-right: var(--s-1);
   border-radius: var(--r-sm);
@@ -253,6 +254,14 @@
   border-radius: var(--pw-radius-lg);
   background: var(--pw-surface-2);
   box-shadow: var(--pw-shadow-lg);
+}
+
+/* <picture> is inline by default; keep it a plain block box so the
+   image (which carries all visual styling) sizes exactly as before. */
+.landing-hero__picture,
+.landing-card__picture {
+  display: block;
+  min-width: 0;
 }
 
 .landing-hero__img {
@@ -511,6 +520,25 @@
 
   .landing-hero__ctas .landing-btn {
     flex: 1 1 auto;
+  }
+
+  /* Portrait phone screenshots (390×844 sources via <picture>): center a
+     bounded frame and keep the native ratio — no stretch or crop. */
+  .landing-hero__screenshot {
+    width: min(100%, 320px);
+    margin-inline: auto;
+  }
+
+  .landing-hero__img,
+  .landing-card__picture .landing-card__img {
+    aspect-ratio: auto 390 / 844;
+    object-fit: contain;
+  }
+
+  .landing-card__picture {
+    justify-self: center;
+    width: min(100%, 300px);
+    margin-inline: auto;
   }
 }
 

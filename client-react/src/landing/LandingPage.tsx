@@ -1,6 +1,39 @@
+import { useEffect, useState } from "react";
 import "./landing.css";
 import { BrandMark } from "../components/ui/BrandMark";
 import { usePublicTheme } from "../styles/publicTheme";
+
+// Matches the landing's narrow breakpoint in landing.css.
+const NARROW_MEDIA = "(max-width: 639px)";
+
+const HERO_DESKTOP = "/images/landing/hero-desktop.png";
+const HERO_MOBILE_LIGHT = "/images/landing/hero-mobile-light.png";
+const HERO_MOBILE_DARK = "/images/landing/hero-mobile-dark.png";
+const MOBILE_SHOT_WIDTH = 390;
+const MOBILE_SHOT_HEIGHT = 844;
+
+/**
+ * Tracks NARROW_MEDIA so alt text describes whichever screenshot the
+ * <picture> actually shows (desktop dashboard vs. mobile Today view).
+ */
+function useNarrowViewport(): boolean {
+  const [narrow, setNarrow] = useState(
+    () =>
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(NARROW_MEDIA).matches,
+  );
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(NARROW_MEDIA);
+    const update = () => setNarrow(query.matches);
+    update();
+    query.addEventListener?.("change", update);
+    return () => query.removeEventListener?.("change", update);
+  }, []);
+
+  return narrow;
+}
 
 // ─── Icons ───────────────────────────────────────────────────────────
 
@@ -233,7 +266,12 @@ function LandingNav() {
 
 // ─── Hero ────────────────────────────────────────────────────────────
 
-function HeroSection() {
+interface ArtProps {
+  dark: boolean;
+  narrow: boolean;
+}
+
+function HeroSection({ dark, narrow }: ArtProps) {
   return (
     <section className="landing-hero" aria-labelledby="landing-hero-title">
       <div className="landing-section__inner">
@@ -270,12 +308,26 @@ function HeroSection() {
           </div>
         </div>
         <figure className="landing-hero__screenshot">
-          <img
-            src="/images/landing/hero-desktop.png"
-            alt="Planning workspace with home dashboard, projects, and AI-curated focus"
-            className="landing-hero__img"
-            loading="eager"
-          />
+          <picture className="landing-hero__picture">
+            {/* Mobile art follows the effective public theme, not just
+                prefers-color-scheme, so a saved preference wins. */}
+            <source
+              media={NARROW_MEDIA}
+              srcSet={dark ? HERO_MOBILE_DARK : HERO_MOBILE_LIGHT}
+              width={MOBILE_SHOT_WIDTH}
+              height={MOBILE_SHOT_HEIGHT}
+            />
+            <img
+              src={HERO_DESKTOP}
+              alt={
+                narrow
+                  ? "Mobile Today view with a list of tasks"
+                  : "Planning workspace with home dashboard, projects, and AI-curated focus"
+              }
+              className="landing-hero__img"
+              loading="eager"
+            />
+          </picture>
         </figure>
       </div>
     </section>
@@ -350,6 +402,10 @@ interface CapabilityCardProps {
   wide?: boolean;
   image?: string;
   imageAlt?: string;
+  /** Portrait phone screenshot shown below NARROW_MEDIA instead of `image`. */
+  mobileImage?: string;
+  mobileImageAlt?: string;
+  narrow?: boolean;
 }
 
 function CapabilityCard({
@@ -359,7 +415,20 @@ function CapabilityCard({
   wide,
   image,
   imageAlt,
+  mobileImage,
+  mobileImageAlt,
+  narrow,
 }: CapabilityCardProps) {
+  const desktopAlt = imageAlt ?? title;
+  const img = image ? (
+    <img
+      src={image}
+      alt={mobileImage && narrow ? (mobileImageAlt ?? desktopAlt) : desktopAlt}
+      className="landing-card__img"
+      loading="lazy"
+    />
+  ) : null;
+
   return (
     <li className={`landing-card${wide ? " landing-card--wide" : ""}`}>
       <div className="landing-card__body">
@@ -367,19 +436,24 @@ function CapabilityCard({
         <h3>{title}</h3>
         <p>{description}</p>
       </div>
-      {image && (
-        <img
-          src={image}
-          alt={imageAlt ?? title}
-          className="landing-card__img"
-          loading="lazy"
-        />
+      {img && mobileImage ? (
+        <picture className="landing-card__picture">
+          <source
+            media={NARROW_MEDIA}
+            srcSet={mobileImage}
+            width={MOBILE_SHOT_WIDTH}
+            height={MOBILE_SHOT_HEIGHT}
+          />
+          {img}
+        </picture>
+      ) : (
+        img
       )}
     </li>
   );
 }
 
-function CapabilitiesSection() {
+function CapabilitiesSection({ narrow }: Pick<ArtProps, "narrow">) {
   return (
     <section
       className="landing-capabilities"
@@ -428,6 +502,9 @@ function CapabilitiesSection() {
             wide
             image="/images/landing/dark-mode.png"
             imageAlt="Planning workspace in dark mode"
+            mobileImage={HERO_MOBILE_DARK}
+            mobileImageAlt="Mobile Today view in dark mode"
+            narrow={narrow}
           />
         </ul>
       </div>
@@ -482,7 +559,8 @@ function LandingFooter() {
 // ─── Page ────────────────────────────────────────────────────────────
 
 export function LandingPage() {
-  usePublicTheme();
+  const dark = usePublicTheme();
+  const narrow = useNarrowViewport();
 
   return (
     <div className="landing-page">
@@ -491,9 +569,9 @@ export function LandingPage() {
       </a>
       <LandingNav />
       <main id="landing-main">
-        <HeroSection />
+        <HeroSection dark={dark} narrow={narrow} />
         <FeaturesSection />
-        <CapabilitiesSection />
+        <CapabilitiesSection narrow={narrow} />
         <CtaSection />
       </main>
       <LandingFooter />

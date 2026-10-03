@@ -452,6 +452,75 @@ test.describe("Public surface behavior", () => {
     });
   }
 
+  for (const width of [320, 390, 639, 640, 768, 1024, 1440]) {
+    for (const saved of ["light", "dark"] as const) {
+      test(`landing artwork at ${width}px follows effective ${saved} theme`, async ({
+        page,
+        isMobile,
+      }) => {
+        test.skip(isMobile ? width >= 640 : width < 640);
+        await page.setViewportSize({ width, height: 844 });
+        // An opposite system preference catches sources that ignore the
+        // app's saved appearance and only use a color-scheme media query.
+        await setThemePreference(
+          page,
+          saved === "dark" ? "light" : "dark",
+          saved,
+        );
+        await openSettledPublicPage(page, "/");
+        await expectTheme(page, saved);
+        const hero = page.locator(".landing-hero__img");
+        const capability = page.locator(".landing-card__img");
+        const narrow = width <= 639;
+        await expect
+          .poll(() => hero.evaluate((img: HTMLImageElement) => img.currentSrc))
+          .toContain(narrow ? `hero-mobile-${saved}.png` : "hero-desktop.png");
+        await expect
+          .poll(() =>
+            capability.evaluate((img: HTMLImageElement) => img.currentSrc),
+          )
+          .toContain(narrow ? "hero-mobile-dark.png" : "dark-mode.png");
+        for (const image of [hero, capability]) {
+          const dimensions = await image.evaluate((img: HTMLImageElement) => {
+            const box = img.getBoundingClientRect();
+            const style = getComputedStyle(img);
+            return {
+              naturalWidth: img.naturalWidth,
+              naturalHeight: img.naturalHeight,
+              width: box.width,
+              height: box.height,
+              contentWidth:
+                box.width -
+                Number.parseFloat(style.borderLeftWidth) -
+                Number.parseFloat(style.borderRightWidth),
+              contentHeight:
+                box.height -
+                Number.parseFloat(style.borderTopWidth) -
+                Number.parseFloat(style.borderBottomWidth),
+            };
+          });
+          expect(dimensions.naturalWidth).toBe(narrow ? 390 : 1440);
+          expect(dimensions.naturalHeight).toBe(narrow ? 844 : 900);
+          // Measure the artwork inside its border, which has a different
+          // ratio from the image at small sizes. The content must keep its
+          // native ratio when the source becomes a portrait.
+          expect(
+            dimensions.contentWidth / dimensions.contentHeight,
+          ).toBeCloseTo(dimensions.naturalWidth / dimensions.naturalHeight, 2);
+          if (narrow) {
+            expect(dimensions.width).toBeLessThanOrEqual(320);
+            expect(dimensions.height).toBeLessThanOrEqual(740);
+            expect(dimensions.width).toBeGreaterThanOrEqual(230);
+          }
+        }
+        await expectNoHorizontalOverflow(page);
+        if (narrow) {
+          await expectTapTargets(page.locator(".landing-nav__logo"));
+        }
+      });
+    }
+  }
+
   test("landing and auth expose visible keyboard focus", async ({ page }) => {
     await setThemePreference(page, "light");
     await page.goto("/");
