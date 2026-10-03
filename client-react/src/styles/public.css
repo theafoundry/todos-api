@@ -1,0 +1,190 @@
+/* ════════════════════════════════════════════════════════════════════
+   Public surface — landing + auth.
+   auth.css (and therefore this file) also ships inside the main app
+   bundle because App.tsx renders AuthPage, so every runtime rule here is
+   scoped to body.pw-public. usePublicTheme() adds that class while a
+   public page is mounted and removes it on unmount, leaving the app's
+   layered tokens/base styles untouched once the shell renders.
+   ════════════════════════════════════════════════════════════════════ */
+
+@import "./tokens.css";
+
+body.pw-public {
+  --pw-font: "DM Sans", var(--font-sans);
+
+  /* Fold neutrals (light) */
+  --pw-bg: var(--brand-cream);
+  --pw-surface: #ffffff;
+  --pw-surface-2: #fff6ea;
+  --pw-border: #eadfd2;
+  --pw-border-strong: #d9cbbb;
+  --pw-input-border: #9c8b7c; /* 3.3:1 on white — visible control edge */
+  --pw-ink: var(--brand-ink);
+  --pw-text: #4a3a32;
+  --pw-muted: #6b5d52; /* 6.2:1 on cream */
+
+  /* Coral: fill uses ink text (5.03:1); text/focus uses the deeper tone */
+  --pw-coral: var(--brand-coral);
+  --pw-coral-hover: color-mix(in oklab, var(--brand-coral) 86%, #ffffff);
+  --pw-coral-tint: color-mix(in oklab, var(--brand-coral) 12%, #ffffff);
+  --pw-coral-text: #b4472f; /* 5.3:1 on cream and white */
+  --pw-on-coral: var(--brand-ink);
+  --pw-focus: #b4472f;
+
+  --pw-danger: #b3261e;
+  --pw-success: #1e7a4c;
+
+  /* Inverted panel (final CTA) */
+  --pw-panel-bg: var(--brand-ink);
+  --pw-panel-text: var(--brand-cream);
+  --pw-panel-muted: #d9cfc4;
+  --pw-panel-focus: #f4a48f;
+
+  --pw-glow: color-mix(in oklab, var(--brand-coral) 14%, transparent);
+  --pw-shadow-sm: 0 1px 2px rgb(45 31 26 / 0.06);
+  --pw-shadow-md:
+    0 8px 24px rgb(45 31 26 / 0.08), 0 2px 6px rgb(45 31 26 / 0.05);
+  --pw-shadow-lg:
+    0 24px 56px rgb(45 31 26 / 0.14), 0 6px 16px rgb(45 31 26 / 0.06);
+
+  --pw-radius: 16px;
+  --pw-radius-lg: 24px;
+  --pw-target: 44px;
+  --pw-gutter: clamp(1rem, 4vw, 2rem);
+  --pw-max: 1160px;
+
+  color-scheme: light;
+}
+
+body.pw-public.dark-mode {
+  --pw-bg: #1a1310;
+  --pw-surface: #241b16;
+  --pw-surface-2: #2c211b;
+  --pw-border: #3a2d25;
+  --pw-border-strong: #4d3d32;
+  --pw-input-border: #7a6a5d;
+  --pw-ink: var(--brand-cream);
+  --pw-text: #e9dfd3;
+  --pw-muted: #b8a99a;
+
+  --pw-coral-tint: color-mix(in oklab, var(--brand-coral) 18%, #241b16);
+  --pw-coral-text: #f4a48f;
+  --pw-focus: #f4a48f;
+
+  --pw-danger: #ff9c94;
+  --pw-success: #7fd8a8;
+
+  --pw-panel-bg: #2c211b;
+
+  --pw-glow: color-mix(in oklab, var(--brand-coral) 10%, transparent);
+  --pw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --pw-shadow-md: 0 8px 24px rgb(0 0 0 / 0.35), 0 2px 6px rgb(0 0 0 / 0.25);
+  --pw-shadow-lg: 0 24px 56px rgb(0 0 0 / 0.45), 0 6px 16px rgb(0 0 0 / 0.3);
+
+  color-scheme: dark;
+}
+
+/* Keep overscroll areas in step with the public body. */
+:root:has(> body.pw-public) {
+  background: var(--brand-cream);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+:root:has(> body.pw-public.dark-mode) {
+  background: #1a1310;
+  color-scheme: dark;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────── */
+
+:where(body.pw-public),
+:where(body.pw-public) *,
+:where(body.pw-public) *::before,
+:where(body.pw-public) *::after {
+  box-sizing: border-box;
+}
+
+body.pw-public {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--pw-bg);
+  color: var(--pw-text);
+  font-family: var(--pw-font);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:where(body.pw-public) img {
+  max-width: 100%;
+  height: auto;
+}
+
+:where(body.pw-public) :where(button, input) {
+  font: inherit;
+}
+
+body.pw-public ::selection {
+  background: color-mix(in oklab, var(--brand-coral) 28%, transparent);
+  color: var(--pw-ink);
+}
+
+/* ── Focus ───────────────────────────────────────────────────────────── */
+
+:where(body.pw-public) :focus-visible {
+  outline: 3px solid var(--pw-focus);
+  outline-offset: 2px;
+}
+
+/* ── Utilities (public-only class names) ─────────────────────────────── */
+
+.pw-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pw-skip-link {
+  position: absolute;
+  top: var(--s-2);
+  left: var(--s-2);
+  z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--pw-target);
+  padding: 0 var(--s-4);
+  border-radius: var(--r-full);
+  background: var(--pw-ink);
+  color: var(--pw-bg);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.pw-skip-link:focus-visible {
+  transform: none;
+}
+
+/* Cross-page fade used by navigateWithFade() (reduced motion skips it).
+   Scoped so the app's own overlay styling in app.css is not overridden. */
+body.pw-public .view-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--pw-bg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity var(--dur-view) var(--ease-out);
+}
+
+body.pw-public .view-transition-overlay.active {
+  opacity: 1;
+}

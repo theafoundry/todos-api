@@ -147,7 +147,7 @@ body {
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   color: var(--brand-wordmark);
-  font-family: var(--font-display, inherit);
+  font-family: "DM Sans", var(--font-sans);
 }
 
 .sidebar-header__collapse {
