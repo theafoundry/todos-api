@@ -23,7 +23,7 @@
       "What is due or overdue today?",
       "Capture: call the dentist tomorrow."
     ],
-    "brandColor": "#276450",
+    "brandColor": "#E17055",
     "composerIcon": "./assets/composer-icon.png",
     "logo": "./assets/logo.png",
     "screenshots": ["./assets/screenshot-today-plan.png"]

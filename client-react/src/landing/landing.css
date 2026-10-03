@@ -41,10 +41,13 @@
 }
 
 .landing-nav__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
   font-size: var(--fs-section);
   font-weight: var(--fw-bold);
   text-decoration: none;
-  color: var(--text-strong);
+  color: var(--brand-wordmark);
 }
 
 .landing-nav__links {
@@ -212,7 +215,9 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: var(--s-5);
-  transition: box-shadow var(--dur-base), border-color var(--dur-base);
+  transition:
+    box-shadow var(--dur-base),
+    border-color var(--dur-base);
 }
 
 .landing-feature-card:hover {

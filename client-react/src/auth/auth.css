@@ -53,9 +53,12 @@
 }
 
 .auth-card__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
   font-size: var(--fs-section);
   font-weight: var(--fw-bold);
-  color: var(--text-strong);
+  color: var(--brand-wordmark);
 }
 
 /* ── Message Banner ─────────────────────────────────────────────────── */
@@ -120,7 +123,9 @@
   font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: color var(--dur-base), border-color var(--dur-base);
+  transition:
+    color var(--dur-base),
+    border-color var(--dur-base);
 }
 
 .auth-tab:hover {
@@ -170,7 +175,9 @@
   color: var(--text);
   font-size: var(--fs-body);
   font-family: inherit;
-  transition: border-color var(--dur-base), box-shadow var(--dur-base);
+  transition:
+    border-color var(--dur-base),
+    box-shadow var(--dur-base);
 }
 
 .auth-form__field input:focus {
@@ -198,7 +205,9 @@
   font-weight: var(--fw-semibold);
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--dur-base), transform var(--dur-base) var(--ease-spring);
+  transition:
+    background var(--dur-base),
+    transform var(--dur-base) var(--ease-spring);
 }
 
 .auth-form__submit:hover {
@@ -273,7 +282,9 @@
   font-weight: var(--fw-medium);
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--dur-base), border-color var(--dur-base);
+  transition:
+    background var(--dur-base),
+    border-color var(--dur-base);
   text-decoration: none;
 }
 

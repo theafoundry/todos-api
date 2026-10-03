@@ -9,8 +9,11 @@ export default defineConfig({
     {
       name: "fix-auth-favicon",
       transformIndexHtml(html) {
-        // Vite prefixes all paths with base="/auth/", but favicon should stay at root
-        return html.replace('href="/auth/favicon.svg"', 'href="/favicon.svg"');
+        // Shared public brand assets belong at root, including versioned URLs.
+        return html.replace(
+          /href="\/auth\/((?:favicon\.svg|favicon\.ico|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png)(?:\?[^\"]*)?)"/g,
+          'href="/$1"',
+        );
       },
     },
   ],

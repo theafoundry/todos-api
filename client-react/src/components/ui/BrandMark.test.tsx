@@ -10,7 +10,7 @@ describe("BrandMark", () => {
     expect(svg).toBeTruthy();
     expect(svg).toHaveAttribute("width", "24");
     expect(svg).toHaveAttribute("height", "24");
-    expect(svg).toHaveAttribute("viewBox", "0 0 24 24");
+    expect(svg).toHaveAttribute("viewBox", "77 214 222 252");
   });
 
   it("honors the size override", () => {
@@ -22,7 +22,10 @@ describe("BrandMark", () => {
 
   it("is aria-hidden so screen readers skip decorative chrome", () => {
     const { container } = render(<BrandMark />);
-    expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector("svg")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
   });
 
   it("merges a caller-provided className", () => {
@@ -31,12 +34,20 @@ describe("BrandMark", () => {
     expect(svg.getAttribute("class")).toBe("extra");
   });
 
+  it("gives a standalone mark an accessible name without hiding it", () => {
+    const { getByRole } = render(<BrandMark label="Planwren Fold logo" />);
+    expect(
+      getByRole("img", { name: "Planwren Fold logo" }),
+    ).not.toHaveAttribute("aria-hidden");
+  });
+
   it("references design-system tokens (no hardcoded hex)", () => {
     const { container } = render(<BrandMark />);
     const svg = container.querySelector("svg")!;
-    const fills = Array.from(svg.querySelectorAll("[fill]"))
+    const fills = [svg, ...svg.querySelectorAll("[fill]")]
       .map((el) => el.getAttribute("fill"))
       .filter((f): f is string => !!f && f !== "none");
+    expect(fills.length).toBeGreaterThan(0);
     for (const fill of fills) {
       expect(fill).toMatch(/^var\(--/);
     }

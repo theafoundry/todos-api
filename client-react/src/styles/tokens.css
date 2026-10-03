@@ -6,6 +6,13 @@
 
 @layer tokens {
   :root {
+    /* Fold brand palette; application status/accent colors are unchanged. */
+    --brand-coral: #e17055;
+    --brand-cream: #fffcf5;
+    --brand-ink: #2d1f1a;
+    --brand-mark: var(--brand-coral);
+    --brand-wordmark: var(--brand-ink);
+
     /* ── Neutrals (light) ─────────────────── */
     --bg: #f4f7fb;
     --surface: #ffffff;
@@ -153,6 +160,8 @@
 
   /* ── Dark mode (warmer, more vibrant) ───── */
   body.dark-mode {
+    --brand-mark: var(--brand-cream);
+    --brand-wordmark: var(--brand-cream);
     --bg: #0f1419;
     --surface: #1a232f;
     --surface-2: #232f3d;

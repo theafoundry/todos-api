@@ -1,4 +1,5 @@
 import "./landing.css";
+import { BrandMark } from "../components/ui/BrandMark";
 
 // ─── Icons ───────────────────────────────────────────────────────────
 
@@ -207,7 +208,8 @@ function LandingNav() {
     <nav className="landing-nav">
       <div className="landing-nav__inner">
         <a href="/" className="landing-nav__logo">
-          Planwren
+          <BrandMark size={28} />
+          <span>Planwren</span>
         </a>
         <div className="landing-nav__links">
           <a href="#landing-features" className="landing-nav__link">
@@ -216,10 +218,7 @@ function LandingNav() {
           <a href="/auth?next=%2Fapp&tab=login" className="landing-nav__link">
             Log in
           </a>
-          <a
-            href="/auth?next=%2Fapp&tab=register"
-            className="landing-nav__cta"
-          >
+          <a href="/auth?next=%2Fapp&tab=register" className="landing-nav__cta">
             Start for free
           </a>
         </div>
@@ -249,7 +248,10 @@ function HeroSection() {
           >
             Start for free
           </a>
-          <a href="#landing-features" className="landing-btn landing-btn--secondary">
+          <a
+            href="#landing-features"
+            className="landing-btn landing-btn--secondary"
+          >
             See features
           </a>
         </div>
@@ -300,7 +302,7 @@ function FeaturesSection() {
           <FeatureCard
             icon={<IconCapture />}
             title="Capture anything, organize later"
-            description="Drop tasks, ideas, and notes onto your desk. Organize them when you're ready, or type naturally — &quot;Call dentist tomorrow 2pm&quot; — and the date is set automatically."
+            description='Drop tasks, ideas, and notes onto your desk. Organize them when you&apos;re ready, or type naturally — "Call dentist tomorrow 2pm" — and the date is set automatically.'
           />
           <FeatureCard
             icon={<IconReview />}
@@ -310,7 +312,7 @@ function FeaturesSection() {
           <FeatureCard
             icon={<IconAI />}
             title="Your AI assistant already knows your tasks"
-            description="Connect Claude or ChatGPT and manage tasks through conversation. &quot;What should I work on?&quot; or &quot;Plan my day&quot; — your assistant has full context."
+            description='Connect Claude or ChatGPT and manage tasks through conversation. "What should I work on?" or "Plan my day" — your assistant has full context.'
           />
         </div>
       </div>
