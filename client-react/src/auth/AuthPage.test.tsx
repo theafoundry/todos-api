@@ -24,11 +24,13 @@ vi.mock("./RegisterForm", () => ({
 }));
 
 vi.mock("./ForgotPasswordForm", () => ({
-  ForgotPasswordForm: () => createElement("div", { "data-testid": "forgot-form" }),
+  ForgotPasswordForm: () =>
+    createElement("div", { "data-testid": "forgot-form" }),
 }));
 
 vi.mock("./ResetPasswordForm", () => ({
-  ResetPasswordForm: () => createElement("div", { "data-testid": "reset-form" }),
+  ResetPasswordForm: () =>
+    createElement("div", { "data-testid": "reset-form" }),
 }));
 
 vi.mock("./PhoneLoginForm", () => ({
@@ -55,13 +57,111 @@ describe("AuthPage", () => {
 
   it("shows back to home button", () => {
     render(createElement(AuthPage));
-    expect(screen.getByRole("button", { name: "←" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Back to home" })).toBeTruthy();
   });
 
   it("calls navigateWithFade when back button is clicked", () => {
     render(createElement(AuthPage));
-    fireEvent.click(screen.getByRole("button", { name: "←" }));
-    expect(pageTransitions.navigateWithFade).toHaveBeenCalledWith("/", { replace: true });
+    fireEvent.click(screen.getByRole("button", { name: "Back to home" }));
+    expect(pageTransitions.navigateWithFade).toHaveBeenCalledWith("/", {
+      replace: true,
+    });
+  });
+
+  it("renders a main landmark with the brand as the page heading", () => {
+    render(createElement(AuthPage));
+    expect(screen.getByRole("main")).toHaveClass("auth-page");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Planwren" }),
+    ).toBeTruthy();
+  });
+
+  it("scopes public styling to the mounted page and leaves the app theme on unmount", () => {
+    window.localStorage.setItem("darkMode", "true");
+    document.body.classList.remove("pw-public", "dark-mode");
+    const { unmount } = render(createElement(AuthPage));
+    expect(document.body).toHaveClass("pw-public");
+    expect(document.body).toHaveClass("dark-mode");
+
+    unmount();
+    expect(document.body).not.toHaveClass("pw-public");
+    // The app's saved theme is owned by useDarkMode(); cleanup must not touch it.
+    expect(document.body).toHaveClass("dark-mode");
+    expect(window.localStorage.getItem("darkMode")).toBe("true");
+    document.body.classList.remove("dark-mode");
+  });
+
+  it("uses a roving tabindex for the auth tabs", () => {
+    render(createElement(AuthPage));
+    expect(screen.getByRole("tab", { name: "Login" })).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
+    expect(screen.getByRole("tab", { name: "Register" })).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
+    fireEvent.click(screen.getByRole("tab", { name: "Register" }));
+    expect(screen.getByRole("tab", { name: "Login" })).toHaveAttribute(
+      "tabindex",
+      "-1",
+    );
+    expect(screen.getByRole("tab", { name: "Register" })).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
+  });
+
+  it("moves focus and selection with arrow, Home and End keys", () => {
+    render(createElement(AuthPage));
+    const login = screen.getByRole("tab", { name: "Login" });
+    const register = screen.getByRole("tab", { name: "Register" });
+    login.focus();
+
+    fireEvent.keyDown(login, { key: "ArrowRight" });
+    expect(register).toHaveFocus();
+    expect(register).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("register-form")).toBeTruthy();
+
+    fireEvent.keyDown(register, { key: "ArrowRight" });
+    expect(login).toHaveFocus();
+    expect(login).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("login-form")).toBeTruthy();
+
+    fireEvent.keyDown(login, { key: "ArrowLeft" });
+    expect(register).toHaveFocus();
+    expect(register).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(register, { key: "Home" });
+    expect(login).toHaveFocus();
+    expect(login).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(login, { key: "End" });
+    expect(register).toHaveFocus();
+    expect(register).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("ignores unrelated keys on tabs", () => {
+    render(createElement(AuthPage));
+    const login = screen.getByRole("tab", { name: "Login" });
+    fireEvent.keyDown(login, { key: "ArrowDown" });
+    expect(login).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("login-form")).toBeTruthy();
+  });
+
+  it("links tabs to the active tab panel", () => {
+    render(createElement(AuthPage));
+    const panel = screen.getByRole("tabpanel");
+    expect(screen.getByRole("tab", { name: "Login" })).toHaveAttribute(
+      "aria-controls",
+      panel.id,
+    );
+    expect(panel).toHaveAttribute("aria-labelledby", "auth-tab-login");
+    fireEvent.click(screen.getByRole("tab", { name: "Register" }));
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "aria-labelledby",
+      "auth-tab-register",
+    );
   });
 
   it("shows login form by default", () => {
@@ -78,8 +178,14 @@ describe("AuthPage", () => {
 
   it("has login tab active by default", () => {
     render(createElement(AuthPage));
-    expect(screen.getByRole("tab", { name: "Login" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Register" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("tab", { name: "Login" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: "Register" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
   });
 
   it("switches to register form when Register tab is clicked", () => {
@@ -100,21 +206,35 @@ describe("AuthPage", () => {
   it("shows success message when verified=1 in URL", () => {
     window.history.pushState({}, "", "/auth?verified=1");
     render(createElement(AuthPage));
-    expect(screen.getByText("Email verified. You can now log in.")).toBeTruthy();
+    expect(
+      screen.getByText("Email verified. You can now log in."),
+    ).toBeTruthy();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Email verified. You can now log in.",
+    );
   });
 
   it("shows error message when verified=0 in URL", () => {
     window.history.pushState({}, "", "/auth?verified=0");
     render(createElement(AuthPage));
-    expect(screen.getByText("Verification link expired or invalid.")).toBeTruthy();
+    expect(
+      screen.getByText("Verification link expired or invalid."),
+    ).toBeTruthy();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Verification link expired or invalid.",
+    );
   });
 
   it("dismisses message when dismiss button is clicked", () => {
     window.history.pushState({}, "", "/auth?verified=1");
     render(createElement(AuthPage));
-    expect(screen.getByText("Email verified. You can now log in.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "✕" }));
-    expect(screen.queryByText("Email verified. You can now log in.")).toBeNull();
+    expect(
+      screen.getByText("Email verified. You can now log in."),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss message" }));
+    expect(
+      screen.queryByText("Email verified. You can now log in."),
+    ).toBeNull();
   });
 
   it("switches to reset form when token is in URL", () => {
@@ -127,7 +247,10 @@ describe("AuthPage", () => {
   it("shows register tab active when ?tab=register in URL", () => {
     window.history.pushState({}, "", "/auth?tab=register");
     render(createElement(AuthPage));
-    expect(screen.getByRole("tab", { name: "Register" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Register" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(screen.getByTestId("register-form")).toBeTruthy();
   });
 });
