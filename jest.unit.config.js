@@ -7,6 +7,8 @@ module.exports = {
     "**/src/app.test.ts",
     "**/src/staticPagesRouter.test.ts",
     "**/src/authValidation.test.ts",
+    "**/src/googleWebAuth.test.ts",
+    "**/src/googleAuthService.test.ts",
     "**/src/todoService.test.ts",
     "**/src/validation.test.ts",
     "**/src/aiContracts.test.ts",

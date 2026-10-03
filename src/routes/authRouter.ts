@@ -10,6 +10,7 @@ import { AuthService } from "../services/authService";
 import { McpOAuthService } from "../services/mcpOAuthService";
 import { SocialAuthService } from "../services/socialAuthService";
 import { GoogleAuthService } from "../services/googleAuthService";
+import { resolveGoogleWebRedirectUri } from "../services/googleWebAuthOrigin";
 import { AppleAuthService } from "../services/appleAuthService";
 import { PhoneAuthService } from "../services/phoneAuthService";
 import {
@@ -49,7 +50,10 @@ const ALLOWED_POST_AUTH_PREFIXES = [
   "/feedback",
 ];
 
-function normalizePostAuthRedirect(input: unknown): string | null {
+function normalizePostAuthRedirect(
+  input: unknown,
+  origin = config.baseUrl,
+): string | null {
   if (typeof input !== "string") {
     return null;
   }
@@ -60,8 +64,8 @@ function normalizePostAuthRedirect(input: unknown): string | null {
   }
 
   try {
-    const url = new URL(trimmed, config.baseUrl);
-    if (url.origin !== config.baseUrl) {
+    const url = new URL(trimmed, origin);
+    if (url.origin !== origin) {
       return null;
     }
 
@@ -1059,7 +1063,13 @@ export function createAuthRouter({
       return res.status(400).json({ error: "Invalid port parameter" });
     }
 
-    const { url, state } = googleAuthService.generateAuthUrl();
+    const redirectUri = resolveGoogleWebRedirectUri(req);
+    if (!redirectUri) {
+      return res
+        .status(400)
+        .json({ error: "Unsupported Google sign-in origin" });
+    }
+    const { url, state } = googleAuthService.generateAuthUrl(redirectUri);
 
     res.cookie("oauth_state", state, {
       httpOnly: true,
@@ -1086,8 +1096,17 @@ export function createAuthRouter({
       return res.status(404).json({ error: "Google login not enabled" });
     }
 
-    const { url, state } = googleAuthService.generateAuthUrl();
-    const next = normalizePostAuthRedirect(req.query.next);
+    const redirectUri = resolveGoogleWebRedirectUri(req);
+    if (!redirectUri) {
+      return res
+        .status(400)
+        .json({ error: "Unsupported Google sign-in origin" });
+    }
+    const { url, state } = googleAuthService.generateAuthUrl(redirectUri);
+    const next = normalizePostAuthRedirect(
+      req.query.next,
+      new URL(redirectUri).origin,
+    );
 
     // Store state in httpOnly cookie for CSRF validation
     res.cookie("oauth_state", state, {
@@ -1096,6 +1115,13 @@ export function createAuthRouter({
       sameSite: "lax",
       maxAge: 10 * 60 * 1000, // 10 minutes
       path: "/auth/google",
+    });
+    // A subsequent web login must not inherit an abandoned CLI loopback target.
+    res.clearCookie("cli_port", {
+      path: "/auth/google",
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "lax",
     });
     setPostAuthRedirect(res, next);
 
@@ -1130,11 +1156,24 @@ export function createAuthRouter({
         return res.status(404).json({ error: "Google login not enabled" });
       }
 
+      const redirectUri = resolveGoogleWebRedirectUri(req);
+      if (!redirectUri) {
+        return res
+          .status(400)
+          .json({ error: "Unsupported Google sign-in origin" });
+      }
+      const origin = new URL(redirectUri).origin;
+
       try {
         // Validate state
-        const state = req.query.state as string;
+        const state = req.query.state;
         const storedState = req.cookies?.oauth_state;
-        if (!state || !storedState || state !== storedState) {
+        if (
+          typeof state !== "string" ||
+          !state ||
+          typeof storedState !== "string" ||
+          state !== storedState
+        ) {
           console.error("Google OAuth state mismatch", {
             hasState: !!state,
             hasStoredState: !!storedState,
@@ -1142,6 +1181,7 @@ export function createAuthRouter({
           });
           const next = normalizePostAuthRedirect(
             req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
+            origin,
           );
           setPostAuthRedirect(res, null);
           const params = new URLSearchParams({
@@ -1163,11 +1203,12 @@ export function createAuthRouter({
         });
         const next = normalizePostAuthRedirect(
           req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
+          origin,
         );
         setPostAuthRedirect(res, null);
 
-        const code = req.query.code as string;
-        if (!code) {
+        const code = req.query.code;
+        if (typeof code !== "string" || !code) {
           const params = new URLSearchParams({
             auth: "error",
             message: "Missing authorization code",
@@ -1178,7 +1219,10 @@ export function createAuthRouter({
           return res.redirect(`/auth?${params.toString()}`);
         }
 
-        const profile = await googleAuthService.handleCallback(code);
+        const profile = await googleAuthService.handleCallback(
+          code,
+          redirectUri,
+        );
         const result = await socialAuthService.findOrCreateSocialUser(
           profile,
           (userId, email) => authService!.issueTokens(userId, email),
@@ -1231,6 +1275,7 @@ export function createAuthRouter({
         console.error("Google OAuth callback error:", error);
         const next = normalizePostAuthRedirect(
           req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
+          origin,
         );
         setPostAuthRedirect(res, null);
 
