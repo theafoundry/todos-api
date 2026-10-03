@@ -3,6 +3,8 @@
 .codex-links/
 node_modules
 dist
+/client-react/dist-landing/
+/client-react/dist-auth/
 coverage
 *.log
 .DS_Store
