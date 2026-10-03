@@ -99,16 +99,22 @@ metadata, canonical UI domain and empty CSP. See
 [live-mcp-evidence.json](live-mcp-evidence.json). This is public metadata
 evidence, not a signed-in ChatGPT session or authenticated task call.
 
-The optional `eval:plugin` passed five of six trials. The unchanged
-`plugin-six-tool-resource-contract` trial expects the entire catalog to have six
-tools; deployed source already has seven definitions including the app-only
-opener. This inherited trial failure remains recorded; no eval/backend file,
-assertion or threshold was changed to obtain a pass.
+The initial optional `eval:plugin` run passed five of six trials because its
+legacy whole-catalog assertion expected six definitions. The authorized
+preparation follow-up repaired this test-only mismatch: the evaluation now
+requires exactly six conversational tools plus the sole read-only app-only
+opener, pins the sealed Phase 2 tool definitions, and checks its permissions,
+input, entrypoint, resource, CSP and display modes. The updated suite passes all
+six trials; 26 guard tests (25 rejection cases and one acceptance case) reject expanded or altered contracts.
+The original failure remains historical evidence. No server contract, frozen
+fixture or assertion threshold was changed to accommodate current output.
 
-The deployed Today Plan widget still visibly uses Todos labels, including
-“Open in Todos,” while the new public package is branded Planwren. The widget
-was not rebranded by package preparation. Assess this consistency during actual
-review and obtain approval for a server change if required.
+The deployed widget, OAuth connection screens and two MCP metadata descriptions
+retain submission-facing Todos copy. These are distinct from intentional
+protocol identities and explanatory historical references. The concrete
+inventory and write-effect assessment are in
+[branding-and-annotations.md](branding-and-annotations.md). Hosted copy and
+production annotations were not changed by this preparation.
 
 No account was provisioned or reset, no OAuth grant created, no portal draft
 uploaded, and no submission made during preparation. The working developer

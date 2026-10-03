@@ -92,3 +92,7 @@ publisher/domain verification, credential checks, the authenticated test matrix,
 a current authenticated recording, genuine custom-UI screenshots if included,
 and final owner approval. Follow the
 current official workflow recorded in [README.md](README.md).
+
+The remaining hosted widget/OAuth/metadata copy and write-annotation assessment
+are listed in [branding-and-annotations.md](branding-and-annotations.md). Stable
+issuer, resource and server identities remain compatibility names.

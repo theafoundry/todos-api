@@ -87,10 +87,13 @@ date and timezone, not ChatGPT locale or the workstation timezone.
    resolves the first task from the most recent structured order and calls
    `complete_task` to complete and then reopen the same exact task ID. Confirm
    authoritative text and component state for both actions; two consecutive
-   user turns are acceptable when confirmation is needed.
+   user turns are acceptable when confirmation is needed. Reopening a completed
+   task sets status to `next` and clears `completedAt`; it does not restore the
+   prior waiting/in-progress status.
 5. “Move the second task in the latest plan to tomorrow at 9.” uses the
    contextual second task's exact ID and the account timezone; clarify an ambiguous time rather than
-   inventing one. Confirm the returned scheduled/due date and unchanged fields.
+   inventing one. Confirm the returned scheduled/due date and authoritative task state; record
+   any shared lifecycle normalization rather than claiming full state restoration.
 
 ## Actual ChatGPT component and session cases
 
@@ -126,3 +129,6 @@ date and timezone, not ChatGPT locale or the workstation timezone.
 Use [test-cases.md](test-cases.md) as the result sheet. The frozen conversational
 fixture is `evals/plugin/package-golden-prompts.json`; it supports local
 evaluation and does not replace actual authenticated ChatGPT acceptance.
+
+See [branding-and-annotations.md](branding-and-annotations.md) for the exact
+widget/OAuth/metadata naming inventory and write-annotation assessment.

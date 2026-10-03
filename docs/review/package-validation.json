@@ -1,5 +1,5 @@
 {
-  "recordedAtUTC": "2026-10-03T13:20:50.514723+00:00",
+  "recordedAtUTC": "2026-10-03T13:41:38.593338+00:00",
   "scope": "Local public-package preparation and safe public metadata checks. No authenticated account/task, portal or directory acceptance.",
   "applicationSourceSHA": "0335614086f2a4ab587464e81037348b6486c193",
   "baseMergeSHA": "937ccec55467813d25faa40e164c6fd77a65aab6",
@@ -84,21 +84,32 @@
     {
       "command": "Targeted Prettier check of public package, utilities, schema provenance and review documents",
       "detail": "Current source after final manifest formatting"
-    }
-  ],
-  "retainedFailures": [
+    },
     {
       "command": "npm run eval:plugin",
-      "passed": 5,
-      "failed": 1,
-      "trial": "plugin-six-tool-resource-contract",
-      "reason": "Inherited unchanged trial expects six total tools; deployed source contains six model-visible tools plus app-only open_today_plan. No eval assertion or backend changed."
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "command": "node --test evals/plugin/assert-tool-contract.test.js",
+      "passed": 26,
+      "detail": "Rejects extra/promoted/hidden tools, reviewed definition drift, write scopes in either advertised copy, broader inputs/annotations, extra entrypoints and changed resources/CSP/display modes",
+      "acceptanceCases": 1,
+      "rejectionCases": 25
+    },
+    {
+      "command": "npm run eval:all",
+      "passed": 25,
+      "suites": 5,
+      "failed": 0,
+      "detail": "Agent, decision-assist, MCP, plugin and planner deterministic suites"
     }
   ],
   "resolvedExecutionFailures": [
     "Initial sandbox denied ephemeral test listener (EPERM); authorized local-listener run used no production database.",
     "Two isolated socket-hang-up flakes in different unchanged coverage suites; final full538test coverage run passed after UI suite ended.",
-    "Targeted formatting initially found public manifest layout; formatted before final package build and checks."
+    "Targeted formatting initially found public manifest layout; formatted before final package build and checks.",
+    "Initial eval:all attempt hit the sandbox ephemeral-listener EPERM; authorized mocked local-listener run passed25/25."
   ],
   "notRun": [
     "Signed-in ChatGPT panel/fullscreen/mobile and task mutations",
@@ -112,8 +123,21 @@
     "Push, PR creation, merge, deployment, portal upload/submission or directory publication"
   ],
   "pendingAssessments": [
-    "Existing complete_task/reschedule_task destructiveHint:false against current guidance",
-    "Visible Todos labels in deployed widget versus Planwren package"
+    "complete_task overwrites lifecycle fields; reopening returns next and clears completedAt rather than restoring old waiting/in-progress state. destructiveHint:false remains unsigned-off.",
+    "reschedule_task can overwrite/clear dates and persistence normalizes lifecycle fields. destructiveHint:false remains unsigned-off.",
+    "Hosted Todos copy in widget, OAuth connection flow and two MCP descriptions, distinct from intentionally preserved issuer/resource/server identities. See branding-and-annotations.md."
   ],
-  "libraryDelivery": "Blocked at read-only capability probe; required current prepared-upload helper lacks Library upload tools. No upload retry or alternate route."
+  "libraryDelivery": "Blocked at read-only capability probe; required current prepared-upload helper lacks Library upload tools. No upload retry or alternate route.",
+  "historicalResolvedFailures": [
+    {
+      "command": "npm run eval:plugin",
+      "passed": 5,
+      "failed": 1,
+      "trial": "plugin-six-tool-resource-contract",
+      "reason": "Initial inherited trial expected six total tools; the deployed catalog has six model-visible tools plus app-only open_today_plan. This was a test-only expectation mismatch.",
+      "resolution": "Authorized test-only repair pins the sealed Phase2 model-tool snapshot and checks the sole app-only opener, scope copies, strict input, UI resource/entrypoint, CSP and modes. eval:plugin now6/6; 26 adversarial guard tests pass. Server contracts and fixtures unchanged."
+    }
+  ],
+  "retainedFailures": [],
+  "followupRequiredChecks": "TypeScript,538unit,538coverage/ratchet,81UI+35existing skips and frontend builds passed again after authorized test-only repair; final formatting checked separately."
 }

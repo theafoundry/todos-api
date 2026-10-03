@@ -78,7 +78,7 @@ The manifest omits screenshots and `demo_recording_url` until genuine captures
 and recording exist; the historical illustrated MP4 is not a final demo.
 
 See [acceptance-report.md](acceptance-report.md) for passed local checks, the
-optional legacy evaluation failure, and the distinction between public release
+repaired legacy evaluation and the distinction between public release
 verification and authenticated acceptance. Follow
 [test-cases.md](test-cases.md) and
 [screenshot-and-recording-plan.md](screenshot-and-recording-plan.md) for remaining

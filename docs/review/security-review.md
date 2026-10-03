@@ -20,9 +20,11 @@ but has not been compared with the actual portal token for this submission.
 
 Public stateless MCP discovery also passed with six model-visible tools and the
 app-only opener; see [live-mcp-evidence.json](live-mcp-evidence.json). The optional
-plugin evaluation retained one inherited trial failure (five/six passed): its
-unchanged whole-catalog six-tool assumption is stale relative to the deployed
-seven-definition contract. No eval gate was weakened.
+plugin evaluation initially exposed a stale whole-catalog six-tool assumption.
+The authorized test-only repair now passes all six trials while pinning the
+reviewed six conversational definitions and strictly validating the app-only
+opener; 26 guard tests (25 rejection cases and one acceptance case) pass. The initial failure remains historical
+and no production contract, fixture or threshold was changed.
 
 ## Tool annotation assessment — pending
 
@@ -36,7 +38,10 @@ say overwriting writes require a destructive-effect assessment and that undo
 alone does not justify a false hint. Assess these actual operations and the
 portal scan before submitting. This is a review gate, not a demonstrated exploit
 or a backend change performed by the public-package preparation. The package
-cannot override live server annotations. Any required server repair needs its
+cannot override live server annotations. In particular, reopening completion
+sets a completed task to `next` and clears `completedAt`, rather than restoring
+its prior waiting/in-progress state; rescheduling can explicitly clear dates.
+See [branding-and-annotations.md](branding-and-annotations.md) for exact effects. Any required server repair needs its
 own reviewed change and affected tests.
 
 The current guidelines say annotation justifications are no longer required,

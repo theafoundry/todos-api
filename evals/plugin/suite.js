@@ -5,6 +5,7 @@ const { spawnSync } = require("node:child_process");
 
 const contract = require("../../dist/mcp/appContract");
 const resource = require("../../dist/mcp/todayPlanResource");
+const { assertToolContract } = require("./assert-tool-contract");
 
 const phase1Golden = JSON.parse(
   fs.readFileSync(
@@ -192,40 +193,19 @@ module.exports = {
       id: "plugin-six-tool-resource-contract",
       type: "regression",
       description:
-        "Exactly one new tool and one versioned resource extend the frozen Phase 1 profile.",
+        "Six conversational tools and one read-only app-only opener share one bounded Today Plan resource.",
       async run({ writeJson }) {
         const tools = contract.buildNativeAppToolsList();
-        assert.deepEqual(
-          tools.map((tool) => tool.name),
-          [
-            "list_today",
-            "plan_today",
-            "capture_task",
-            "complete_task",
-            "reschedule_task",
-            "render_today_plan",
-          ],
-        );
-        const uiTools = tools.filter((tool) => tool._meta.ui);
-        assert.equal(uiTools.length, 1);
-        assert.equal(uiTools[0].name, "render_today_plan");
-        assert.equal(
-          uiTools[0]._meta.ui.resourceUri,
-          contract.TODAY_PLAN_RESOURCE_URI,
-        );
-        assert.equal(
-          resource.TODAY_PLAN_RESOURCE_DESCRIPTOR.mimeType,
-          "text/html;profile=mcp-app",
-        );
-        assert.deepEqual(resource.TODAY_PLAN_RESOURCE_META.ui.csp, {
-          connectDomains: [],
-          resourceDomains: [],
+        const counts = assertToolContract({
+          tools,
+          descriptor: resource.TODAY_PLAN_RESOURCE_DESCRIPTOR,
+          metadata: resource.TODAY_PLAN_RESOURCE_META,
         });
         writeJson("contract.json", {
           tools,
           resources: [resource.TODAY_PLAN_RESOURCE_DESCRIPTOR],
         });
-        return { toolCount: tools.length, resourceCount: 1 };
+        return counts;
       },
     },
     {

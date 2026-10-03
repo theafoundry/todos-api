@@ -64,3 +64,7 @@ recaptured. They remain unchanged with explicit historical/synthetic labels.
 The old developer package screenshot also remains a historical developer asset.
 Future final captures should receive new Planwren filenames and a new version,
 then be reviewed before inclusion or portal upload.
+
+Include actual OAuth login/signup/consent and tool/resource descriptions in the
+brand-consistency review. Preserve canonical identities; consult the concrete
+[branding-and-annotations.md](branding-and-annotations.md) inventory.

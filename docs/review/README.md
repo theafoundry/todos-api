@@ -53,8 +53,9 @@ verification or approval for publication.
 
 | Document                                                             | Purpose                                                                     |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [branding-and-annotations.md](branding-and-annotations.md)           | Actual write effects, hosted naming gaps and compatibility identities       |
 | [public-package.md](public-package.md)                               | Portable package, exact brand provenance and reproduction                   |
-| [package-validation.json](package-validation.json)                   | Current local checks, ZIP identity and retained failure                     |
+| [package-validation.json](package-validation.json)                   | Current local checks, ZIP identity and resolved historical failure          |
 | [submission-copy.md](submission-copy.md)                             | Draft Planwren name, descriptions, prompts and public references            |
 | [reviewer-guide.md](reviewer-guide.md)                               | Connection, five positive cases, component and session QA                   |
 | [test-cases.md](test-cases.md)                                       | Explicit result matrix; submission cases separate from broader QA           |
@@ -86,11 +87,13 @@ npm run test:mcp
 npm run eval:plugin
 ```
 
-The optional `eval:plugin` currently passes five of six trials. Its unchanged
-`plugin-six-tool-resource-contract` expects the entire catalog to contain six
-tools, while the unchanged deployed contract has six model-visible tools plus
-the app-only opener. This pre-existing trial failure is retained and recorded;
-no eval or backend assertion was weakened. Do not claim all evaluations passed.
+The authorized test-only follow-up repaired the stale whole-catalog expectation
+in `eval:plugin`. All six trials now pass, with 26 guard tests (25 rejection cases and one acceptance case). The
+six conversational definitions remain pinned to the sealed Phase 2 snapshot;
+the sole app-only opener must keep its read-only scopes, input and thread UI
+metadata. No production tool or OAuth contract changed. See
+[branding-and-annotations.md](branding-and-annotations.md) for the concrete
+hosted-copy inventory and unresolved write-annotation assessment.
 
 The read-only public discovery, policy, OAuth-metadata and unauthenticated
 UserInfo checks can be run against the canonical host:
@@ -124,7 +127,8 @@ screenshots. This preparation task does not perform resets or grants.
 3. Current portal scan compared to the deployed contract, including tool
    annotation assessment; complete/reschedule `destructiveHint: false` needs
    explicit review against current guidance. The currently served widget still
-   visibly says Todos; assess public-package/UI brand consistency before submission.
+   visibly says Todos; include OAuth connection screens and MCP descriptions in
+   the hosted-copy review while preserving compatibility identities.
 4. Actual signed-in ChatGPT inline/panel and fullscreen QA, complete/undo,
    refresh, reconnect and security/boundary/accessibility cases against the
    recorded deployed SHA.

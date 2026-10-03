@@ -32,7 +32,9 @@ or static screenshot for this scene.
 Scene 4 — Complete, undo, refresh and reschedule (about 45 seconds)
 Complete one synthetic task already returned in context. Show authoritative
 success and changed component state. Undo the same completion and refresh the
-plan to confirm the task is open again. Reschedule a contextual synthetic task
+plan to confirm the task is open again. Explain that reopening sets status to
+next and clears the completion timestamp, rather than restoring an earlier
+waiting or in-progress status. Reschedule a contextual synthetic task
 to tomorrow at 9 in the account timezone, clarifying ambiguity if necessary.
 Show the returned server date and state rather than relying on animation alone.
 
