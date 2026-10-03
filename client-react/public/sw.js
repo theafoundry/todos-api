@@ -1,4 +1,4 @@
-const CACHE_NAME = "todos-react-v1";
+const CACHE_NAME = "todos-react-fold-v1";
 const DB_NAME = "todos-offline";
 const STORE_NAME = "mutations";
 const MUTATION_TTL = 24 * 60 * 60 * 1000; // 24 hours

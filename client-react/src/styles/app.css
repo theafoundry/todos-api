@@ -146,7 +146,7 @@ body {
   font-size: var(--fs-md);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
-  color: var(--text-strong);
+  color: var(--brand-wordmark);
   font-family: var(--font-display, inherit);
 }
 
@@ -238,7 +238,9 @@ body {
 }
 
 .app-sidebar--collapsed .sidebar-header {
+  flex-direction: column;
   justify-content: center;
+  gap: var(--s-2);
 }
 
 .app-main {

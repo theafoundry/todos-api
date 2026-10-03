@@ -1,0 +1,169 @@
+{
+  "version": "fold-v1",
+  "colors": {
+    "coral": "#E17055",
+    "cream": "#FFFCF5",
+    "ink": "#2D1F1A"
+  },
+  "source": "client-react/src/brand/fold.json",
+  "assets": [
+    {
+      "path": "client-react/public/brand/fold-coral.svg",
+      "format": "svg",
+      "viewBox": "77 214 222 252",
+      "color": "#E17055",
+      "background": "transparent",
+      "bytes": 630,
+      "sha256": "b839d79e8c7faf4eb33f96aa1c8e1d4c95355a3594267dc6240f35c031ec29a9"
+    },
+    {
+      "path": "client-react/public/brand/fold-cream.svg",
+      "format": "svg",
+      "viewBox": "77 214 222 252",
+      "color": "#FFFCF5",
+      "background": "transparent",
+      "bytes": 630,
+      "sha256": "2dc09cd3a7230932a8846dfc3469df2e32b16ac27bc57cb77e4ec1965a025312"
+    },
+    {
+      "path": "client-react/public/brand/fold-ink.svg",
+      "format": "svg",
+      "viewBox": "77 214 222 252",
+      "color": "#2D1F1A",
+      "background": "transparent",
+      "bytes": 630,
+      "sha256": "eca00421d46dff471ef393ece9bc9abd3f057930b8aaeac1e90fbfbe45e9e1bb"
+    },
+    {
+      "path": "client-react/public/favicon.svg",
+      "format": "svg",
+      "width": 32,
+      "height": 32,
+      "bytes": 756,
+      "sha256": "e94bd808cf7e8968ca844fa19318adb5b3d8992c971525a12f8f32f6e5f0e195"
+    },
+    {
+      "path": "client-react/public/brand/app-icon.svg",
+      "format": "svg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 758,
+      "sha256": "77af56bd89a73ca8e0148494812f310f5aee444020f8b84cc486f386a3b763c1"
+    },
+    {
+      "path": "client-react/public/brand/app-icon-dark.svg",
+      "format": "svg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 758,
+      "sha256": "b70cf9a005306cd2311aa8e01bd143ab2cd198ee160321325436c227c81be000"
+    },
+    {
+      "path": "client-react/public/favicon-16x16.png",
+      "format": "png",
+      "width": 16,
+      "height": 16,
+      "bytes": 574,
+      "sha256": "f05b0a7a77db7dc5aca1d3ae03a9c38b38ba17f301dec2123f445472d0cdd24d"
+    },
+    {
+      "path": "client-react/public/favicon-32x32.png",
+      "format": "png",
+      "width": 32,
+      "height": 32,
+      "bytes": 1199,
+      "sha256": "2de9b804759cab903653e48d74d44bf7634c9279da71f308eacf293d1c0e6494"
+    },
+    {
+      "path": "client-react/public/favicon.ico",
+      "format": "ico",
+      "sizes": [
+        16,
+        32
+      ],
+      "bytes": 1811,
+      "sha256": "8836ed40522fa64875844168211274112086ee3cac577af2e37c0c36cd649daf"
+    },
+    {
+      "path": "client-react/public/apple-touch-icon.png",
+      "format": "png",
+      "width": 180,
+      "height": 180,
+      "purpose": "apple-touch",
+      "bytes": 4839,
+      "sha256": "4b7846428f3c3e4ae4169326c2e81726fabf88312497769fe3e7addf847f76ba"
+    },
+    {
+      "path": "client-react/public/icon-192.png",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "purpose": "any",
+      "bytes": 5267,
+      "sha256": "fa3b6564cfc628a53001d455440fbab4ef0a2b6b3db4b3ed8933109ffd39f246"
+    },
+    {
+      "path": "client-react/public/icon-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "purpose": "any",
+      "bytes": 18421,
+      "sha256": "33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03"
+    },
+    {
+      "path": "client-react/public/icon-maskable-192.png",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "purpose": "maskable",
+      "bytes": 5267,
+      "sha256": "fa3b6564cfc628a53001d455440fbab4ef0a2b6b3db4b3ed8933109ffd39f246"
+    },
+    {
+      "path": "client-react/public/icon-maskable-512.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "purpose": "maskable",
+      "bytes": 18421,
+      "sha256": "33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03"
+    },
+    {
+      "path": "client-react/public/brand/app-icon-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "purpose": "master",
+      "bytes": 48342,
+      "sha256": "aabf9cf1e9049b6fe893263f86b3f94b32c1f51dee7ffaea53d01d1f5663c954"
+    },
+    {
+      "path": "client-react/public/brand/app-icon-dark-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "purpose": "dark",
+      "bytes": 49414,
+      "sha256": "7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c"
+    },
+    {
+      "path": "plugins/todos/assets/logo.png",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "purpose": "plugin",
+      "bytes": 18421,
+      "sha256": "33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03"
+    },
+    {
+      "path": "plugins/todos/assets/composer-icon.png",
+      "format": "png",
+      "width": 256,
+      "height": 256,
+      "purpose": "plugin",
+      "bytes": 7382,
+      "sha256": "963716e9178ab7e82f421bca51968fb12f876af30e77c7ca4e2ccf2325431fc3"
+    }
+  ]
+}

@@ -5,7 +5,13 @@ import { chromium } from "playwright";
 
 const root = process.cwd();
 const assetsDir = path.join(root, "plugins", "todos", "assets");
-const faviconPath = path.join(root, "client-react", "public", "favicon.svg");
+const appIconPath = path.join(
+  root,
+  "client-react",
+  "public",
+  "brand",
+  "app-icon.svg",
+);
 const require = createRequire(import.meta.url);
 const { buildTodayPlanWidgetHtml } = require(
   path.join(root, "dist", "mcp", "todayPlanResource.js"),
@@ -83,7 +89,7 @@ async function renderSvg(browser, svg, size, outputPath) {
   });
   const encoded = Buffer.from(svg).toString("base64");
   await page.setContent(
-    `<style>html,body{margin:0;width:100%;height:100%;overflow:hidden}img{display:block;width:100%;height:100%}</style><img alt="Todos" src="data:image/svg+xml;base64,${encoded}">`,
+    `<style>html,body{margin:0;width:100%;height:100%;overflow:hidden}img{display:block;width:100%;height:100%}</style><img alt="Planwren Fold logo" src="data:image/svg+xml;base64,${encoded}">`,
   );
   await page.screenshot({ path: outputPath, omitBackground: true });
   await page.close();
@@ -154,17 +160,17 @@ async function renderWidget(browser, outputPath) {
 }
 
 await fs.mkdir(assetsDir, { recursive: true });
-const favicon = await fs.readFile(faviconPath, "utf8");
+const appIcon = await fs.readFile(appIconPath, "utf8");
 const browser = await chromium.launch({ headless: true });
 
 try {
   await renderSvg(
     browser,
-    favicon,
+    appIcon,
     256,
     path.join(assetsDir, "composer-icon.png"),
   );
-  await renderSvg(browser, favicon, 512, path.join(assetsDir, "logo.png"));
+  await renderSvg(browser, appIcon, 512, path.join(assetsDir, "logo.png"));
   await renderWidget(
     browser,
     path.join(assetsDir, "screenshot-today-plan.png"),
