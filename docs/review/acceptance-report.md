@@ -1,138 +1,173 @@
-# Phase 4B acceptance report
+# Planwren submission acceptance record
 
-Status: source verified locally; remote CI, hosted and authenticated acceptance pending
+Status: authorized annotation, timestamp-retry and hosted-Planwren repairs are
+under candidate source review. Production remains the verified earlier Fold
+release. Publisher/domain, portal and actual signed-in ChatGPT acceptance remain
+pending; no repaired-source deployment is claimed.
 
-## Candidate identity
+## Exact source and release identity
 
-- PR: [#1075](https://github.com/theafoundry/todos-api/pull/1075)
-- Branch: `codex/chatgpt-native-phase4-review`
-- Merged source basis: `393c324d650bb87df489ec21f6c0ac7e73383d66` (`master`)
-- Previous review candidate: `8e1e21aef198531d9cc71ee04cfd148920e1e67a`
-- Refreshed candidate full commit SHA: recorded in the refreshed PR description;
-  resolve locally with `git rev-parse HEAD` on this branch
-- Deployment URL: `https://todos.theafoundry.com`
-- Deployment ID and timestamp: pending
-- Deployment reports the exact candidate SHA: pending
-- Root lockfile SHA-256:
-  `0ff56d56a1d95b5e77c6f2ec7beda4bfeba2652feaac0fac18c29c7064e37b94`
-- Client lockfile SHA-256:
-  `37b1f8fe998a079fdfd0b8bec8341ef21799d26612a954d395f2fa2031aa507c`
+| Field                            | Recorded value                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| Deployed application SHA         | `0335614086f2a4ab587464e81037348b6486c193`                                                |
+| Merge SHA                        | `937ccec55467813d25faa40e164c6fd77a65aab6`                                                |
+| Reviewed and merged trees        | Identical                                                                                 |
+| Merged PR                        | [#1094](https://github.com/theafoundry/todos-api/pull/1094)                               |
+| Production workflow              | [37097991144](https://github.com/theafoundry/todos-api/actions/runs/37097991144), success |
+| Provider deployment              | `fecb1a60-55b4-4a95-af3e-c913f321fda6`                                                    |
+| Public website                   | `https://www.planwren.com`                                                                |
+| Canonical MCP                    | `https://todos.theafoundry.com/mcp/app`                                                   |
+| Canonical OAuth issuer/UI domain | `https://todos.theafoundry.com`                                                           |
+| Public-package source            | Separate local preparation branch; final commit recorded in the handoff                   |
 
-## Evidence boundary
+The public-package/runtime candidate is separate from the already-deployed
+application SHA. Exact candidate HEAD and final repaired-source results are
+recorded in the candidate handoff and [package-validation.json](package-validation.json).
+Source repair and draft-PR approval do not authorize merge/deployment or prove
+portal acceptance. All release facts below are dated observations, not a guarantee of
+future production state.
 
-On October 2, 2026, production was serving the `master` source basis above,
-with `/healthz` returning 200 and that exact SHA. The earlier audit reported
-database readiness healthy; this source refresh did not query the production
-database or repeat `/readyz`. The review candidate's
-Privacy, Terms, Support, domain challenge, and demo resources returned 404.
-Production has not been established as hosting the refreshed candidate.
+## Verified Fold release evidence
 
-The [August 12 ChatGPT OAuth and task-flow evidence](https://github.com/theafoundry/todos-api/pull/1074#issuecomment-5272324021)
-is historical evidence for an earlier implementation. It does not establish
-acceptance against the refreshed candidate. The versioned MP4 is a synthetic
-illustrated walkthrough, not fresh authenticated acceptance evidence.
+The October 3, 2026 release record, completed at 05:06 UTC by Codex on
+`greyhound.local`, establishes:
 
-All hosted, portal, and authenticated client checks below remain pending until
-they are exercised against a deployment reporting the exact final candidate
-SHA. Local checks must be recorded separately and cannot satisfy those gates.
+- PR CI passed 12 jobs, with 3 skips, at the exact reviewed source.
+- Master CI passed 17 jobs, with 1 skip, and UI Visual passed its job at the
+  merge SHA. [PR CI](https://github.com/theafoundry/todos-api/actions/runs/37097462935),
+  [master CI](https://github.com/theafoundry/todos-api/actions/runs/37097759683),
+  [UI Visual](https://github.com/theafoundry/todos-api/actions/runs/37097759664).
+- Production completed through the controlled workflow; migration was a no-op.
+- Both public origins served the exact reviewed SHA with trusted HTTPS.
+- Public release acceptance passed 275 HTTP assertions across 84 requests and
+  206 browser assertions across 16 scenes, two icon galleries and two cache
+  activations. It checked deployed Fold bytes/references, public light/dark and
+  tiny-icon rendering, and removal of the prior service-worker cache.
+- Independent source review passed 15 checks. The dirty primary checkout's
+  unrelated user files were preserved; no account/task mutation occurred.
 
-## Local source verification
+The source preparation checks recorded for that Fold release passed backend
+TypeScript/build, repository formatting, 538 unit tests, coverage, 1,616 React
+suite tests, the final six BrandMark tests, three frontend builds, UI fast
+(81 passed/35 expected skips), four visual smoke tests, plugin validation and
+154 local placement assertions. Optional Stylelint retained 125 baseline
+violations with zero introduced. These are local/CI source and visual results,
+not authenticated ChatGPT acceptance.
 
-Verified on October 2, 2026 by Codex on greyhound, using Node 22.22.1 and
-Python 3.10.20. The final commit and tested tree are recorded in the PR
-description; generated bundles and screenshots are excluded from the change.
+See [release-evidence.json](release-evidence.json) for the sanitized summary.
+New package-validation results belong to the current preparation handoff and
+must not be substituted for these deployment facts.
 
-| Check                                                      | Result                                                                                             |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Clean root `npm ci` with CI loopback placeholder           | Pass, including Prisma generation and lifecycle build                                              |
-| Backend TypeScript/build and repository formatting         | Pass                                                                                               |
-| Architecture/harness guards and cleanup report             | Pass; one existing TODO/FIXME warning                                                              |
-| Repaired workflow Actionlint and all workflow YAML parsing | Pass                                                                                               |
-| `npm run test:unit`                                        | 480 passed                                                                                         |
-| `npm run test:mcp`                                         | 123 passed                                                                                         |
-| `npm run test:integration`                                 | 229 passed on isolated rerun                                                                       |
-| `npm run test:coverage:check`                              | Pass: statements 39.54%, branches 30.04%, functions 38.02%, lines 40.72%                           |
-| React Vitest                                               | 1,615 passed, 4 existing skips                                                                     |
-| React app/landing/auth builds                              | Pass                                                                                               |
-| `CI=1 npm run test:ui:fast`                                | 51 passed, 35 existing skips                                                                       |
-| `npm run eval:all`                                         | 25/25 across five suites                                                                           |
-| Python Ruff, Mypy, Pytest                                  | Pass; 14 tests                                                                                     |
-| Prisma schema, metadata equality, plugin package           | Pass                                                                                               |
-| Production audit high-severity gate                        | Pass: 0 high/critical, 33 moderate remain                                                          |
-| Full client dependency audit                               | 0 findings                                                                                         |
-| Local public HTTP acceptance                               | Pass: challenge, discovery, OAuth metadata, UserInfo challenge, policies, six-tool/widget metadata |
+## Historical evidence disposition
 
-Integration uses a disposable PostgreSQL 18 cluster on loopback port 55475 and
-`todos_review_test`; CI uses its PostgreSQL 16 service. The first concurrent
-run had one asynchronous feedback-email spy assertion fail; the isolated
-rerun passed. Existing nonfatal audit writes also reveal inherited migration
-drift: `agent_action_audits.agent_id`/`narration` are in the schema without a
-corresponding migration. No schema or migration was added for that unrelated
-finding.
+The October 2 audit observed an older production SHA and 404s for candidate
+policy/support/domain-challenge/demo resources. That is a historical observation,
+not the current deployment identity. Fresh public page/discovery checks on October 3 at 12:59:47 UTC confirm
+Privacy, Terms and Support return 200 on both public origins with Planwren/Thea
+Foundry identity. The old policy 404s are superseded. The historical synthetic
+MP4 and configured challenge also return 200. The challenge body was not
+displayed or compared with the portal token, so OpenAI domain verification
+remains pending; page availability and trusted TLS do not satisfy it.
 
-The optional full `npm run test:ui` run failed four visual cases: three absent
-Linux screenshot baselines and an existing `.auth-card` selector that no
-longer matches the React auth page. Generated macOS screenshots were excluded;
-no baselines, tests, assertions or thresholds were weakened. The scheduled
-UI workflow retains its existing explicit fast-suite fallback when no
-baseline directories exist. Visual qualification remains pending.
+[August 12 ChatGPT OAuth/plan/mutation evidence](https://github.com/theafoundry/todos-api/pull/1074#issuecomment-5272324021)
+belongs to an earlier implementation. The retained MP4, SRT and SVGs in
+`assets/` are a synthetic illustrated walkthrough with historical Todos
+branding. Neither establishes authenticated acceptance of the current deployed
+Planwren source. The old candidate's CI/license/dependency and optional visual
+findings are historical; current release CI links above are authoritative for
+that release.
 
-Harness failure alerts still lack token binding/declared issue-write access
-and pass no explicit body to the GitHub CLI. No alerts were executed or access
-expanded. The organization Gitleaks license is a separate hosted check
-blocker; it is not evidence of a secret finding.
+## Current public/package evidence
 
-Sanitized local logs live under `/tmp/todos-review-*.log`; audit summaries are
-`/tmp/todos-review-audit-after.json` and
-`/tmp/todos-review-client-audit-after.json`. Loopback HTTP acceptance used
-`/tmp/todos-review-loopback-acceptance.cjs` with compiled `createApp`,
-in-memory tasks, fail-closed mock auth, and a synthetic domain token. The
-harness asserts the Prisma singleton is not loaded. No hosted account reset,
-real authentication, external provider request or user task mutation occurred.
+The fresh [public-evidence.json](public-evidence.json) records 18 unauthenticated
+HTTPS GET checks with trusted TLS, expected statuses and response hashes. Health
+reports the exact deployed SHA; canonical protected-resource/OAuth/OIDC discovery
+preserves the issuer, PKCE S256, refresh grant and native resource scopes.
+UserInfo returns the expected unauthenticated 401 Bearer challenge. GET on
+`/mcp/app` returns expected 405; this is not proof of authenticated transport
+acceptance. No registration, login, grant or task operation was performed.
 
-Local verification must use isolated test data, explicit loopback configuration,
-and in-memory services or a dedicated local test database. It must not connect
-to the production database, reset a hosted account, or mutate a user's tasks.
-Mock authentication verifies local route behavior only; it does not establish
-real account linking, ChatGPT interoperability, or portal readiness.
+Earlier package preparation, before the current runtime repair, passed backend
+TypeScript, formatting, 538 unit
+tests, coverage ratchet, 137 MCP tests, UI fast (81 passed/35 expected skips),
+and the app/landing/auth builds. These predecessor results are retained in
+the preparation records. Final candidate verification must be recorded against
+the new exact HEAD by the candidate handoff. These checks use isolated
+loopback data and do not establish authenticated hosted acceptance.
 
-## Hosted checks
+Record public screenshots with their actual host/source/date and label any isolated
+synthetic rendering as synthetic. A successful public HTTP check does not test
+login, refresh token rotation, account linking, or a task mutation.
 
-- [ ] Exact domain challenge
-- [ ] Privacy, Terms, and Support pages
-- [ ] Protected-resource discovery
-- [ ] OAuth authorization-server discovery
-- [ ] OpenID configuration and UserInfo challenge
-- [ ] PKCE code flow and cancellation paths
-- [ ] Refresh rotation, expiry, revoke, replay, and relink
-- [ ] Wrong audience and insufficient scope
-- [ ] Six-tool surface and Today Plan resource
-- [ ] `ui.domain` and exact empty CSP
-- [ ] Legacy `/mcp` compatibility
+Fresh stateless MCP discovery at approximately 13:09 UTC passed
+`review:widget`: six model-visible tools, the app-only opener, inline/fullscreen
+metadata, canonical UI domain and empty CSP. See
+[live-mcp-evidence.json](live-mcp-evidence.json). This is public metadata
+evidence, not a signed-in ChatGPT session or authenticated task call.
 
-## Portal checks
+The initial optional `eval:plugin` run passed five of six trials because its
+legacy whole-catalog assertion expected six definitions. The earlier authorized
+test-only follow-up passed six trials, 26 guard tests and all 25 deterministic
+trials across five suites before the current runtime changes. The original
+failure remains historical evidence. Historical Phase 1/2 fixtures stay immutable;
+new candidate checks apply only explicit approved annotation/description deltas
+and compare whole definitions. Final rerun results are recorded separately.
 
-- [ ] Draft created without selecting Submit for Review
-- [ ] Domain verified
-- [ ] Scan Tools completed
-- [ ] Portal scan canonically equivalent to committed metadata
-- [ ] Submission text, URLs, annotations, and demo credentials verified
+## Authorized candidate repairs — not deployed
 
-## Client checks
+The new candidate:
 
-- [ ] MCP Inspector discovery and all six tools
-- [ ] ChatGPT developer-mode connection
-- [ ] Five positive reviewer cases
-- [ ] Negative, unsupported, ambiguous, and prompt-injection cases
-- [ ] Today Plan widget, mutation confirmation, auth expiry, and relink
-- [ ] Keyboard, screen reader, reduced motion, contrast, responsive, 200% zoom
+- Sets `destructiveHint: true` for complete/reopen and reschedule, preserving
+  other hints, tool identities, schemas, scopes and security schemes.
+- Normalizes supplied reschedule timestamps before comparing and writing.
+  Equivalent instants return `changed: false` without another update or
+  modification-time churn; omission preserves fields and explicit null clears
+  only the selected date.
+- Replaces submission-facing Todos copy in widget, OAuth flow and two metadata
+  descriptions with Planwren while preserving canonical compatibility names.
 
-## Evidence
+These are candidate source changes under review, not live/public acceptance
+results. Complete/reopen still does not restore a prior waiting/in-progress
+status. See [branding-and-annotations.md](branding-and-annotations.md).
 
-Add sanitized evidence paths with date and operator. Do not add secrets or
-review credentials.
+Production `03356140` retains the older false write hints and hosted Todos copy.
+The existing public GET/MCP evidence describes that production baseline. After
+separately approved merge/deployment, record the new served SHA, fresh true hints
+and public copy, portal rescan and actual authenticated QA before replacing
+pending gates with results. Local/synthetic captures must carry the actual
+candidate source identity and cannot satisfy those hosted checks.
 
-## Merge gate
+No account was provisioned or reset, no OAuth grant created, no portal draft
+uploaded, and no submission made during preparation. The working developer
+package is preserved; `plugins/planwren-public` is the distinct public package.
 
-Do not merge until all applicable items above pass against the exact candidate
-SHA. If the candidate changes, rerun affected checks and update evidence.
+## Pending gate matrix
+
+| Gate                                                | Status / evidence needed                                                                                 |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Publisher/business verification                     | Pending actual portal verification                                                                       |
+| OpenAI domain verification                          | Pending actual challenge/portal result; DNS and TLS are insufficient                                     |
+| Dedicated synthetic review account                  | Pending separate authorization, provisioning and credential verification                                 |
+| Public package portal scan                          | Pending upload authorization, scan and canonical comparison                                              |
+| Annotation assessment                               | Candidate true hints under source review; pending approved deployment, live confirmation and portal scan |
+| Real OAuth PKCE/code/cancel and identity            | Pending actual signed-in flow on synthetic account                                                       |
+| Refresh/expiry/revoke/replay/reconnect              | Pending separately authorized synthetic-session QA                                                       |
+| ChatGPT inline/panel and fullscreen                 | Pending actual container evidence                                                                        |
+| Complete/undo/refresh/reschedule/capture            | Pending authoritative results on synthetic fixtures                                                      |
+| Boundary and adversarial cases                      | Pending actual signed-in cases in test matrix                                                            |
+| Component accessibility in ChatGPT                  | Pending keyboard, zoom, narrow/mobile, light/dark, reduced motion and assistive-tech evidence            |
+| Optional custom-UI screenshots / required recording | Pending genuine current authenticated captures                                                           |
+| Final submission approval                           | Pending owner review of completed materials/evidence                                                     |
+
+**Brand consistency:** candidate hosted copy is updated to Planwren, but
+production still has the baseline Todos labels. Exact-source deployment and
+actual signed-in confirmation remain pending.
+
+## Recording new results
+
+Use [test-cases.md](test-cases.md). Every result needs the exact deployed SHA,
+UTC timestamp, operator, environment, sanitized artifact path/hash and outcome.
+Retain failures as failures. Do not mark a pending case passed from a synthetic
+preview, unit test or historical screenshot. If source changes, assess and rerun
+affected checks. Do not include credentials, account identifiers, private task
+content or OAuth artifacts in public evidence.

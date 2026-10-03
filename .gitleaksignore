@@ -7,3 +7,7 @@ bb25a1627587d6900bec614c250ec805a5b73622:evals/mcp/suite.js:generic-api-key:252
 738fbeacf476955e61695ccf26234ffac19dc2e9:evals/mcp/suite.js:generic-api-key:252
 f66faf4505ed5a0085e91459f5b704753e7664f3:evals/mcp/suite.js:generic-api-key:237
 f66faf4505ed5a0085e91459f5b704753e7664f3:evals/mcp/suite.js:generic-api-key:252
+# Public source-file SHA-256, not a credential: the immutable JSON finding
+# exactly equals SHA-256 of src/mcp/mcpOAuthPages.ts at commit 3679bf56.
+# Only this historical fingerprint is exempt; current digest records are explicit.
+3679bf56f9c29db478f947adfdf533839d986b1c:docs/review/package-validation.json:generic-api-key:13

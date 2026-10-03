@@ -1,0 +1,13 @@
+interface:
+  display_name: "Planwren Today Planning"
+  short_description: "Plan and act on your own tasks"
+  default_prompt: "Help me work through today’s plan one task at a time."
+policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "planwren"
+      description: "Plan and manage your own Planwren tasks"
+      transport: "streamable_http"
+      url: "https://todos.theafoundry.com/mcp/app"

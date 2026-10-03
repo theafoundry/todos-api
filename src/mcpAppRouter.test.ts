@@ -27,6 +27,9 @@ import {
 import { AuthService } from "./services/authService";
 import { DayContextService } from "./services/dayContextService";
 import { TodoService } from "./services/todoService";
+const {
+  applyApprovedSubmissionChanges,
+} = require("../test/helpers/mcp-approved-submission-contract");
 
 const mcpHeaders = {
   Accept: "application/json, text/event-stream",
@@ -68,7 +71,7 @@ describe("ChatGPT-native MCP app profile", () => {
     actor: "ChatGPT",
   });
 
-  test("preserves the committed Phase 1 tool metadata exactly", () => {
+  test("preserves Phase 1 tool metadata except the two approved destructive annotations", () => {
     const snapshot = JSON.parse(
       fs.readFileSync(
         path.join(
@@ -79,7 +82,9 @@ describe("ChatGPT-native MCP app profile", () => {
       ),
     );
 
-    expect(buildNativeAppToolsList().slice(0, 5)).toEqual(snapshot.tools);
+    expect(buildNativeAppToolsList().slice(0, 5)).toEqual(
+      applyApprovedSubmissionChanges(snapshot.tools),
+    );
     expect(snapshot.tools.map((tool: { name: string }) => tool.name)).toEqual([
       "list_today",
       "plan_today",
@@ -93,7 +98,7 @@ describe("ChatGPT-native MCP app profile", () => {
     }
   });
 
-  test("extension metadata preserves the reviewed six-tool contract", () => {
+  test("extension metadata preserves the reviewed six-tool contract with only approved submission deltas", () => {
     const reviewedSnapshot = JSON.parse(
       fs.readFileSync(
         path.join(process.cwd(), "test/fixtures/mcp-app-metadata.phase2.json"),
@@ -127,7 +132,9 @@ describe("ChatGPT-native MCP app profile", () => {
         },
       ],
     }).toEqual(snapshot);
-    expect(tools.slice(0, 6)).toEqual(reviewedSnapshot.tools);
+    expect(tools.slice(0, 6)).toEqual(
+      applyApprovedSubmissionChanges(reviewedSnapshot.tools),
+    );
     expect(tools.map((tool) => tool.name)).toEqual([
       "list_today",
       "plan_today",
@@ -639,6 +646,108 @@ describe("ChatGPT-native MCP app profile", () => {
     ]);
   });
 
+  test("accepts scoped synthetic mutations with normalized retries and unchanged reopening semantics", async () => {
+    const todoService = new TodoService();
+    const synthetic = await todoService.create("review-user", {
+      title: "Synthetic review acceptance",
+      status: "waiting",
+      dueDate: new Date("2026-08-11T16:00:00.000Z"),
+    });
+    const update = jest.spyOn(todoService, "update");
+    const authService = {
+      verifyMcpToken: jest.fn().mockResolvedValue({
+        userId: "review-user",
+        email: "synthetic@example.com",
+        tokenType: "mcp",
+        scopes: ["tasks.read", "tasks.write", "projects.read"],
+        resource: "http://localhost:3000/mcp/app",
+      }),
+      getUserById: jest.fn().mockResolvedValue({
+        id: "review-user",
+        email: "synthetic@example.com",
+        name: "Synthetic reviewer",
+        isVerified: true,
+        role: "user",
+        plan: "free",
+      }),
+      getPrismaClient: () => undefined,
+    } as any;
+    const app = createApp({ todoService, authService });
+    const call = async (
+      name: string,
+      argumentsValue: Record<string, unknown>,
+    ) => {
+      const response = await request(app)
+        .post("/mcp/app")
+        .set(mcpHeaders)
+        .set("Authorization", "Bearer synthetic-local-review-token")
+        .send({
+          jsonrpc: "2.0",
+          id: 91,
+          method: "tools/call",
+          params: { name, arguments: argumentsValue },
+        });
+      expect(response.status).toBe(200);
+      const result = parseMcpResponse(response).result;
+      expect(result.isError).not.toBe(true);
+      return result.structuredContent;
+    };
+    const reschedule = {
+      taskId: synthetic.id,
+      scheduledDate: "2026-08-12T09:00:00-04:00",
+    };
+    expect(await call("reschedule_task", reschedule)).toMatchObject({
+      changed: true,
+      task: {
+        scheduledDate: "2026-08-12T13:00:00.000Z",
+        dueDate: "2026-08-11T16:00:00.000Z",
+        status: "waiting",
+        completed: false,
+      },
+    });
+    const written = await todoService.findById("review-user", synthetic.id);
+    expect(await call("reschedule_task", reschedule)).toMatchObject({
+      changed: false,
+    });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(
+      (await todoService.findById("review-user", synthetic.id))?.updatedAt,
+    ).toEqual(written?.updatedAt);
+    const clear = { taskId: synthetic.id, scheduledDate: null };
+    expect(await call("reschedule_task", clear)).toMatchObject({
+      changed: true,
+      task: { scheduledDate: null, dueDate: "2026-08-11T16:00:00.000Z" },
+    });
+    expect(await call("reschedule_task", clear)).toMatchObject({
+      changed: false,
+    });
+    expect(update).toHaveBeenCalledTimes(2);
+
+    const complete = { taskId: synthetic.id, completed: true };
+    expect(await call("complete_task", complete)).toMatchObject({
+      changed: true,
+      task: { status: "done", completed: true },
+    });
+    expect(
+      (await todoService.findById("review-user", synthetic.id))?.completedAt,
+    ).toBeInstanceOf(Date);
+    expect(await call("complete_task", complete)).toMatchObject({
+      changed: false,
+    });
+    const reopen = { taskId: synthetic.id, completed: false };
+    expect(await call("complete_task", reopen)).toMatchObject({
+      changed: true,
+      task: { status: "next", completed: false },
+    });
+    expect(
+      (await todoService.findById("review-user", synthetic.id))?.completedAt,
+    ).toBeUndefined();
+    expect(await call("complete_task", reopen)).toMatchObject({
+      changed: false,
+    });
+    expect(update).toHaveBeenCalledTimes(4);
+  });
+
   test("uses deterministic IANA timezone calendar dates", async () => {
     expect(isValidIanaTimezone("Pacific/Kiritimati")).toBe(true);
     expect(isValidIanaTimezone("not/a-timezone")).toBe(false);
@@ -1138,4 +1247,220 @@ describe("ChatGPT-native MCP app profile", () => {
       expect.any(Object),
     );
   });
+
+  test.each(
+    ["dueDate", "scheduledDate"].flatMap((field) =>
+      [
+        "2026-08-12T09:00:00-04:00",
+        "2026-08-12T13:00:00Z",
+        "2026-08-12T13:00:00+00:00",
+      ].map((value) => [field, value]),
+    ),
+  )("does not rewrite equivalent %s timestamp %s", async (field, value) => {
+    const execute = jest.fn().mockResolvedValue({
+      status: 200,
+      body: {
+        ok: true,
+        data: {
+          task: { ...task, [field]: new Date("2026-08-12T13:00:00.000Z") },
+        },
+        trace: {},
+      },
+    });
+    const result = await executeNativeAppTool(
+      "reschedule_task",
+      { taskId, [field]: value },
+      runtime(execute),
+    );
+
+    expect(result).toMatchObject({
+      changed: false,
+      task: { [field]: "2026-08-12T13:00:00.000Z" },
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      "get_task",
+      { id: taskId },
+      expect.any(Object),
+    );
+  });
+
+  test.each(["dueDate", "scheduledDate"])(
+    "persists normalized %s once across identical retries and preserves the omitted date",
+    async (field) => {
+      let persisted = { ...task };
+      const execute = jest.fn(
+        async (action: string, params: Record<string, unknown>) => {
+          if (action === "update_task")
+            persisted = { ...persisted, [field]: params[field] };
+          else expect(action).toBe("get_task");
+          return {
+            status: 200,
+            body: { ok: true, data: { task: { ...persisted } }, trace: {} },
+          };
+        },
+      );
+      const args = { taskId, [field]: "2026-08-12T09:00:00-04:00" };
+      const first = await executeNativeAppTool(
+        "reschedule_task",
+        args,
+        runtime(execute),
+      );
+      const retry = await executeNativeAppTool(
+        "reschedule_task",
+        args,
+        runtime(execute),
+      );
+      const otherField = field === "dueDate" ? "scheduledDate" : "dueDate";
+
+      expect(first).toMatchObject({ changed: true });
+      expect(retry).toMatchObject({ changed: false });
+      expect(first).toMatchObject({
+        task: {
+          [field]: "2026-08-12T13:00:00.000Z",
+          [otherField]: task[otherField],
+          status: task.status,
+          completed: task.completed,
+        },
+      });
+      expect(
+        execute.mock.calls.filter(([action]) => action === "update_task"),
+      ).toEqual([
+        [
+          "update_task",
+          { id: taskId, [field]: "2026-08-12T13:00:00.000Z" },
+          expect.any(Object),
+        ],
+      ]);
+    },
+  );
+
+  test("normalizes both supplied dates when only one instant changes", async () => {
+    const execute = jest
+      .fn()
+      .mockResolvedValueOnce({
+        status: 200,
+        body: { ok: true, data: { task }, trace: {} },
+      })
+      .mockResolvedValueOnce({
+        status: 200,
+        body: {
+          ok: true,
+          data: {
+            task: {
+              ...task,
+              dueDate: task.dueDate,
+              scheduledDate: "2026-08-12T13:00:00.000Z",
+            },
+          },
+          trace: {},
+        },
+      });
+    await executeNativeAppTool(
+      "reschedule_task",
+      {
+        taskId,
+        dueDate: "2026-08-11T12:00:00-04:00",
+        scheduledDate: "2026-08-12T13:00:00Z",
+      },
+      runtime(execute),
+    );
+
+    expect(execute).toHaveBeenLastCalledWith(
+      "update_task",
+      {
+        id: taskId,
+        dueDate: "2026-08-11T16:00:00.000Z",
+        scheduledDate: "2026-08-12T13:00:00.000Z",
+      },
+      expect.any(Object),
+    );
+  });
+
+  test.each(["dueDate", "scheduledDate"])(
+    "clears only explicit-null %s once and preserves the omitted date on retry",
+    async (field) => {
+      let persisted = {
+        ...task,
+        scheduledDate: "2026-08-12T13:00:00.000Z",
+      } as Record<string, unknown>;
+      const before = { ...persisted };
+      const execute = jest.fn(
+        async (action: string, params: Record<string, unknown>) => {
+          if (action === "update_task")
+            persisted = { ...persisted, [field]: params[field] };
+          else expect(action).toBe("get_task");
+          return {
+            status: 200,
+            body: { ok: true, data: { task: { ...persisted } }, trace: {} },
+          };
+        },
+      );
+      const args = { taskId, [field]: null };
+      const first = await executeNativeAppTool(
+        "reschedule_task",
+        args,
+        runtime(execute),
+      );
+      const retry = await executeNativeAppTool(
+        "reschedule_task",
+        args,
+        runtime(execute),
+      );
+      const otherField = field === "dueDate" ? "scheduledDate" : "dueDate";
+
+      expect(first).toMatchObject({
+        changed: true,
+        task: { [field]: null, [otherField]: before[otherField] },
+      });
+      expect(retry).toMatchObject({ changed: false });
+      expect(
+        execute.mock.calls.filter(([action]) => action === "update_task"),
+      ).toEqual([
+        ["update_task", { id: taskId, [field]: null }, expect.any(Object)],
+      ]);
+    },
+  );
+
+  test("skips a write when both supplied dates are already equivalent", async () => {
+    const execute = jest.fn().mockResolvedValue({
+      status: 200,
+      body: {
+        ok: true,
+        data: { task: { ...task, scheduledDate: "2026-08-12T13:00:00.000Z" } },
+        trace: {},
+      },
+    });
+    const result = await executeNativeAppTool(
+      "reschedule_task",
+      {
+        taskId,
+        dueDate: "2026-08-11T16:00:00Z",
+        scheduledDate: "2026-08-12T09:00:00-04:00",
+      },
+      runtime(execute),
+    );
+
+    expect(result).toMatchObject({ changed: false });
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    "not-a-date",
+    "2026-02-30T13:00:00Z",
+    "2026-08-12T13:00:00+99:99",
+  ])(
+    "rejects invalid rescheduling timestamp %s before any executor call",
+    async (dueDate) => {
+      const execute = jest.fn();
+      await expect(
+        executeNativeAppTool(
+          "reschedule_task",
+          { taskId, dueDate },
+          runtime(execute),
+        ),
+      ).rejects.toMatchObject({ code: "INVALID_ARGUMENT", retryable: false });
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
 });

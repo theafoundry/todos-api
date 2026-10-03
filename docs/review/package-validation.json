@@ -1,0 +1,232 @@
+{
+  "recordedAtUTC": "2026-10-03T15:32:32.471673+00:00",
+  "scope": "Authorized public-package and native MCP annotation/timestamp/branding repairs; isolated local source verification. No repaired-source deployment or authenticated hosted/portal acceptance.",
+  "candidateBranch": "codex/planwren-public-submission",
+  "candidateParentSHA": "1d2f30d1433ba5c6110551eee88351613358a0e1",
+  "exactHeadLocation": "Draft PR head and final external completion-handoff.json; the commit containing this record includes the candidate sources hashed below.",
+  "deployedApplicationSHA": "0335614086f2a4ab587464e81037348b6486c193",
+  "baseMergeSHA": "937ccec55467813d25faa40e164c6fd77a65aab6",
+  "validatedCandidateSources": [
+    {
+      "path": "src/mcp/appContract.ts",
+      "sha256": "4998628ce704fe513c50755614493b136105dfa4527ff065b40f62baf4be6d2e"
+    },
+    {
+      "path": "src/mcp/appTools.ts",
+      "sha256": "44bc48e9143efa53b4ae1c8c5638cc2298cce3769dac17d4c27fe497a407749c"
+    },
+    {
+      "path": "src/mcp/todayPlanResource.ts",
+      "sha256": "879abcb31460ecf480369cb425edb0e9b5be61152050427d61e360cb1265ea93"
+    },
+    {
+      "path": "src/mcp/mcpOAuthPages.ts",
+      "sha256": "04dab992746203aba33539f96ac032af55e9859e93c96406cd8f285d01cf7ac7"
+    },
+    {
+      "path": "src/routes/mcpPublicRouter.ts",
+      "sha256": "ff59375417a15e075dbf1128269c74b3a30d2ec7f88775a0dae71faa4f2423a0"
+    },
+    {
+      "path": "src/mcpAppRouter.test.ts",
+      "sha256": "f271b6058c505f6bd29c3329d306336497f48f424b17346d1c38f8a04840da1a"
+    },
+    {
+      "path": "src/mcpPublicRouter.test.ts",
+      "sha256": "578b4914bffdc14bb566c2cf860598caf89d92a1ba779b127f2659b4782b3467"
+    },
+    {
+      "path": "src/pluginPackage.test.ts",
+      "sha256": "1c8a69ec1576ecb306af8749c5cdbe0a823697a2d2acfe5e717aa2bcfb8b8e8f"
+    },
+    {
+      "path": "test/helpers/mcp-approved-submission-contract.js",
+      "sha256": "c96fc36cff6e94890d21070885c739923aae52101f2271d065e45629c516cd4f"
+    },
+    {
+      "path": "test/fixtures/mcp-app-metadata.extensions.json",
+      "sha256": "7792f7f8e897a960ad0009f5404e8bf7226ea8963766884393cca8b2cabe40dc"
+    },
+    {
+      "path": "evals/plugin/assert-tool-contract.js",
+      "sha256": "50837711ff9f1f83a325369186616b9f14b940cbc6ac2b061808017f247e1f36"
+    },
+    {
+      "path": "evals/plugin/assert-tool-contract.test.js",
+      "sha256": "36b15eecf5a07f6bf8d3f2a292b10d48759b95df1ab60c924bfffb8955ac2160"
+    },
+    {
+      "path": "tests/ui/today-plan-widget.spec.ts",
+      "sha256": "d57188ac521f72418d30437f2a808f03858b8b0940a38ab9e0e293f08eafb50f"
+    }
+  ],
+  "package": {
+    "name": "planwren",
+    "version": "0.2.0",
+    "regularFiles": 8,
+    "compressedBytes": 30409,
+    "sha256": "5f3393d1235b0a838350c1c990a034519017b59e8615582d1c1d4037400e5f21",
+    "schemaValidation": "Agent Plugins1.0.0 plugin and MCP schemas plus current documented OpenAI constraints",
+    "extractedPackageValidated": true,
+    "reproducibilityTestPassed": true
+  },
+  "passed": [
+    {
+      "command": "npm run build",
+      "detail": "Backend TypeScript/Prisma with supported Node22 and unreachable loopback-only datasource"
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "detail": "Backend types"
+    },
+    {
+      "command": "npm --prefix client-react run build:all",
+      "detail": "App, landing and auth builds"
+    },
+    {
+      "command": "npm run check:architecture; npm run check:harness-drift",
+      "detail": "Both passed; existing TODO/FIXME advisory remains"
+    },
+    {
+      "command": "npm run format:check",
+      "detail": "Repository formatting; final targeted formatting recorded separately"
+    },
+    {
+      "command": "npm run test:unit",
+      "passed": 554,
+      "suites": 31
+    },
+    {
+      "command": "npm run test:coverage:check",
+      "passed": 554,
+      "suites": 31,
+      "ratchet": {
+        "statements": 41.59,
+        "branches": 32.42,
+        "functions": 39.73,
+        "lines": 42.81
+      }
+    },
+    {
+      "command": "npm run test:mcp",
+      "passed": 153,
+      "suites": 7
+    },
+    {
+      "command": "node --test evals/plugin/assert-tool-contract.test.js",
+      "passed": 32,
+      "acceptanceCases": 1,
+      "rejectionCases": 31,
+      "detail": "Whole reviewed definitions with only literal approved deltas; rejects reverted destructive hints, new model/app tools, schema/scope/visibility/entrypoint/CSP/resource/description drift"
+    },
+    {
+      "command": "npm run eval:all",
+      "passed": 25,
+      "suites": 5,
+      "failed": 0,
+      "pluginTrialsPassed": 6,
+      "pluginTrialsTotal": 6
+    },
+    {
+      "command": "node scripts/generate-mcp-app-phase2-snapshot.mjs --check",
+      "detail": "Current extensions snapshot matches candidate; exactly four approved metadata leaves differ"
+    },
+    {
+      "command": "node scripts/validate-planwren-public-package.mjs",
+      "detail": "Public source manifests, skill/dependency, icons and package inventory"
+    },
+    {
+      "command": "node --test scripts/review/planwren-public-package.test.mjs",
+      "passed": 35
+    },
+    {
+      "command": "python3 scripts/review/test-planwren-public-package.py",
+      "passed": 22
+    },
+    {
+      "command": "python3 scripts/build-planwren-public-package.py --verify",
+      "detail": "Unchanged ZIP exact source bytes, CRC, safe extraction and revalidation; SHA256 5f3393d1235b0a838350c1c990a034519017b59e8615582d1c1d4037400e5f21"
+    },
+    {
+      "command": "Synthetic local MCP acceptance in src/mcpAppRouter.test.ts",
+      "detail": "Real native HTTP route/action pipeline with fresh in-memory TodoService, mocked auth and zero Prisma: one normalized reschedule write across retry, omission preserved, explicit-null clearing/no-op, complete/reopen/retry and original next-state reopening semantics"
+    },
+    {
+      "command": "Independent contract/source review",
+      "detail": "No blocking defects; historical fixtures unchanged; four current metadata leaves only; independently reran32guard tests"
+    },
+    {
+      "command": "CI=1 npm run test:ui:fast",
+      "passed": 81,
+      "existingSkipped": 35,
+      "detail": "Desktop/mobile local browser tests, including updated Planwren widget and auth-expiry copy"
+    },
+    {
+      "command": "Targeted Prettier check",
+      "detail": "Public package, review Markdown/JSON, evaluation/helper and package utilities/schema files"
+    },
+    {
+      "command": "Gitleaks historical range/current report/negative control",
+      "detail": "Verified immutable public-source digest false positive; one exact historical fingerprint; explicit current path/sha256 records scan clean; unrelated synthetic API-key-shaped assignment still fails. No rules/workflow/path/future-commit exclusion."
+    }
+  ],
+  "pendingLocalChecks": [],
+  "approvedRepairs": [
+    "complete_task and reschedule_task destructiveHint:true; all other hints/scopes/schemas/canonical identities unchanged",
+    "Supplied reschedule timestamps normalize before comparison and persistence; no redundant write for equivalent instants; null and omission retain their existing meanings",
+    "Planwren product copy in widget, OAuth pages and verified-email errors, renderer/resource descriptions; escaped dynamic user/client text and canonical identities retained"
+  ],
+  "historicalFixtureSHA256": {
+    "phase1": "6e967fe9277ebb464cdbed73109213baa276485a5ac0d24e1fe8242bcd078f2d",
+    "phase2": "6e385ca644964340578b20149d48136ee7f9d0ed454764c3c86db6a3c244fe33"
+  },
+  "resolvedExecutionFailures": [
+    "First new synthetic acceptance assertion expected database-style null; in-memory canonical service intentionally clears completedAt to undefined. Corrected the assertion to the existing representation; full554test unit rerun passed. No lifecycle implementation changed.",
+    "Targeted Prettier command initially included a plain-text script with no inferred parser; corrected the formatting file set. Repository and supported targeted checks passed."
+  ],
+  "historicalPreparation": {
+    "sourceCommits": [
+      "83041630e5c1ec3bd4353d69a2eaa3fa39072828",
+      "1d2f30d1433ba5c6110551eee88351613358a0e1"
+    ],
+    "passedBeforeRuntimeRepairs": {
+      "unit": 538,
+      "mcp": 137,
+      "guardTests": 26,
+      "evalTrials": 25,
+      "ui": 81,
+      "existingUiSkips": 35
+    },
+    "publicEvidence": "Dated18GET and stateless public MCP evidence describes deployed03356140, including old false write hints/Todos copy; it does not verify this candidate."
+  },
+  "notRun": [
+    "Post-repair production/public scan (candidate is not deployed)",
+    "Authenticated ChatGPT panel/fullscreen/mobile, real OAuth exchange/refresh/reconnect and hosted synthetic-task mutations",
+    "Actual publisher/domain verification, dedicated reviewer-account provisioning/credentials, portal scans and genuine recording/screenshots",
+    "iOS build (no native source or transport DTO change)",
+    "Merge, deployment, portal upload/submission/publication"
+  ],
+  "publication": "User approved normal push and draft package PR only; exact PR/head/check results are recorded in the final external handoff. Separate polish remains a separate branch/PR.",
+  "libraryDelivery": "Blocked at read-only capability probe; required current prepared-upload helper lacks Library upload tools. No upload retry or alternate route.",
+  "retainedFailures": [],
+  "secretScanDisposition": {
+    "failedRun": "https://github.com/theafoundry/todos-api/actions/runs/37132701159",
+    "failedHead": "3679bf56f9c29db478f947adfdf533839d986b1c",
+    "rule": "generic-api-key",
+    "file": "docs/review/package-validation.json",
+    "line": 13,
+    "classification": "Verified false positive: public source-file SHA-256 recorded under an OAuth filename, not a credential.",
+    "proof": "The value at the immutable historical finding exactly equals SHA-256 of src/mcp/mcpOAuthPages.ts at that commit; the current explicit path/sha256 record retains the same verifiable digest.",
+    "exception": "One exact historical commit/path/rule/line fingerprint in the existing .gitleaksignore mechanism; no rule, workflow, path or future-commit exclusion.",
+    "scanRange": "The PR scan includes all branch commits, so changing the current report shape alone cannot remove this historical nonsecret finding.",
+    "followup": "Final exact-head scan results are recorded in the external PR delivery handoff.",
+    "localVerified": {
+      "historicalExceptionScan": "0 findings, exit0",
+      "currentExplicitDigestRecords": "0 findings, exit0",
+      "negativeControl": "Synthetic unrelated API-key-shaped assignment detected; exit1 as required",
+      "scanner": "CI-pinned8.24.3 from the official release with checksum verified; independently checked installed8.30.1. Exact GitHub scan remains the final publication authority.",
+      "fingerprintControls": "Changing any single commit/path/rule/line dimension retains detection; the exact historical entry alone suppresses the verified digest."
+    },
+    "independentReview": "Static immutable-digest proof and meaningful baseline/exact/mismatched-dimension controls approved; no wildcard/rule/path/future-commit exclusion."
+  }
+}

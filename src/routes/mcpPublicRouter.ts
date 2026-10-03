@@ -484,7 +484,8 @@ function mapTokenExchangeError(error: unknown) {
       return {
         status: 401,
         error: "invalid_grant",
-        description: "The linked Todos account needs a verified email address",
+        description:
+          "The linked Planwren account needs a verified email address",
         code: "MCP_VERIFIED_EMAIL_REQUIRED",
         hint: "Verify the account email, then restart the connector auth flow.",
       };
@@ -523,7 +524,7 @@ function mapAuthorizeError(message: string): {
       return {
         title: "Verified Email Required",
         description:
-          "Verify the email address on this Todos account, then restart the connection flow.",
+          "Verify the email address on this Planwren account, then restart the connection flow.",
         code: "MCP_VERIFIED_EMAIL_REQUIRED",
       };
     default:

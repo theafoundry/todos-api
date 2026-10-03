@@ -9,6 +9,9 @@ import {
 } from "./mcp/appContract";
 
 const root = path.resolve(__dirname, "..");
+const {
+  applyApprovedSubmissionChanges,
+} = require("../test/helpers/mcp-approved-submission-contract");
 
 describe("Phase 3 installable plugin package", () => {
   it("passes package integrity validation", () => {
@@ -55,7 +58,7 @@ describe("Phase 3 installable plugin package", () => {
     }
   });
 
-  it("preserves the reviewed model tools while adding only an app panel opener", () => {
+  it("preserves reviewed model tools with only approved submission deltas and an app panel opener", () => {
     const tools = buildNativeAppToolsList();
     const modelTools = tools.filter((tool) => {
       const visibility: readonly string[] | undefined =
@@ -78,7 +81,9 @@ describe("Phase 3 installable plugin package", () => {
     expect(createHash("sha256").update(snapshot).digest("hex")).toBe(
       "6e385ca644964340578b20149d48136ee7f9d0ed454764c3c86db6a3c244fe33",
     );
-    expect(modelTools).toEqual(JSON.parse(snapshot.toString()).tools);
+    expect(modelTools).toEqual(
+      applyApprovedSubmissionChanges(JSON.parse(snapshot.toString()).tools),
+    );
     expect(tools.filter((tool) => !modelTools.includes(tool))).toEqual([
       expect.objectContaining({
         name: "open_today_plan",

@@ -1,13 +1,72 @@
-Todos for ChatGPT turns your own tasks into a focused daily plan, on the web and in ChatGPT's mobile containers.
+PLANWREN REVIEW RECORDING SCRIPT — PREPARED, NOT RECORDED
 
-In ChatGPT, a user gives an explicit time budget and energy level. Todos first lists today's tasks, then ranks them with a deterministic planner and returns a plan that fits the available time.
+The authorized candidate repairs write annotations, equivalent timestamp
+retries and hosted Planwren copy. It is not yet deployed; current production
+remains source 0335614086f2a4ab587464e81037348b6486c193. Before final recording,
+verify an approved repaired deployment and record its exact served SHA. Local
+candidate previews or old production screens cannot establish repaired-source
+ChatGPT acceptance.
 
-The Today Plan component renders authoritative task data in a compact interface. It shows the available, planned, and remaining time, plus actions to complete or reschedule each task.
+Use an actual signed-in ChatGPT session connected to a separately approved,
+dedicated synthetic reviewer account. Record the deployed source SHA, UTC time,
+client/browser and fixture reset time with the resulting video. No credentials,
+OAuth codes, tokens, personal tasks or password prompts may appear on screen.
+The existing todos-chatgpt-demo-v1.mp4/SRT/SVG walkthrough is historical and
+synthetic; do not reuse it as authenticated evidence or the final Planwren demo.
 
-Todos also supports safe conversational mutations. A user can capture a new task, complete a task by exact identifier, or reschedule it with timezone-aware dates. Each action returns authoritative server state.
+Scene 1 — Product and connection (about 20 seconds)
+Show the Planwren name and coral Fold icon. Introduce “Planwren by Thea Foundry
+turns your own tasks into a focused daily plan.” Show the supported connection
+handoff and the approved synthetic account without exposing its password or
+tokens. State that task access is limited to the connected account. Capture the
+success state; if connection fails, retain the failure and do not narrate success.
 
-The app also respects its capability boundary. A request to delete all overdue tasks is declined because deletion is not an exposed tool, and no task is changed.
+Scene 2 — Factual tasks and planning (about 35 seconds)
+Ask “What is due or overdue today?” Show the returned synthetic tasks and the
+account date/timezone. Ask “Plan my day. I have two hours and medium energy.”
+Show the textual plan and any warnings. In a fresh conversation, list_today
+first supplies the authoritative account date/timezone; reuse that context for
+planning. Explain that the planner uses explicit time and energy; the rendered
+plan must preserve those inputs and task order.
 
-Together, list today, plan today, render today plan, capture task, complete task, and reschedule task form six focused tools. Todos uses OAuth with resource-bound access tokens and keeps task content as data rather than instructions.
+Scene 3 — Actual Today Plan component (about 40 seconds)
+Show Today Plan in the actual ChatGPT inline/panel container. Open fullscreen
+using the available control and return to the conversation. Show available,
+planned and remaining minutes. If demonstrating the thread entrypoint, open
+setup, choose the budget and energy, then plan. Do not substitute a local iframe
+or static screenshot for this scene.
 
-This reviewer demo uses synthetic or redacted data. The production endpoint, privacy policy, terms, and support page are all hosted at todos dot theafoundry dot com.
+Scene 4 — Complete, undo, refresh and reschedule (about 45 seconds)
+Complete one synthetic task already returned in context. Show authoritative
+success and changed component state. Undo the same completion and refresh the
+plan to confirm the task is open again. Explain that reopening sets status to
+next and clears the completion timestamp, rather than restoring an earlier
+waiting or in-progress status. Reschedule a contextual synthetic task
+to tomorrow at 9 in the account timezone, clarifying ambiguity if necessary.
+Show the returned server date and state rather than relying on animation alone.
+The repaired complete/reschedule tools have true destructive hints; preserve
+and accurately capture any host confirmation behavior. Do not narrate a fixed
+confirmation UI unless the recording actually shows it. In separate authorized
+QA, repeat a reschedule with equivalent timestamp spellings and confirm
+changed:false and unchanged dates; omitted fields remain intact and explicit
+null clears only the selected field.
+
+Scene 5 — Capture and capability boundary (about 25 seconds)
+Ask “Capture: call the dentist tomorrow.” Show the capture result without
+claiming scheduling behavior not returned by the tool. Ask “Delete all my
+overdue tasks.” Show the unsupported-operation explanation and no mutation.
+Mention that task titles are data, not instructions, and that Planwren has no
+cross-account lookup or messaging capability.
+
+Scene 6 — Session recovery and close (about 30 seconds)
+Demonstrate an authorized disconnect/reconnect with the synthetic account,
+excluding secret screens. Refresh Today Plan and confirm authoritative state
+returns without replaying a mutation. Complete the longer expiry/refresh tests
+separately in the test matrix if they cannot be shown in this short recording.
+Close with www.planwren.com and its public privacy, terms and support links.
+
+Evidence rule
+Narrate only what the recording actually shows. Retain failures as failures.
+Use captions and readable task text; check light/dark and mobile views through
+separate captures. Record the final video filename/hash and sanitized evidence
+paths in acceptance-report.md only after the authenticated session is complete.

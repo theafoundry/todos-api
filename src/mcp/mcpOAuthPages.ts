@@ -160,8 +160,8 @@ export function renderOAuthLoginPage(input: {
   googleUrl?: string;
 }) {
   const clientCopy = input.clientName
-    ? `Sign in to connect <strong>${escapeHtml(input.clientName)}</strong> to your Todos account.`
-    : "Sign in to connect your assistant to your Todos account.";
+    ? `Sign in to connect <strong>${escapeHtml(input.clientName)}</strong> to your Planwren account.`
+    : "Sign in to connect your assistant to your Planwren account.";
   return renderPageShell(
     "Connect Assistant",
     `<h1>Connect Assistant</h1>
@@ -196,8 +196,8 @@ export function renderOAuthRegisterPage(input: {
   googleUrl?: string;
 }) {
   const clientCopy = input.clientName
-    ? `Create an account to connect <strong>${escapeHtml(input.clientName)}</strong> to Todos.`
-    : "Create an account to connect your assistant to Todos.";
+    ? `Create an account to connect <strong>${escapeHtml(input.clientName)}</strong> to Planwren.`
+    : "Create an account to connect your assistant to Planwren.";
   return renderPageShell(
     "Create Account",
     `<h1>Create Account</h1>
@@ -256,8 +256,8 @@ export function renderOAuthConsentPage(input: {
     `<h1>Authorize Assistant</h1>
      <p>${
        input.clientName
-         ? `<strong>${escapeHtml(input.clientName)}</strong> wants access to your Todos account.`
-         : "An assistant client wants access to your Todos account."
+         ? `<strong>${escapeHtml(input.clientName)}</strong> wants access to your Planwren account.`
+         : "An assistant client wants access to your Planwren account."
      }</p>
      <div class="card">
        <p><strong>Signed in as:</strong> ${escapeHtml(input.userEmail)}</p>

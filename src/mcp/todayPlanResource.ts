@@ -22,7 +22,7 @@ export const TODAY_PLAN_RESOURCE_DESCRIPTOR = {
   name: "todos-today-plan",
   title: "Today's plan",
   description:
-    "A compact, interactive view of an authoritative Todos day plan.",
+    "A compact, interactive view of an authoritative Planwren day plan.",
   mimeType: TODAY_PLAN_RESOURCE_MIME_TYPE,
   _meta: TODAY_PLAN_RESOURCE_META,
 } as const;
@@ -163,7 +163,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
 </head>
 <body>
   <main id="card" class="card" data-state="initializing" aria-labelledby="plan-title">
-    <p class="eyebrow">Todos</p>
+    <p class="eyebrow">Planwren</p>
     <h1 id="plan-title">Today's plan</h1>
     <p id="subhead" class="subhead">Connecting to your authoritative plan…</p>
     <div id="skeleton" class="skeleton" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -187,7 +187,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       <div id="empty" class="empty" hidden><h2>Your day is clear</h2><p>No eligible tasks fit this plan right now.</p></div>
       <div class="toolbar">
         <button id="refresh" class="button" type="button">Refresh plan</button>
-        <a id="open" class="open-link" href="__TODOS_APP_URL__" target="_blank" rel="noopener noreferrer">Open in Todos</a>
+        <a id="open" class="open-link" href="__TODOS_APP_URL__" target="_blank" rel="noopener noreferrer">Open in Planwren</a>
       </div>
     </section>
     <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true">Loading today's plan…</p>
@@ -252,7 +252,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       }
 
       function authExpiredMessage() {
-        return plan ? "Your Todos connection expired. Reconnect in ChatGPT, then refresh." : "Your Todos connection expired. Reconnect in ChatGPT, then reopen Today Plan.";
+        return plan ? "Your Planwren connection expired. Reconnect in ChatGPT, then refresh." : "Your Planwren connection expired. Reconnect in ChatGPT, then reopen Today Plan.";
       }
 
       function minutes(value) {
@@ -299,14 +299,14 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       }
 
       function resultError(result) {
-        if (!result) return "Todos did not return a result.";
+        if (!result) return "Planwren did not return a result.";
         var error = result.structuredContent && result.structuredContent.error;
         if (error && error.message) return String(error.message);
         if (result.isError && Array.isArray(result.content)) {
           var textBlock = result.content.find(function (item) { return item && item.type === "text"; });
           if (textBlock && textBlock.text) return String(textBlock.text);
         }
-        return result.isError ? "Todos could not complete that action." : null;
+        return result.isError ? "Planwren could not complete that action." : null;
       }
 
       function localDateTimeToIso(value, timeZone) {
@@ -470,7 +470,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       }
 
       function applyPlan(nextPlan, message, inputs) {
-        if (!nextPlan || !Array.isArray(nextPlan.tasks)) throw new Error("Todos returned an invalid plan.");
+        if (!nextPlan || !Array.isArray(nextPlan.tasks)) throw new Error("Planwren returned an invalid plan.");
         if (inputs) lastPlanningInputs = readPlanningInputs(inputs) || lastPlanningInputs;
         plan = Object.assign({}, nextPlan, { tasks: nextPlan.tasks.slice() });
         pendingTaskId = null;
@@ -483,7 +483,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
       }
 
       function showSetup(setup) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(setup.date) || typeof setup.timezone !== "string") throw new Error("Todos returned invalid planning settings.");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(setup.date) || typeof setup.timezone !== "string") throw new Error("Planwren returned invalid planning settings.");
         plan = null;
         lastPlanningInputs = null;
         skeleton.hidden = true;
@@ -512,7 +512,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
           }
           var error = resultError(result);
           if (error) throw new Error(error);
-          applyPlan(result.structuredContent, "Plan made from Todos.", inputs);
+          applyPlan(result.structuredContent, "Plan made from Planwren.", inputs);
           planSubmit.textContent = "Update plan";
         } catch (error) {
           plan = previousPlan;
@@ -569,7 +569,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
           }
           var error = resultError(result);
           if (error) throw new Error(error);
-          applyPlan(result.structuredContent, "Plan refreshed from Todos.", inputs);
+          applyPlan(result.structuredContent, "Plan refreshed from Planwren.", inputs);
         } catch (error) {
           plan = previousPlan;
           setPhase("recoverable-failure", error && error.message ? error.message : "The plan could not be refreshed. Try again.", "error");
@@ -619,7 +619,7 @@ const TODAY_PLAN_WIDGET_TEMPLATE = String.raw`<!doctype html>
         if (!connected || !hostCapabilities.openLinks) return;
         event.preventDefault();
         request("ui/open-link", { url: openLink.href }).catch(function () {
-          setStatus("Open Todos from its web app if this link is blocked.", "error");
+          setStatus("Open Planwren from its web app if this link is blocked.", "error");
         });
       });
 
