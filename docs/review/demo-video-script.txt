@@ -1,5 +1,12 @@
 PLANWREN REVIEW RECORDING SCRIPT — PREPARED, NOT RECORDED
 
+The authorized candidate repairs write annotations, equivalent timestamp
+retries and hosted Planwren copy. It is not yet deployed; current production
+remains source 0335614086f2a4ab587464e81037348b6486c193. Before final recording,
+verify an approved repaired deployment and record its exact served SHA. Local
+candidate previews or old production screens cannot establish repaired-source
+ChatGPT acceptance.
+
 Use an actual signed-in ChatGPT session connected to a separately approved,
 dedicated synthetic reviewer account. Record the deployed source SHA, UTC time,
 client/browser and fixture reset time with the resulting video. No credentials,
@@ -37,6 +44,12 @@ next and clears the completion timestamp, rather than restoring an earlier
 waiting or in-progress status. Reschedule a contextual synthetic task
 to tomorrow at 9 in the account timezone, clarifying ambiguity if necessary.
 Show the returned server date and state rather than relying on animation alone.
+The repaired complete/reschedule tools have true destructive hints; preserve
+and accurately capture any host confirmation behavior. Do not narrate a fixed
+confirmation UI unless the recording actually shows it. In separate authorized
+QA, repeat a reschedule with equivalent timestamp spellings and confirm
+changed:false and unchanged dates; omitted fields remain intact and explicit
+null clears only the selected field.
 
 Scene 5 — Capture and capability boundary (about 25 seconds)
 Ask “Capture: call the dentist tomorrow.” Show the capture result without

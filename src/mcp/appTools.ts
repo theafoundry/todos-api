@@ -74,6 +74,20 @@ function iso(value: unknown): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function normalizedTaskDate(value: unknown): string | null {
+  if (value === null) return null;
+  const normalized = iso(value);
+  if (normalized === null) {
+    throw new NativeAppToolError(
+      "INVALID_ARGUMENT",
+      "Task dates must be valid ISO datetimes.",
+      false,
+      "Correct the tool arguments and retry.",
+    );
+  }
+  return normalized;
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new NativeAppToolError(
@@ -409,9 +423,11 @@ export async function executeNativeAppTool(
   const requestedScheduledDate =
     args.scheduledDate === undefined
       ? previousScheduledDate
-      : args.scheduledDate;
+      : normalizedTaskDate(args.scheduledDate);
   const requestedDueDate =
-    args.dueDate === undefined ? previousDueDate : args.dueDate;
+    args.dueDate === undefined
+      ? previousDueDate
+      : normalizedTaskDate(args.dueDate);
   const changed =
     requestedScheduledDate !== previousScheduledDate ||
     requestedDueDate !== previousDueDate;
@@ -422,9 +438,11 @@ export async function executeNativeAppTool(
           {
             id: args.taskId,
             ...(args.scheduledDate !== undefined
-              ? { scheduledDate: args.scheduledDate }
+              ? { scheduledDate: requestedScheduledDate }
               : {}),
-            ...(args.dueDate !== undefined ? { dueDate: args.dueDate } : {}),
+            ...(args.dueDate !== undefined
+              ? { dueDate: requestedDueDate }
+              : {}),
           },
           context,
         ),

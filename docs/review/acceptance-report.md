@@ -1,7 +1,9 @@
 # Planwren submission acceptance record
 
-Status: deployed Fold release verified; public-package preparation is local;
-publisher/domain, portal and actual signed-in ChatGPT acceptance remain pending.
+Status: authorized annotation, timestamp-retry and hosted-Planwren repairs are
+under candidate source review. Production remains the verified earlier Fold
+release. Publisher/domain, portal and actual signed-in ChatGPT acceptance remain
+pending; no repaired-source deployment is claimed.
 
 ## Exact source and release identity
 
@@ -18,9 +20,11 @@ publisher/domain, portal and actual signed-in ChatGPT acceptance remain pending.
 | Canonical OAuth issuer/UI domain | `https://todos.theafoundry.com`                                                           |
 | Public-package source            | Separate local preparation branch; final commit recorded in the handoff                   |
 
-The package/material commit is separate from the already-deployed application
-SHA. Preparing the package does not deploy a new server or prove portal
-acceptance. All release facts below are dated observations, not a guarantee of
+The public-package/runtime candidate is separate from the already-deployed
+application SHA. Exact candidate HEAD and final repaired-source results are
+recorded in the candidate handoff and [package-validation.json](package-validation.json).
+Source repair and draft-PR approval do not authorize merge/deployment or prove
+portal acceptance. All release facts below are dated observations, not a guarantee of
 future production state.
 
 ## Verified Fold release evidence
@@ -83,10 +87,12 @@ UserInfo returns the expected unauthenticated 401 Bearer challenge. GET on
 `/mcp/app` returns expected 405; this is not proof of authenticated transport
 acceptance. No registration, login, grant or task operation was performed.
 
-Current preparation checks passed backend TypeScript, formatting, 538 unit
+Earlier package preparation, before the current runtime repair, passed backend
+TypeScript, formatting, 538 unit
 tests, coverage ratchet, 137 MCP tests, UI fast (81 passed/35 expected skips),
-and the app/landing/auth builds. Package/ZIP validation and the final local
-commit are recorded in the preparation handoff. These checks use isolated
+and the app/landing/auth builds. These predecessor results are retained in
+the preparation records. Final candidate verification must be recorded against
+the new exact HEAD by the candidate handoff. These checks use isolated
 loopback data and do not establish authenticated hosted acceptance.
 
 Record public screenshots with their actual host/source/date and label any isolated
@@ -100,21 +106,36 @@ metadata, canonical UI domain and empty CSP. See
 evidence, not a signed-in ChatGPT session or authenticated task call.
 
 The initial optional `eval:plugin` run passed five of six trials because its
-legacy whole-catalog assertion expected six definitions. The authorized
-preparation follow-up repaired this test-only mismatch: the evaluation now
-requires exactly six conversational tools plus the sole read-only app-only
-opener, pins the sealed Phase 2 tool definitions, and checks its permissions,
-input, entrypoint, resource, CSP and display modes. The updated suite passes all
-six trials; 26 guard tests (25 rejection cases and one acceptance case) reject expanded or altered contracts.
-The original failure remains historical evidence. No server contract, frozen
-fixture or assertion threshold was changed to accommodate current output.
+legacy whole-catalog assertion expected six definitions. The earlier authorized
+test-only follow-up passed six trials, 26 guard tests and all 25 deterministic
+trials across five suites before the current runtime changes. The original
+failure remains historical evidence. Historical Phase 1/2 fixtures stay immutable;
+new candidate checks apply only explicit approved annotation/description deltas
+and compare whole definitions. Final rerun results are recorded separately.
 
-The deployed widget, OAuth connection screens and two MCP metadata descriptions
-retain submission-facing Todos copy. These are distinct from intentional
-protocol identities and explanatory historical references. The concrete
-inventory and write-effect assessment are in
-[branding-and-annotations.md](branding-and-annotations.md). Hosted copy and
-production annotations were not changed by this preparation.
+## Authorized candidate repairs — not deployed
+
+The new candidate:
+
+- Sets `destructiveHint: true` for complete/reopen and reschedule, preserving
+  other hints, tool identities, schemas, scopes and security schemes.
+- Normalizes supplied reschedule timestamps before comparing and writing.
+  Equivalent instants return `changed: false` without another update or
+  modification-time churn; omission preserves fields and explicit null clears
+  only the selected date.
+- Replaces submission-facing Todos copy in widget, OAuth flow and two metadata
+  descriptions with Planwren while preserving canonical compatibility names.
+
+These are candidate source changes under review, not live/public acceptance
+results. Complete/reopen still does not restore a prior waiting/in-progress
+status. See [branding-and-annotations.md](branding-and-annotations.md).
+
+Production `03356140` retains the older false write hints and hosted Todos copy.
+The existing public GET/MCP evidence describes that production baseline. After
+separately approved merge/deployment, record the new served SHA, fresh true hints
+and public copy, portal rescan and actual authenticated QA before replacing
+pending gates with results. Local/synthetic captures must carry the actual
+candidate source identity and cannot satisfy those hosted checks.
 
 No account was provisioned or reset, no OAuth grant created, no portal draft
 uploaded, and no submission made during preparation. The working developer
@@ -122,25 +143,25 @@ package is preserved; `plugins/planwren-public` is the distinct public package.
 
 ## Pending gate matrix
 
-| Gate                                                | Status / evidence needed                                                                      |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Publisher/business verification                     | Pending actual portal verification                                                            |
-| OpenAI domain verification                          | Pending actual challenge/portal result; DNS and TLS are insufficient                          |
-| Dedicated synthetic review account                  | Pending separate authorization, provisioning and credential verification                      |
-| Public package portal scan                          | Pending upload authorization, scan and canonical comparison                                   |
-| Annotation assessment                               | Pending explicit current-guidance review of complete/reschedule destructive hints             |
-| Real OAuth PKCE/code/cancel and identity            | Pending actual signed-in flow on synthetic account                                            |
-| Refresh/expiry/revoke/replay/reconnect              | Pending separately authorized synthetic-session QA                                            |
-| ChatGPT inline/panel and fullscreen                 | Pending actual container evidence                                                             |
-| Complete/undo/refresh/reschedule/capture            | Pending authoritative results on synthetic fixtures                                           |
-| Boundary and adversarial cases                      | Pending actual signed-in cases in test matrix                                                 |
-| Component accessibility in ChatGPT                  | Pending keyboard, zoom, narrow/mobile, light/dark, reduced motion and assistive-tech evidence |
-| Optional custom-UI screenshots / required recording | Pending genuine current authenticated captures                                                |
-| Final submission approval                           | Pending owner review of completed materials/evidence                                          |
+| Gate                                                | Status / evidence needed                                                                                 |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Publisher/business verification                     | Pending actual portal verification                                                                       |
+| OpenAI domain verification                          | Pending actual challenge/portal result; DNS and TLS are insufficient                                     |
+| Dedicated synthetic review account                  | Pending separate authorization, provisioning and credential verification                                 |
+| Public package portal scan                          | Pending upload authorization, scan and canonical comparison                                              |
+| Annotation assessment                               | Candidate true hints under source review; pending approved deployment, live confirmation and portal scan |
+| Real OAuth PKCE/code/cancel and identity            | Pending actual signed-in flow on synthetic account                                                       |
+| Refresh/expiry/revoke/replay/reconnect              | Pending separately authorized synthetic-session QA                                                       |
+| ChatGPT inline/panel and fullscreen                 | Pending actual container evidence                                                                        |
+| Complete/undo/refresh/reschedule/capture            | Pending authoritative results on synthetic fixtures                                                      |
+| Boundary and adversarial cases                      | Pending actual signed-in cases in test matrix                                                            |
+| Component accessibility in ChatGPT                  | Pending keyboard, zoom, narrow/mobile, light/dark, reduced motion and assistive-tech evidence            |
+| Optional custom-UI screenshots / required recording | Pending genuine current authenticated captures                                                           |
+| Final submission approval                           | Pending owner review of completed materials/evidence                                                     |
 
-**Brand consistency:** pending assessment of the actual signed-in widget
-against the Planwren public package; source currently retains visible Todos
-labels as described above.
+**Brand consistency:** candidate hosted copy is updated to Planwren, but
+production still has the baseline Todos labels. Exact-source deployment and
+actual signed-in confirmation remain pending.
 
 ## Recording new results
 

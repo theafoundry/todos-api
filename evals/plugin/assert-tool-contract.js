@@ -2,6 +2,9 @@ const assert = require("node:assert/strict");
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const {
+  applyApprovedSubmissionChanges,
+} = require("../../test/helpers/mcp-approved-submission-contract");
 
 const reviewedSnapshot = fs.readFileSync(
   path.join(__dirname, "../../test/fixtures/mcp-app-metadata.phase2.json"),
@@ -11,7 +14,9 @@ assert.equal(
   "6e385ca644964340578b20149d48136ee7f9d0ed454764c3c86db6a3c244fe33",
   "The sealed Phase 2 fixture must not change to accommodate a catalog regression",
 );
-const reviewedModelTools = JSON.parse(reviewedSnapshot.toString()).tools;
+const reviewedModelTools = applyApprovedSubmissionChanges(
+  JSON.parse(reviewedSnapshot.toString()).tools,
+);
 
 const expectedModelTools = [
   "list_today",
@@ -41,7 +46,7 @@ function assertToolContract({ tools, descriptor, metadata }) {
   assert.deepEqual(
     modelTools,
     reviewedModelTools,
-    "Conversational schemas, permissions, annotations and descriptions must preserve the reviewed Phase 2 definitions",
+    "Conversational definitions must preserve Phase 2 with only the literal approved destructive annotations and Planwren renderer copy",
   );
   const uiTools = tools.filter((tool) => tool._meta?.ui);
   assert.deepEqual(
@@ -84,6 +89,10 @@ function assertToolContract({ tools, descriptor, metadata }) {
   }
   assert.equal(descriptor.uri, expectedResourceUri);
   assert.equal(descriptor.mimeType, "text/html;profile=mcp-app");
+  assert.equal(
+    descriptor.description,
+    "A compact, interactive view of an authoritative Planwren day plan.",
+  );
   assert.equal(metadata.ui.domain, "https://todos.theafoundry.com");
   assert.deepEqual(metadata.ui.csp, {
     connectDomains: [],

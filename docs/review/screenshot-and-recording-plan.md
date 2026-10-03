@@ -1,7 +1,8 @@
 # Planwren screenshot and recording plan
 
-Status: prepared capture plan. Final signed-in ChatGPT listing screenshots and
-recording are pending; no account or portal operation is authorized by this plan.
+Status: prepared capture plan for the repaired candidate. Final signed-in
+ChatGPT captures remain pending. Current production remains the earlier Fold
+source; no account, portal operation or deployment is authorized by this plan.
 
 ## Capture classes
 
@@ -20,10 +21,13 @@ prompt, with PNG/JPEG format. Current guidelines say these screenshots are not
 shown as directory promotional cards; the starter prompts help people begin. Do not crop or
 scale a synthetic mock into evidence of an actual ChatGPT session.
 
-The current deployed Today Plan component visibly retains Todos labels. Capture
-what it actually serves, record that brand inconsistency, and do not replace
-labels through image editing to imply a server/UI rebrand. Any server branding
-change requires separately approved source work and new captures.
+The authorized candidate changes hosted widget/OAuth/metadata labels to
+Planwren and complete/reschedule destructive hints to true, with normalized
+timestamp retries. Production source `03356140` still serves the earlier Todos labels/false
+hints. Candidate screenshots must be labeled local/synthetic with their actual
+source; final hosted captures require a separately approved deployment whose
+served SHA matches the repaired source. Do not edit old screenshots to imply
+a hosted rebrand or authenticated acceptance.
 
 ## Genuine listing shots to collect
 
@@ -65,6 +69,9 @@ The old developer package screenshot also remains a historical developer asset.
 Future final captures should receive new Planwren filenames and a new version,
 then be reviewed before inclusion or portal upload.
 
-Include actual OAuth login/signup/consent and tool/resource descriptions in the
-brand-consistency review. Preserve canonical identities; consult the concrete
+Include actual OAuth login/signup/consent/errors and tool/resource descriptions
+in the post-deployment brand-consistency review. Verify true destructive hints
+and capture host confirmations accurately. Equivalent timestamp/no-op/null/
+omission behavior belongs in the separate authenticated matrix and focused
+local tests, not an unobserved narration claim. Preserve canonical identities; consult the concrete
 [branding-and-annotations.md](branding-and-annotations.md) inventory.

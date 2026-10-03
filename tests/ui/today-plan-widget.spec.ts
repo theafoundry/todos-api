@@ -348,6 +348,7 @@ test("opens the conversation panel from the initial setup result without plannin
 }) => {
   const { frame } = await mountWidget(page, { panel: true });
   await expect(frame.locator("#card")).toHaveAttribute("data-state", "setup");
+  await expect(frame.getByText("Planwren", { exact: true })).toBeVisible();
   await expect(frame.locator("#skeleton")).toBeHidden();
   await expect(frame.getByLabel("Date", { exact: true })).toHaveValue(
     "2026-08-11",
@@ -391,6 +392,7 @@ test("requires explicit planning inputs and preserves submitted values for refre
   await frame.getByLabel("Energy", { exact: true }).selectOption("low");
   await frame.getByRole("button", { name: "Make plan", exact: true }).click();
   await expect(frame.locator("#card")).toHaveAttribute("data-state", "ready");
+  await expect(frame.getByText("Planwren", { exact: true })).toBeVisible();
   await expect(frame.locator("#skeleton")).toBeHidden();
   await expect(frame.locator(".reschedule").first()).toBeHidden();
   const height = await frame
@@ -442,7 +444,7 @@ test("requires explicit planning inputs and preserves submitted values for refre
   );
   await frame.getByRole("button", { name: "Refresh plan" }).click();
   await expect(frame.getByRole("status")).toHaveText(
-    "Plan refreshed from Todos.",
+    "Plan refreshed from Planwren.",
   );
   const calls = (await bridgeCalls(page)).filter(
     (call: any) => call.method === "tools/call",
@@ -457,7 +459,7 @@ test("requires explicit planning inputs and preserves submitted values for refre
   await expect(frame.locator("#card")).toHaveAttribute("data-state", "ready");
   await frame.getByRole("button", { name: "Refresh plan" }).click();
   await expect(frame.getByRole("status")).toHaveText(
-    "Plan refreshed from Todos.",
+    "Plan refreshed from Planwren.",
   );
   const refreshed = (await bridgeCalls(page)).filter(
     (call: any) => call.method === "tools/call",
@@ -509,7 +511,7 @@ test("keeps planning pending until its correlated reply despite an early forward
   for (let refresh = 0; refresh < 2; refresh++) {
     await frame.getByRole("button", { name: "Refresh plan" }).click();
     await expect(frame.getByRole("status")).toHaveText(
-      "Plan refreshed from Todos.",
+      "Plan refreshed from Planwren.",
     );
     await expect(frame.locator("#available")).toHaveText("140 min");
     const calls = (await bridgeCalls(page)).filter(
@@ -558,7 +560,7 @@ test("clears input-only failed planning candidates before a later result-only no
   await expect(frame.locator("#card")).toHaveAttribute("data-state", "ready");
   await frame.getByRole("button", { name: "Refresh plan" }).click();
   await expect(frame.getByRole("status")).toHaveText(
-    "Plan refreshed from Todos.",
+    "Plan refreshed from Planwren.",
   );
   await expect(frame.locator("#available")).toHaveText("70 min");
   const calls = (await bridgeCalls(page)).filter(
@@ -641,7 +643,7 @@ for (const { mode, multiplier, panel, forward } of budgetCases) {
       for (let index = 0; index < count; index++) {
         await frame.getByRole("button", { name: "Refresh plan" }).click();
         await expect(frame.getByRole("status")).toHaveText(
-          "Plan refreshed from Todos.",
+          "Plan refreshed from Planwren.",
         );
         const effective = Math.round(inputs.availableMinutes * multiplier);
         await expect(frame.locator("#available")).toHaveText(
@@ -1034,7 +1036,7 @@ test("refreshes through plan_today and rolls back a failed mutation", async ({
   });
 });
 
-test("handles auth expiry during mutation and opens Todos through the standard bridge", async ({
+test("handles auth expiry during mutation and opens Planwren through the standard bridge", async ({
   page,
 }) => {
   const { frame } = await mountWidget(page);
@@ -1046,9 +1048,11 @@ test("handles auth expiry during mutation and opens Todos through the standard b
     "data-state",
     "auth-expired",
   );
-  await expect(frame.getByRole("status")).toContainText("Reconnect");
+  await expect(frame.getByRole("status")).toHaveText(
+    "Your Planwren connection expired. Reconnect in ChatGPT, then refresh.",
+  );
 
-  await frame.getByRole("link", { name: "Open in Todos" }).click();
+  await frame.getByRole("link", { name: "Open in Planwren" }).click();
   await expect
     .poll(async () =>
       (await bridgeCalls(page)).find(

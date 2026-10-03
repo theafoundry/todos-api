@@ -1,84 +1,123 @@
-# Branding and write-annotation assessment
+# Candidate branding, write annotations and timestamp retries
 
-Assessed October 3, 2026 against deployed application source
-`0335614086f2a4ab587464e81037348b6486c193`. This is a source assessment, not
-authenticated acceptance, a portal decision or a production change.
+Status: authorized source repairs are under review on the public-submission
+candidate. Exact candidate HEAD and final check results belong to the preparation
+handoff and [package-validation.json](package-validation.json). Production still
+serves `0335614086f2a4ab587464e81037348b6486c193`; the candidate repairs are not
+production or authenticated ChatGPT acceptance evidence.
 
-## Write annotations and actual effects
+## Production baseline and candidate disposition
 
-All seven native tools advertise `destructiveHint: false`,
-`idempotentHint: true` and `openWorldHint: false`. Capture, complete and
-reschedule advertise `readOnlyHint: false`; list, plan, render and the app-only
-opener advertise `readOnlyHint: true`. See
-[appContract.ts](../../src/mcp/appContract.ts).
+| Property                                     | Production source `03356140`                                            | Repaired candidate                                               |
+| -------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `complete_task.destructiveHint`              | `false`                                                                 | `true`                                                           |
+| `reschedule_task.destructiveHint`            | `false`                                                                 | `true`                                                           |
+| Other native tool destructive hints          | `false`                                                                 | Unchanged `false`                                                |
+| Complete/reschedule read-only hint           | `false`                                                                 | Unchanged `false`                                                |
+| Idempotent/open-world hints                  | `true` / `false`                                                        | Unchanged `true` / `false`                                       |
+| Reschedule equality                          | Raw requested timestamp string compared with canonical persisted string | Supplied timestamps normalized before comparison and persistence |
+| Submission-facing widget/OAuth/metadata copy | Residual Todos labels                                                   | Planwren labels; stable compatibility identities preserved       |
 
-| Tool              | Actual effect                                                                                                                                                                                                 | Assessment before submission                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `capture_task`    | Adds an inbox capture using an opaque idempotency key. It does not directly create a scheduled task or infer a persisted date.                                                                                | A false destructive hint is consistent with an additive operation; authenticate and scan the actual implementation before accepting it.                       |
-| `complete_task`   | Sets completion on one contextual task. Shared lifecycle persistence changes status to `done` and sets `completedAt`; reopening clears completion, sets a completed task to `next`, and clears `completedAt`. | This overwrites existing state. Reopening does **not** restore a prior waiting or in-progress status. Undo alone does not establish a false destructive hint. |
-| `reschedule_task` | Sends only the explicitly supplied scheduled/due fields; either can be cleared with `null`. Persistence also reconciles status/completion fields and updates the modification timestamp.                      | This can overwrite or remove existing dates. Returned previous dates and idempotency do not by themselves establish a false destructive hint.                 |
+The [current annotation guideline](https://developers.openai.com/plugins/plugin-guidelines#correct-annotation)
+requires overwriting effects to be identified accurately; undo alone does not
+justify a false destructive hint. The candidate therefore explicitly identifies
+complete/reopen and reschedule as writes with potentially destructive effects.
+This changes annotation metadata, not the task operations' authority or scopes.
+Portal confirmation of the repaired live metadata remains pending after an
+approved deployment and scan.
 
-Source paths: [appTools.ts](../../src/mcp/appTools.ts),
+## Actual write effects
+
+| Tool              | Effect and limits                                                                                                                                                                                                                                                                |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `capture_task`    | Adds an inbox capture with an opaque idempotency key. It does not directly create a scheduled task or persist a date inferred from text. Its additive operation keeps `destructiveHint: false`.                                                                                  |
+| `complete_task`   | Sets completion on one contextual task. Completion changes status to `done` and sets `completedAt`; reopening a completed task sets `next` and clears `completedAt`. It does not restore a previous waiting/in-progress status. The candidate uses `destructiveHint: true`.      |
+| `reschedule_task` | Sends only supplied scheduled/due fields; either may be cleared explicitly with `null`. An actual write may reconcile lifecycle state through shared persistence. The candidate uses `destructiveHint: true` and compares normalized instants to avoid unnecessary retry writes. |
+
+Source: [appContract.ts](../../src/mcp/appContract.ts),
+[appTools.ts](../../src/mcp/appTools.ts),
 [captureService.ts](../../src/services/captureService.ts),
-[prismaTodoService.ts](../../src/services/prismaTodoService.ts),
+[prismaTodoService.ts](../../src/services/prismaTodoService.ts), and
 [taskLifecycle.ts](../../src/domains/tasks/taskLifecycle.ts).
-With a consistent existing lifecycle state, rescheduling keeps completion values
-unchanged; inconsistent older state may be normalized by shared persistence.
 
-The current [correct-annotation guideline](https://developers.openai.com/plugins/plugin-guidelines#correct-annotation)
-requires assessment of overwriting writes and explicitly says undo alone is
-insufficient. Complete/reschedule therefore need an explicit pre-submission
-disposition; the current false hints are **not signed off** by this preparation.
-The source contains no deletion tool, but absence of deletion is not sufficient
-to establish that these overwrites are non-destructive. Idempotency is a separate
-property from read-only or destructive effects.
+Idempotency and destructive effects describe different properties. A repeated
+request can be a no-op while the initial request still overwrites task state.
+The candidate does not add full lifecycle undo, deletion, cross-account access,
+project writes, new grants or broader permissions.
 
-The package cannot override server annotations. Any required annotation change
-needs reviewed server source, affected tests, deployment approval and a fresh
-portal tool scan. This task changes none of those production contracts. It does
-not establish an exploit or a completed review decision.
+## Equivalent timestamp retry repair
 
-## Submission-facing naming gaps
+The production implementation can treat an equivalent timestamp spelling as a
+change because it compares the incoming text with a canonical persisted ISO
+string. For example, `2026-10-04T09:00:00Z`,
+`2026-10-04T09:00:00.000Z`, and `2026-10-04T05:00:00-04:00` identify the same
+instant.
 
-The public package, skill, main React landing/auth screens and public policy
-headers/footer already use **Planwren by Thea Foundry**. The following hosted
-copy still uses Todos and remains a separate source/acceptance gap:
+The candidate normalizes supplied non-null timestamps using the existing
+`iso()` conversion before comparing and passing an actual update. Equivalent
+instants return `changed: false`, skip `update_task`, and avoid modification-time
+churn. A genuinely different instant still updates the requested field.
+Omitted fields preserve existing values and are excluded from the update
+payload; explicit `null` clears only the selected date. Clearing an already-null
+field is also a no-op. No-op retries do not run shared persistence/lifecycle
+normalization. Invalid non-null dates fail with an argument error rather than
+being normalized into an unintended clear operation.
 
-| Surface                     | Concrete residual copy                                                                                                                                      | Source                                                                                 |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Today Plan widget           | Eyebrow `Todos`; link `Open in Todos`                                                                                                                       | [todayPlanResource.ts](../../src/mcp/todayPlanResource.ts), lines 166 and 190          |
-| Widget connection/errors    | `Your Todos connection expired`; `Todos did not return a result`; `Todos could not complete that action`; invalid-plan and invalid-planning-settings errors | Same source, lines 255, 302, 309, 473 and 486                                          |
-| Widget status/fallback      | `Plan made from Todos`; `Plan refreshed from Todos`; `Open Todos from its web app if this link is blocked`                                                  | Same source, lines 515, 572 and 622                                                    |
-| MCP metadata                | Renderer description ends with `authoritative Todos state`; resource description says `authoritative Todos day plan`                                        | [appContract.ts](../../src/mcp/appContract.ts), line 270; widget source, line 25       |
-| OAuth login/signup/consent  | `your Todos account`; `connect ... to Todos`; `wants access to your Todos account`                                                                          | [mcpOAuthPages.ts](../../src/mcp/mcpOAuthPages.ts), lines 163–164, 199–200 and 259–260 |
-| OAuth verified-email errors | `The linked Todos account needs a verified email address`; `Verify the email address on this Todos account`                                                 | [mcpPublicRouter.ts](../../src/routes/mcpPublicRouter.ts), lines 487 and 526           |
+These are candidate behavior expectations to verify with focused isolated tests
+and, later, the dedicated synthetic review account. Final recorded verification results
+are authoritative; this assessment itself is not a test result. Actual
+ChatGPT session and mutation acceptance remain pending.
 
-These are copy gaps, not identities that must change with the public name. They
-were inventoried without rewriting hosted widget, OAuth pages or tool metadata.
-Actual captures must show the existing labels accurately; do not replace them
-through image editing or claim a complete hosted rebrand.
+## Hosted product copy repair
 
-## Intentional compatibility identities
+The candidate updates submission-facing text in the Today Plan widget, OAuth
+login/signup/consent and verified-email errors, plus the renderer/resource
+metadata descriptions, to **Planwren**. This includes the visible eyebrow,
+“Open in Planwren,” connection/error/status text and account consent copy.
+The main React landing/auth screens, policy identity and public package already
+use Planwren by Thea Foundry.
 
-Preserve these until a separately reviewed compatibility migration exists:
+Production at `03356140` still has the older hosted labels and false write hints.
+Current public captures and discovery JSON describe that baseline. Candidate
+local/synthetic previews must be labeled with their actual source and cannot
+prove hosted deployment or signed-in ChatGPT acceptance. New public and actual
+ChatGPT captures are required after any separately approved deployment.
 
-- Exact OAuth issuer, native MCP resource/audience and UI domain:
-  `https://todos.theafoundry.com`; canonical OAuth/token/UserInfo and
-  `https://todos.theafoundry.com/mcp/app` URLs.
-- Server identity `todos-native-app`, component URI
-  `ui://todos/today-plan/v1.html`, and resource/app identity `todos-today-plan`.
-- Six conversational tool names, app-only `open_today_plan`, schemas, task IDs,
-  scope declarations, source filenames and sealed canonical fixtures.
-- Developer package `plugins/todos`, its local marketplace registration,
-  historical reviewer assets and the repository's existing slug.
+## Narrow contract verification
 
-Support copy explaining that existing connections may still be listed as Todos,
-and email copy explaining “Planwren (previously Todos),” intentionally describe
-history; they are not stale product labels to erase. The ICS producer identifier
-`Todos App` is an export compatibility identity, not a ChatGPT listing label.
+Historical Phase 1/2 fixtures remain immutable. The current extensions snapshot
+has only the intended two destructive-hint flips and two metadata-description
+branding replacements. Contract checks must assert the expected old values and
+apply explicit literal approved deltas, then compare whole definitions. They
+must continue rejecting unrelated annotation, schema, scope, security-scheme,
+UI visibility, entrypoint, resource, CSP and display-mode drift. No broad field
+stripping, weakened assertion or additional tool is part of the repair.
 
-Public-package/review headings and current listing text have no remaining
-unqualified Todos product-name gap. Review materials now distinguish the hosted
-copy gaps above from compatibility identifiers and historical evidence. A
-future hosted-copy repair must preserve those identities and receive its own
-source, test and deployment review before the submission record is updated.
+## Compatibility identities preserved
+
+- Exact OAuth issuer and UI domain remain `https://todos.theafoundry.com`.
+  The native MCP resource/audience remains
+  `https://todos.theafoundry.com/mcp/app`; OAuth/token/UserInfo URLs remain
+  canonical.
+- Server `todos-native-app`, component URI `ui://todos/today-plan/v1.html` and
+  app/resource identity `todos-today-plan` remain stable.
+- Six conversational tool names, app-only `open_today_plan`, task IDs, input/
+  output schemas and existing application/identity scopes remain stable.
+- The developer package `plugins/todos`, local marketplace registration,
+  historical reviewer assets, repository slug and source filenames remain.
+
+Support explanations that existing connections may still be listed as Todos,
+and historical “Planwren (previously Todos)” copy remain accurate. The ICS
+producer identifier `Todos App` is an export compatibility identity. These
+identities and explanations are distinct from the hosted product labels repaired
+in the candidate.
+
+## Remaining release/review gates
+
+Complete exact-head isolated verification and source review, then use the
+owner-approved draft-PR workflow. Merge and production deployment require
+separate approval. After deployment, verify exact served SHA, new public copy and
+live tool hints, then rescan the portal and execute the synthetic-account
+ChatGPT/session/accessibility matrix. Publisher/domain verification, account
+provisioning, credentials and the genuine recording remain pending. No portal
+upload, real-user task mutation or completed acceptance is implied here.

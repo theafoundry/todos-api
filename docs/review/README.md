@@ -6,9 +6,11 @@ is `0335614086f2a4ab587464e81037348b6486c193`, merged by
 [PR #1094](https://github.com/theafoundry/todos-api/pull/1094) as
 `937ccec55467813d25faa40e164c6fd77a65aab6` with an identical tree.
 
-**Status:** public package and review materials are prepared locally.
-No portal upload, submission, reviewer-account provisioning or authenticated
-ChatGPT acceptance has occurred during this task. A public release is not
+**Status:** public package and review materials are prepared; authorized
+annotation/runtime/hosted-brand repairs are under source review for a draft PR.
+Production remains the deployed Fold source above. No portal upload, submission,
+reviewer-account provisioning or authenticated ChatGPT acceptance has occurred
+during this task. A public release is not
 proof of app-directory review acceptance.
 
 ## Package boundary
@@ -51,23 +53,23 @@ verification or approval for publication.
 
 ## Evidence inventory
 
-| Document                                                             | Purpose                                                                     |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [branding-and-annotations.md](branding-and-annotations.md)           | Actual write effects, hosted naming gaps and compatibility identities       |
-| [public-package.md](public-package.md)                               | Portable package, exact brand provenance and reproduction                   |
-| [package-validation.json](package-validation.json)                   | Current local checks, ZIP identity and resolved historical failure          |
-| [submission-copy.md](submission-copy.md)                             | Draft Planwren name, descriptions, prompts and public references            |
-| [reviewer-guide.md](reviewer-guide.md)                               | Connection, five positive cases, component and session QA                   |
-| [test-cases.md](test-cases.md)                                       | Explicit result matrix; submission cases separate from broader QA           |
-| [acceptance-report.md](acceptance-report.md)                         | Current deployment identity, dated verified evidence and pending gates      |
-| [release-evidence.json](release-evidence.json)                       | Sanitized point-in-time Fold release summary                                |
-| [public-evidence.json](public-evidence.json)                         | Fresh October 3 read-only HTTPS status, hashes, policies and discovery      |
-| [demo-account-runbook.md](demo-account-runbook.md)                   | Dedicated synthetic account and safe, separately authorized fixture reset   |
-| [screenshot-and-recording-plan.md](screenshot-and-recording-plan.md) | Genuine listing captures, historical asset labels and evidence requirements |
-| [demo-video-script.txt](demo-video-script.txt)                       | Script for the future authenticated Planwren recording                      |
-| [portal-scan-comparison.md](portal-scan-comparison.md)               | Comparison with the canonical MCP tool/resource contract                    |
-| [security-review.md](security-review.md)                             | Automated baseline, remaining annotation/security assessment and manual QA  |
-| [accessibility-review.md](accessibility-review.md)                   | Public/component accessibility evidence boundaries and remaining checks     |
+| Document                                                             | Purpose                                                                              |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [branding-and-annotations.md](branding-and-annotations.md)           | Candidate write effects, timestamp retries, hosted copy and compatibility identities |
+| [public-package.md](public-package.md)                               | Portable package, exact brand provenance and reproduction                            |
+| [package-validation.json](package-validation.json)                   | Current local checks, ZIP identity and resolved historical failure                   |
+| [submission-copy.md](submission-copy.md)                             | Draft Planwren name, descriptions, prompts and public references                     |
+| [reviewer-guide.md](reviewer-guide.md)                               | Connection, five positive cases, component and session QA                            |
+| [test-cases.md](test-cases.md)                                       | Explicit result matrix; submission cases separate from broader QA                    |
+| [acceptance-report.md](acceptance-report.md)                         | Current deployment identity, dated verified evidence and pending gates               |
+| [release-evidence.json](release-evidence.json)                       | Sanitized point-in-time Fold release summary                                         |
+| [public-evidence.json](public-evidence.json)                         | Fresh October 3 read-only HTTPS status, hashes, policies and discovery               |
+| [demo-account-runbook.md](demo-account-runbook.md)                   | Dedicated synthetic account and safe, separately authorized fixture reset            |
+| [screenshot-and-recording-plan.md](screenshot-and-recording-plan.md) | Genuine listing captures, historical asset labels and evidence requirements          |
+| [demo-video-script.txt](demo-video-script.txt)                       | Script for the future authenticated Planwren recording                               |
+| [portal-scan-comparison.md](portal-scan-comparison.md)               | Comparison with the canonical MCP tool/resource contract                             |
+| [security-review.md](security-review.md)                             | Automated baseline, remaining annotation/security assessment and manual QA           |
+| [accessibility-review.md](accessibility-review.md)                   | Public/component accessibility evidence boundaries and remaining checks              |
 
 [live-mcp-evidence.json](live-mcp-evidence.json) separately records fresh
 stateless public MCP tool/resource discovery. It does not call authenticated
@@ -87,13 +89,18 @@ npm run test:mcp
 npm run eval:plugin
 ```
 
-The authorized test-only follow-up repaired the stale whole-catalog expectation
-in `eval:plugin`. All six trials now pass, with 26 guard tests (25 rejection cases and one acceptance case). The
-six conversational definitions remain pinned to the sealed Phase 2 snapshot;
-the sole app-only opener must keep its read-only scopes, input and thread UI
-metadata. No production tool or OAuth contract changed. See
-[branding-and-annotations.md](branding-and-annotations.md) for the concrete
-hosted-copy inventory and unresolved write-annotation assessment.
+The earlier test-only follow-up repaired the stale whole-catalog expectation
+and passed six plugin trials and 26 guard tests before the current runtime
+candidate. Those results are historical predecessor evidence; exact candidate
+HEAD and final rerun outcomes belong to [package-validation.json](package-validation.json).
+
+The authorized candidate sets true destructive hints on complete/reschedule,
+normalizes equivalent reschedule timestamps to avoid repeat writes, and updates
+submission-facing widget/OAuth/metadata copy to Planwren. Historical Phase 1/2
+fixtures remain immutable; contract verification applies only explicit literal
+approved deltas and compares whole definitions. Stable issuer/resource/server
+identities, schemas and scopes remain unchanged. See
+[branding-and-annotations.md](branding-and-annotations.md).
 
 The read-only public discovery, policy, OAuth-metadata and unauthenticated
 UserInfo checks can be run against the canonical host:
@@ -110,6 +117,11 @@ REVIEW_BASE_URL=https://todos.theafoundry.com npm run review:widget
 self-contained widget contract. It does not execute authenticated task tools.
 `review:oauth` checks advertised PKCE/refresh support, not a real code exchange.
 `review:userinfo` checks the unauthenticated challenge, not authenticated claims.
+The candidate's tool annotations and product descriptions differ from production
+`03356140`. Running its `review:widget` or portal comparison against that older
+deployment should report a metadata mismatch until the candidate is deployed.
+Preserve the dated production evidence; do not relax the candidate contract to
+make an older live scan pass.
 The combined `review:acceptance` additionally requires the exact privately
 supplied domain challenge token; it must not be reported as passed when that
 challenge has not been provisioned and checked.
@@ -124,11 +136,11 @@ screenshots. This preparation task does not perform resets or grants.
 1. Publisher/business and domain verification in the actual OpenAI workflow.
 2. Separately authorized dedicated synthetic account, protected credentials and
    reliable sign-in without interactive verification barriers.
-3. Current portal scan compared to the deployed contract, including tool
-   annotation assessment; complete/reschedule `destructiveHint: false` needs
-   explicit review against current guidance. The currently served widget still
-   visibly says Todos; include OAuth connection screens and MCP descriptions in
-   the hosted-copy review while preserving compatibility identities.
+3. Exact-head candidate source verification and draft-PR review. Merge/deploy
+   require separate approval; then confirm the new served SHA, true destructive
+   hints and hosted Planwren copy, and compare a fresh portal scan with the
+   repaired contract. Existing public evidence still describes production source `03356140`,
+   including false hints and visible Todos labels.
 4. Actual signed-in ChatGPT inline/panel and fullscreen QA, complete/undo,
    refresh, reconnect and security/boundary/accessibility cases against the
    recorded deployed SHA.

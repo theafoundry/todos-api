@@ -97,6 +97,36 @@ for (const [name, change] of [
       data.tools[0].annotations.readOnlyHint = false;
     },
   ],
+  ...["complete_task", "reschedule_task"].map((name) => [
+    `a reverted destructive annotation on ${name}`,
+    (data) => {
+      data.tools.find(
+        (tool) => tool.name === name,
+      ).annotations.destructiveHint = false;
+    },
+  ]),
+  ...["capture_task", "list_today"].map((name) => [
+    `an unapproved destructive annotation on ${name}`,
+    (data) => {
+      data.tools.find(
+        (tool) => tool.name === name,
+      ).annotations.destructiveHint = true;
+    },
+  ]),
+  [
+    "a renderer description beyond the approved Planwren copy",
+    (data) => {
+      data.tools.find(
+        (tool) => tool.name === "render_today_plan",
+      ).description += " Extra behavior.";
+    },
+  ],
+  [
+    "a resource description beyond the approved Planwren copy",
+    (data) => {
+      data.descriptor.description += " Extra behavior.";
+    },
+  ],
   [
     "write scopes in the opener's metadata copy",
     (data) => {

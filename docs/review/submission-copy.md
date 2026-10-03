@@ -1,7 +1,8 @@
 # Planwren submission copy
 
-Status: prepared draft; no portal upload or submission has occurred. Review
-credentials, authenticated screenshots, and the final recording remain pending.
+Status: prepared draft for the authorized repaired candidate; no portal upload
+or submission has occurred. The candidate is not deployed. Review credentials,
+authenticated screenshots and the final recording remain pending.
 
 ## Name and publisher
 
@@ -50,9 +51,11 @@ not guess task identifiers from titles.
 The public brand and website use Planwren. Existing protocol identifiers and
 the canonical OAuth issuer retain the `todos.theafoundry.com` origin; this
 package does not migrate OAuth, MCP, resource identifiers, or account grants.
-The deployed source is `0335614086f2a4ab587464e81037348b6486c193`. The current
-Today Plan widget retains visible Todos labels; final package/UI brand
-consistency must be assessed before submission.
+Current production is `0335614086f2a4ab587464e81037348b6486c193` and retains
+older hosted Todos labels and false complete/reschedule destructive hints.
+The authorized candidate changes hosted copy to Planwren, those hints to true,
+and normalizes equivalent reschedule timestamp retries. Exact candidate HEAD
+and results are in the candidate handoff; no repaired deployment is claimed here.
 
 ## Reviewer notes
 
@@ -93,6 +96,9 @@ a current authenticated recording, genuine custom-UI screenshots if included,
 and final owner approval. Follow the
 current official workflow recorded in [README.md](README.md).
 
-The remaining hosted widget/OAuth/metadata copy and write-annotation assessment
-are listed in [branding-and-annotations.md](branding-and-annotations.md). Stable
-issuer, resource and server identities remain compatibility names.
+The candidate write effects, normalized timestamp behavior and hosted-copy
+changes are described in [branding-and-annotations.md](branding-and-annotations.md).
+Completion undo means reopening, not restoration of a prior lifecycle status.
+Stable issuer, resource and server identities remain compatibility names.
+Verify new live source, annotations and branding after an approved deployment
+before recording final authenticated acceptance or submitting this draft.

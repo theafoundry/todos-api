@@ -612,7 +612,7 @@
       },
       "annotations": {
         "readOnlyHint": false,
-        "destructiveHint": false,
+        "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": false
       },
@@ -832,7 +832,7 @@
       },
       "annotations": {
         "readOnlyHint": false,
-        "destructiveHint": false,
+        "destructiveHint": true,
         "idempotentHint": true,
         "openWorldHint": false
       },
@@ -856,7 +856,7 @@
     {
       "name": "render_today_plan",
       "title": "Show today's plan",
-      "description": "Render a compact Today Plan after plan_today by revalidating the same date, time budget, energy, and ordered task IDs against authoritative Todos state.",
+      "description": "Render a compact Today Plan after plan_today by revalidating the same date, time budget, energy, and ordered task IDs against authoritative Planwren state.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1140,7 +1140,7 @@
       "uri": "ui://todos/today-plan/v1.html",
       "name": "todos-today-plan",
       "title": "Today's plan",
-      "description": "A compact, interactive view of an authoritative Todos day plan.",
+      "description": "A compact, interactive view of an authoritative Planwren day plan.",
       "mimeType": "text/html;profile=mcp-app",
       "_meta": {
         "openai/ui": { "availableDisplayModes": ["inline", "fullscreen"] },

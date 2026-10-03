@@ -243,7 +243,7 @@ export const nativeAppToolDefinitions = [
     scopes: ["tasks.read", "tasks.write", "projects.read"],
     annotations: {
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: true,
       ...closedWorld,
     },
@@ -258,7 +258,7 @@ export const nativeAppToolDefinitions = [
     scopes: ["tasks.read", "tasks.write", "projects.read"],
     annotations: {
       readOnlyHint: false,
-      destructiveHint: false,
+      destructiveHint: true,
       idempotentHint: true,
       ...closedWorld,
     },
@@ -267,7 +267,7 @@ export const nativeAppToolDefinitions = [
     name: "render_today_plan",
     title: "Show today's plan",
     description:
-      "Render a compact Today Plan after plan_today by revalidating the same date, time budget, energy, and ordered task IDs against authoritative Todos state.",
+      "Render a compact Today Plan after plan_today by revalidating the same date, time budget, energy, and ordered task IDs against authoritative Planwren state.",
     inputSchema: renderTodayPlanInput,
     outputSchema: withToolErrorOutput(planTodayOutput),
     scopes: ["tasks.read", "projects.read"],

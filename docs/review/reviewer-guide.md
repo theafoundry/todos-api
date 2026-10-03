@@ -1,7 +1,8 @@
 # Planwren reviewer guide
 
-Status: prepared instructions; authenticated review steps below have not been
-executed against this release.
+Status: prepared instructions for the repaired candidate; actual signed-in
+review steps remain unexecuted. Production still serves the earlier Fold source;
+exact candidate HEAD and final isolated results are recorded by the candidate handoff.
 
 ## Product and connection
 
@@ -29,16 +30,19 @@ opening plan setup; it is not an additional model-visible capability.
 The native app does not require `projects.write`. Identity scopes do not grant
 task access. Protocol identifiers intentionally retain the deployed Todos
 origin; Planwren branding does not change the issuer or resource audience.
-The currently deployed widget also visibly retains Todos labels (including
-“Open in Todos”); package preparation did not rewrite the server widget. Record
-that brand-consistency observation during actual review.
+Production source `03356140` still visibly retains Todos labels and false destructive
+hints on complete/reschedule. The authorized candidate changes the hosted copy
+to Planwren and both hints to true, with normalized reschedule retries. This
+candidate is not yet deployed; verify new live source/metadata before accepting
+those repairs. See [branding-and-annotations.md](branding-and-annotations.md).
 
 ## Preconditions
 
-1. Confirm the deployed SHA remains
-   `0335614086f2a4ab587464e81037348b6486c193` using the public health response.
-   If it changes, record the new source and rerun affected acceptance before
-   claiming current results.
+1. After separately approved deployment, confirm the public health SHA equals
+   the exact approved repaired candidate recorded in the release handoff.
+   Current production is `0335614086f2a4ab587464e81037348b6486c193`, which is
+   baseline evidence and cannot satisfy repaired-candidate acceptance. If source
+   changes, record it and rerun affected checks before claiming current results.
 2. Finish publisher/domain verification using the current official portal
    instructions. DNS/TLS verification alone does not establish OpenAI publisher
    or domain verification.
@@ -63,7 +67,9 @@ until an authorized operator actually performs them.
 Verify the scanned contract against `test/fixtures/mcp-app-metadata.extensions.json`
 as described in [portal-scan-comparison.md](portal-scan-comparison.md). Expect six
 model-visible tools and the app-only thread opener, one Today Plan resource,
-canonical `ui.domain`, and the existing empty widget CSP.
+canonical `ui.domain`, and the existing empty widget CSP. After deployment,
+verify `destructiveHint: true` for both complete/reopen and reschedule; capture
+any host confirmation behavior accurately without claiming a fixed UI prompt.
 
 ## Positive conversational cases
 
@@ -106,6 +112,11 @@ date and timezone, not ChatGPT locale or the workstation timezone.
 - Complete a synthetic task in the component, undo it, and refresh the plan.
   Check server-confirmed state in the next tool response and component view;
   stale optimistic UI alone does not count as success.
+- Retry a reschedule using equivalent UTC/millisecond/offset timestamp forms.
+  Confirm `changed: false` and authoritative unchanged dates after the first
+  successful write. Test omitted fields and explicit null separately using
+  approved synthetic fixtures; the local no-update/modified-time assertion
+  remains distinct from what the ChatGPT result exposes.
 - Change the budget/energy, rerun planning, and verify a newly rendered plan
   uses the new inputs and authoritative order.
 - Exercise an approved session expiry/refresh scenario, disconnect and

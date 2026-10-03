@@ -1,13 +1,16 @@
 # Planwren review test cases
 
-Status: prepared matrix; all actual signed-in ChatGPT cases below are pending.
+Status: prepared matrix for authorized candidate repairs; all actual signed-in
+ChatGPT cases below remain pending. Exact candidate HEAD and local source-test
+results are recorded by the candidate handoff, not inferred from these expectations.
 Local tests, synthetic previews and public GET checks do not satisfy these rows.
 The five positive and three negative submission cases match the public package
 metadata. Additional QA is separate, so the submission count stays exact.
 
 ## Session record
 
-- Deployed application SHA: `0335614086f2a4ab587464e81037348b6486c193`
+- Current production baseline SHA: `0335614086f2a4ab587464e81037348b6486c193`
+- Repaired candidate and approved deployment SHA: pending approved release handoff
 - Public package commit/version: final preparation handoff / `0.2.0`
 - Operator and UTC session start/end: pending
 - Actual ChatGPT client/browser/device: pending
@@ -48,26 +51,37 @@ injection resistance.
 
 ## Additional component, session and boundary QA
 
-| ID  | Case                                                 | Expected behavior                                                                                                                        | Result/evidence |
-| --- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| Q1  | Open Today Plan from the thread entrypoint           | App-only `open_today_plan` opens setup with account date/timezone; explicit minutes/energy selected before planning                      | Pending         |
-| Q2  | Inline/panel and fullscreen                          | Actual ChatGPT views render, enter/exit fullscreen and preserve coherent state                                                           | Pending         |
-| Q3  | Component complete, undo and refresh                 | Same task completes then reopens; verify `next`/cleared completion timestamp and server truth, not restoration of prior lifecycle status | Pending         |
-| Q4  | Revised budget and energy                            | Planning reruns with new values; rendered order and totals use new returned plan                                                         | Pending         |
-| Q5  | Disconnect and reconnect                             | Approved synthetic connection relinks, returns current state and does not replay a write                                                 | Pending         |
-| Q6  | Expired access token and refresh                     | Authorized synthetic-session test rotates/replaces tokens appropriately and recovers without duplicated mutations                        | Pending         |
-| Q7  | Cancel login and consent                             | No unintended grant/task change; safe return and useful message                                                                          | Pending         |
-| Q8  | Read-only and identity-only access                   | Identity does not grant tasks; missing task scope challenges safely                                                                      | Pending         |
-| Q9  | Capture retry                                        | Same request/key yields one inbox capture and correct replay state                                                                       | Pending         |
-| Q10 | General productivity advice                          | No Planwren tool call for an unrelated request                                                                                           | Pending         |
-| Q11 | Ambiguous matching task title without contextual ID  | Clarify rather than guess an ID or mutate                                                                                                | Pending         |
-| Q12 | Project creation, messaging or purchase              | Explain unsupported capability without emulation                                                                                         | Pending         |
-| Q13 | Loading, empty, auth-required and error states       | Clear accessible states; no invented success or hidden destructive recovery                                                              | Pending         |
-| Q14 | Keyboard and assistive technology                    | Logical focus, named actions, readable task order and announced state updates                                                            | Pending         |
-| Q15 | Light/dark, narrow/mobile, reduced motion, 200% zoom | Readable contrast and usable controls without clipping in actual ChatGPT container                                                       | Pending         |
-| Q16 | Resource and network policy                          | Canonical component domain and existing empty CSP; no unneeded external connection                                                       | Pending         |
-| Q17 | Full skill-plus-MCP installation                     | Package skill routes direct, indirect and follow-up requests appropriately in supported ChatGPT/Codex surfaces                           | Pending         |
-| Q18 | Annotation assessment                                | Compare actual write effects with current destructive/read-only/open-world guidance and portal scan                                      | Pending         |
+| ID  | Case                                                 | Expected behavior                                                                                                                                       | Result/evidence |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| Q1  | Open Today Plan from the thread entrypoint           | App-only `open_today_plan` opens setup with account date/timezone; explicit minutes/energy selected before planning                                     | Pending         |
+| Q2  | Inline/panel and fullscreen                          | Actual ChatGPT views render, enter/exit fullscreen and preserve coherent state                                                                          | Pending         |
+| Q3  | Component complete, undo and refresh                 | Same task completes then reopens; verify `next`/cleared completion timestamp and server truth, not restoration of prior lifecycle status                | Pending         |
+| Q4  | Revised budget and energy                            | Planning reruns with new values; rendered order and totals use new returned plan                                                                        | Pending         |
+| Q5  | Disconnect and reconnect                             | Approved synthetic connection relinks, returns current state and does not replay a write                                                                | Pending         |
+| Q6  | Expired access token and refresh                     | Authorized synthetic-session test rotates/replaces tokens appropriately and recovers without duplicated mutations                                       | Pending         |
+| Q7  | Cancel login and consent                             | No unintended grant/task change; safe return and useful message                                                                                         | Pending         |
+| Q8  | Read-only and identity-only access                   | Identity does not grant tasks; missing task scope challenges safely                                                                                     | Pending         |
+| Q9  | Capture retry                                        | Same request/key yields one inbox capture and correct replay state                                                                                      | Pending         |
+| Q10 | General productivity advice                          | No Planwren tool call for an unrelated request                                                                                                          | Pending         |
+| Q11 | Ambiguous matching task title without contextual ID  | Clarify rather than guess an ID or mutate                                                                                                               | Pending         |
+| Q12 | Project creation, messaging or purchase              | Explain unsupported capability without emulation                                                                                                        | Pending         |
+| Q13 | Loading, empty, auth-required and error states       | Clear accessible states; no invented success or hidden destructive recovery                                                                             | Pending         |
+| Q14 | Keyboard and assistive technology                    | Logical focus, named actions, readable task order and announced state updates                                                                           | Pending         |
+| Q15 | Light/dark, narrow/mobile, reduced motion, 200% zoom | Readable contrast and usable controls without clipping in actual ChatGPT container                                                                      | Pending         |
+| Q16 | Resource and network policy                          | Canonical component domain and existing empty CSP; no unneeded external connection                                                                      | Pending         |
+| Q17 | Full skill-plus-MCP installation                     | Package skill routes direct, indirect and follow-up requests appropriately in supported ChatGPT/Codex surfaces                                          | Pending         |
+| Q18 | Annotation assessment                                | After approved deployment, confirm complete/reschedule destructiveHint:true and unchanged other hints/scopes against repaired candidate and portal scan | Pending         |
+
+Additional repaired-candidate cases (all pending actual signed-in QA):
+
+| ID  | Case                               | Expected behavior                                                                                                                                                                                                                  | Result/evidence |
+| --- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| Q19 | Equivalent timestamp retry         | After one requested reschedule, retry the same instant in Z, millisecond and offset forms; return changed:false and unchanged authoritative dates. Focused local tests separately assert no second update/modification-time churn. | Pending         |
+| Q20 | Omitted and null reschedule fields | Omitted date remains untouched; explicit null clears only the selected date; repeat clearing of an already-null date is a no-op. Record shared lifecycle effects only when an actual write occurs.                                 | Pending         |
+| Q21 | Planwren hosted copy               | Actual widget, OAuth login/signup/consent/errors and scanned descriptions use Planwren after approved deployment; canonical Todos issuer/resource/server identities remain unchanged.                                              | Pending         |
+
+An invalid non-null reschedule date must fail validation without a task change;
+this belongs to focused isolated tests and authorized synthetic-account QA.
 
 Security token/replay/revocation cases require a separately approved synthetic
 session and controlled operator procedure. Do not exercise them on a real user's

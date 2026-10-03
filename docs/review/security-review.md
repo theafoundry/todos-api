@@ -1,8 +1,9 @@
 # Planwren security and annotation review
 
-Status: current release/source evidence recorded; authenticated and portal
-security acceptance remain pending. This preparation creates no credentials,
-accounts, grants or expanded persistent access.
+Status: authorized annotation, timestamp-retry and hosted-copy repairs are
+under candidate source review. Production remains the earlier Fold release;
+authenticated and portal security acceptance remain pending. No credentials,
+accounts, grants or expanded persistent access are created by these repairs.
 
 ## Evidence already available
 
@@ -21,40 +22,52 @@ but has not been compared with the actual portal token for this submission.
 Public stateless MCP discovery also passed with six model-visible tools and the
 app-only opener; see [live-mcp-evidence.json](live-mcp-evidence.json). The optional
 plugin evaluation initially exposed a stale whole-catalog six-tool assumption.
-The authorized test-only repair now passes all six trials while pinning the
-reviewed six conversational definitions and strictly validating the app-only
-opener; 26 guard tests (25 rejection cases and one acceptance case) pass. The initial failure remains historical
-and no production contract, fixture or threshold was changed.
+The earlier authorized test-only follow-up passed all six trials and 26 guard
+tests before the current runtime repairs. The initial failure is retained as
+historical evidence. Final exact-head results for the new candidate belong to
+[package-validation.json](package-validation.json) and the preparation handoff.
 
-## Tool annotation assessment — pending
+## Candidate write annotations and retry behavior
 
-The native contract explicitly publishes read-only/destructive/open-world
-booleans. Six tools are model-visible; `open_today_plan` is app-only. The source
-currently sets `destructiveHint: false` for `complete_task` and
-`reschedule_task`, which change an existing task's completion/scheduling state.
+The repaired candidate sets `destructiveHint: true` on `complete_task` and
+`reschedule_task`, accurately identifying writes that overwrite existing
+completion/scheduling state. Read-only/idempotent/open-world hints, scopes,
+security schemes and tool names remain unchanged. Production source
+`0335614086f2a4ab587464e81037348b6486c193` still advertises false hints until a
+separately approved deployment.
 
 Current [plugin guidelines](https://developers.openai.com/plugins/plugin-guidelines)
-say overwriting writes require a destructive-effect assessment and that undo
-alone does not justify a false hint. Assess these actual operations and the
-portal scan before submitting. This is a review gate, not a demonstrated exploit
-or a backend change performed by the public-package preparation. The package
-cannot override live server annotations. In particular, reopening completion
-sets a completed task to `next` and clears `completedAt`, rather than restoring
-its prior waiting/in-progress state; rescheduling can explicitly clear dates.
-See [branding-and-annotations.md](branding-and-annotations.md) for exact effects. Any required server repair needs its
-own reviewed change and affected tests.
+explain that undo alone does not justify a false destructive hint. Reopening a
+completed task sets `next` and clears `completedAt`; it does not restore a prior
+waiting/in-progress status. Rescheduling can overwrite or explicitly clear dates.
+Idempotency is distinct from those effects.
 
-The current guidelines say annotation justifications are no longer required,
-while some submission error/MCP review references still discuss them. Retain
-an explanation of behavior for a portal finding, but do not invent an unsupported
-package justification field. The actual portal result is authoritative.
+The candidate normalizes timestamp spellings before comparison/persistence so
+an equivalent instant returns `changed: false` without another update or
+modification-time churn. Omitted date fields remain untouched; explicit null
+clears only the selected field. This is an isolated source repair, not proof of
+real ChatGPT retry or refresh/reconnect behavior.
 
-## Automated source baseline to attach
+See [branding-and-annotations.md](branding-and-annotations.md) for exact effects,
+Planwren hosted-copy changes and compatibility identities. Historical Phase 1/2
+fixtures stay immutable; current contract checks allow only explicit approved
+annotation/description deltas and still compare whole definitions. Exact-head
+verification, future live metadata confirmation and portal rescan remain gates.
 
-- [x] Current preparation checks passed TypeScript, repository formatting,
+The guidelines say annotation justifications are no longer required, while some
+submission error/MCP references still discuss them. Keep accurate behavior
+explanations available for portal findings without inventing an unsupported
+package field. The actual portal result remains authoritative.
+
+## Earlier preparation evidence and new candidate verification
+
+The following results precede the current runtime/branding candidate. They
+remain dated evidence, not final repaired-head results:
+
+- [x] Earlier preparation checks passed TypeScript, repository formatting,
       538 unit tests, coverage ratchet, 137 MCP tests, UI fast (81 passed/35
       expected skips), and app/landing/auth builds. Final commit and logs are
-      recorded in the preparation handoff; these are isolated local tests.
+      recorded for that earlier preparation; these are isolated local tests.
 - [x] Metadata snapshot equality and public package/ZIP validation passed; see
       [package-validation.json](package-validation.json).
 - [ ] Confirm wrong-audience, missing-scope, expired/malformed token and identity-only
@@ -65,6 +78,11 @@ package justification field. The actual portal result is authoritative.
       local app references, development paths or unneeded permissions.
 - [ ] Review the public privacy policy's accuracy for collected data, purposes,
       recipients, retention and user controls before submission.
+
+The new candidate needs affected isolated tests for both destructive-hint
+changes, equivalent timestamp/no-op/null/omission behavior, hosted Planwren copy
+and unchanged compatibility identities, plus required repository checks. The handoff
+records exact candidate HEAD and final outcomes; no new pass is asserted here.
 
 ## Authenticated adversarial/session acceptance — pending
 

@@ -330,11 +330,14 @@ describe("Public MCP OAuth and discovery routes", () => {
   });
 
   it("completes the browser-style OAuth code flow for a registered connector", async () => {
+    const clientName = `ChatGPT <img src=x onerror="alert('client')"> & Co`;
+    const escapedClientName =
+      "ChatGPT &lt;img src=x onerror=&quot;alert(&#39;client&#39;)&quot;&gt; &amp; Co";
     const register = await request(app)
       .post("/oauth/register")
       .send({
         redirect_uris: ["https://chat.openai.com/aip/callback"],
-        client_name: "ChatGPT",
+        client_name: clientName,
         grant_types: ["authorization_code", "refresh_token"],
       })
       .expect(201);
@@ -358,11 +361,28 @@ describe("Public MCP OAuth and discovery routes", () => {
 
     const loginPage = await agent.get(authorizeUrl).expect(200);
     expect(loginPage.text).toContain("Connect Assistant");
+    expect(loginPage.text).toContain(
+      `Sign in to connect <strong>${escapedClientName}</strong> to your Planwren account.`,
+    );
+    expect(loginPage.text).not.toContain("<img src=x");
     expect(loginPage.headers["content-security-policy"]).toContain(
       "form-action 'self' http://localhost:3000",
     );
     expect(loginPage.text).toContain(
       'action="http://localhost:3000/oauth/authorize/login"',
+    );
+
+    const registerPage = await agent
+      .get(
+        authorizeUrl.replace("/oauth/authorize?", "/oauth/authorize/register?"),
+      )
+      .expect(200);
+    expect(registerPage.text).toContain(
+      `Create an account to connect <strong>${escapedClientName}</strong> to Planwren.`,
+    );
+    expect(registerPage.text).not.toContain("<img src=x");
+    expect(registerPage.text).toContain(
+      'action="http://localhost:3000/oauth/authorize/register"',
     );
 
     const login = await agent
@@ -385,6 +405,10 @@ describe("Public MCP OAuth and discovery routes", () => {
 
     const consent = await agent.get(login.headers.location).expect(200);
     expect(consent.text).toContain("Authorize Assistant");
+    expect(consent.text).toContain(
+      `<strong>${escapedClientName}</strong> wants access to your Planwren account.`,
+    );
+    expect(consent.text).not.toContain("<img src=x");
     expect(consent.text).toContain("tasks.read");
     expect(consent.text).toContain("tasks.write");
     expect(consent.headers["content-security-policy"]).toContain(
@@ -546,19 +570,35 @@ describe("Public MCP OAuth and discovery routes", () => {
       })
       .expect(303);
     await agent.get(login.headers.location).expect(200);
+    const approvalFields = {
+      decision: "approve",
+      client_id: register.body.client_id,
+      redirect_uri: "https://chat.openai.com/aip/callback",
+      response_type: "code",
+      scope,
+      code_challenge: pkce.challenge,
+      code_challenge_method: "S256",
+      resource,
+    };
+    mockAuthService.getUserById.mockResolvedValueOnce({
+      id: "user-1",
+      email: "user-1@example.com",
+      isVerified: false,
+    });
+    const unverifiedConsent = await agent
+      .post("/oauth/authorize/decision")
+      .type("form")
+      .send(approvalFields)
+      .expect(400);
+    expect(unverifiedConsent.text).toContain("Verified Email Required");
+    expect(unverifiedConsent.text).toContain(
+      "Verify the email address on this Planwren account, then restart the connection flow.",
+    );
+    expect(unverifiedConsent.headers.location).toBeUndefined();
     const approve = await agent
       .post("/oauth/authorize/decision")
       .type("form")
-      .send({
-        decision: "approve",
-        client_id: register.body.client_id,
-        redirect_uri: "https://chat.openai.com/aip/callback",
-        response_type: "code",
-        scope,
-        code_challenge: pkce.challenge,
-        code_challenge_method: "S256",
-        resource,
-      })
+      .send(approvalFields)
       .expect(303);
 
     const code = new URL(approve.headers.location).searchParams.get("code");
@@ -601,9 +641,33 @@ describe("Public MCP OAuth and discovery routes", () => {
         resource,
       }),
     );
+
+    // A previously linked identity still needs a verified account on refresh.
+    mockAuthService.getUserById.mockResolvedValueOnce({
+      id: "user-1",
+      email: "user-1@example.com",
+      isVerified: false,
+    });
+    const unverifiedRefresh = await request(app)
+      .post("/oauth/token")
+      .type("form")
+      .send({
+        grant_type: "refresh_token",
+        refresh_token: refreshed.body.refresh_token,
+        client_id: register.body.client_id,
+        resource,
+      })
+      .expect(401);
+    expect(unverifiedRefresh.body.error_details.code).toBe(
+      "MCP_VERIFIED_EMAIL_REQUIRED",
+    );
+    expect(unverifiedRefresh.body.error_description).toBe(
+      "The linked Planwren account needs a verified email address",
+    );
+    expect(unverifiedRefresh.body).not.toHaveProperty("access_token");
   });
 
-  it("does not let identity-only scopes authorize native Todos tools", async () => {
+  it("does not let identity-only scopes authorize native Planwren tools", async () => {
     currentSession = {
       ...buildMcpSession("user-1", []),
       oauthScopes: ["openid", "email"],

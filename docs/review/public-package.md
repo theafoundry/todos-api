@@ -39,10 +39,12 @@ unchanged copies of that source's square cream-on-ink app icon.
 | `assets/logo-dark.svg`          | `client-react/public/brand/app-icon-dark.svg` | `b70cf9a005306cd2311aa8e01bd143ab2cd198ee160321325436c227c81be000` |
 | `assets/composer-icon-dark.svg` | `client-react/public/brand/app-icon-dark.svg` | `b70cf9a005306cd2311aa8e01bd143ab2cd198ee160321325436c227c81be000` |
 
-The deployed widget still visibly says “Todos” in its eyebrow and external
-link. Canonical protocol identifiers also retain Todos. A package rebrand does
-not establish that every hosted UI label has been rebranded; assess this during
-the pending brand-consistency review.
+The candidate source now uses Planwren throughout the widget, native metadata
+descriptions and OAuth connection copy. Production source `03356140` still
+serves the earlier Todos labels until a separately approved deployment.
+Canonical protocol identifiers retain Todos for compatibility. See
+[branding-and-annotations.md](branding-and-annotations.md) for the exact
+source changes and the distinction from authenticated hosted acceptance.
 
 ## Reproduce and verify
 
@@ -83,13 +85,13 @@ verification and authenticated acceptance. Follow
 [test-cases.md](test-cases.md) and
 [screenshot-and-recording-plan.md](screenshot-and-recording-plan.md) for remaining
 review work. Publisher/domain verification, a dedicated synthetic account,
-protected review credentials, current server annotation assessment, signed-in
-QA, recording and owner approval remain pending.
+protected review credentials, a deployed scan of the corrected annotations,
+signed-in QA, recording and owner approval remain pending.
 
-No portal upload or submission, reviewer-account creation, credential grant,
-push, merge, deployment or directory publication is authorized by this
-preparation task. The reviewed ZIP and companion review bundle are local
-deliverables; the companion bundle must not be uploaded as the plugin ZIP.
+The user approved publishing this package and its source repairs as a draft PR.
+Merge, deployment, portal upload/submission, reviewer-account creation,
+credential grants and directory publication remain outside this authorization.
+The companion review bundle must not be uploaded as the plugin ZIP.
 
 The authoritative workflow and field definitions are the current official
 [package guide](https://developers.openai.com/plugins/build/plugins),
