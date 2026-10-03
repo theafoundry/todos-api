@@ -1,0 +1,277 @@
+{
+  "checked_at": "2026-10-03T12:59:47.805759+00:00",
+  "method": "unauthenticated HTTPS GET only; trusted TLS; no credentials, registrations, account or task mutations",
+  "deployed_source_expected": "0335614086f2a4ab587464e81037348b6486c193",
+  "checks": [
+    {
+      "url": "https://www.planwren.com/",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 1114,
+      "sha256": "8d88ebe09c1927e18fad3c89a56349dccb70aebf0656be961a240042bb1ae093",
+      "headers": {
+        "cache-control": "public, max-age=0",
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true
+    },
+    {
+      "url": "https://todos.theafoundry.com/",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 1114,
+      "sha256": "8d88ebe09c1927e18fad3c89a56349dccb70aebf0656be961a240042bb1ae093",
+      "headers": {
+        "cache-control": "public, max-age=0",
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true
+    },
+    {
+      "url": "https://www.planwren.com/privacy",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 4832,
+      "sha256": "2debd5b47a5c399012f3762dae77284e4c64494bdc6263972c0d333ea4915480",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true,
+      "mentions_planwren": true,
+      "mentions_publisher": true
+    },
+    {
+      "url": "https://www.planwren.com/terms",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 4288,
+      "sha256": "4b23844fb682d6cbbe3c61ea2d23d987f63536182e4f855dedc263e7e9625e6a",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true,
+      "mentions_planwren": true,
+      "mentions_publisher": true
+    },
+    {
+      "url": "https://www.planwren.com/support",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 3944,
+      "sha256": "c20d72e6f2f15bf65b342a4d9c9c3a8a565c9f39fd564f1eb2042600b3edc144",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true,
+      "mentions_planwren": true,
+      "mentions_publisher": true
+    },
+    {
+      "url": "https://todos.theafoundry.com/privacy",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 4832,
+      "sha256": "2debd5b47a5c399012f3762dae77284e4c64494bdc6263972c0d333ea4915480",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true,
+      "mentions_planwren": true,
+      "mentions_publisher": true
+    },
+    {
+      "url": "https://todos.theafoundry.com/terms",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 4288,
+      "sha256": "4b23844fb682d6cbbe3c61ea2d23d987f63536182e4f855dedc263e7e9625e6a",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true,
+      "mentions_planwren": true,
+      "mentions_publisher": true
+    },
+    {
+      "url": "https://todos.theafoundry.com/support",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 3944,
+      "sha256": "c20d72e6f2f15bf65b342a4d9c9c3a8a565c9f39fd564f1eb2042600b3edc144",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      },
+      "passed": true,
+      "mentions_planwren": true,
+      "mentions_publisher": true
+    },
+    {
+      "url": "https://todos.theafoundry.com/healthz",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 115,
+      "sha256": "5d4b826f8f594b04d96df173d405e6503def9f5a2c5d4779929b2c3afdb4148c",
+      "headers": {
+        "content-type": "application/json; charset=utf-8"
+      },
+      "passed": true,
+      "public_metadata": {
+        "ok": true,
+        "service": "todos-api",
+        "sha": "0335614086f2a4ab587464e81037348b6486c193",
+        "now": "2026-10-03T12:59:45.179Z"
+      }
+    },
+    {
+      "url": "https://todos.theafoundry.com/.well-known/oauth-protected-resource/mcp/app",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 212,
+      "sha256": "512de4ca5a3d61b8c4b3ca3b631ecd00488b57e73bc37543a40c72e5b8323053",
+      "headers": {
+        "content-type": "application/json; charset=utf-8"
+      },
+      "passed": true,
+      "public_metadata": {
+        "resource": "https://todos.theafoundry.com/mcp/app",
+        "authorization_servers": ["https://todos.theafoundry.com"],
+        "bearer_methods_supported": ["header"],
+        "scopes_supported": ["tasks.read", "tasks.write", "projects.read"]
+      }
+    },
+    {
+      "url": "https://todos.theafoundry.com/.well-known/oauth-authorization-server",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 604,
+      "sha256": "2421cd4ed8348d4fd22b509e71f5a81e60499f5baeac528cf576a5f5f1ef43cf",
+      "headers": {
+        "content-type": "application/json; charset=utf-8"
+      },
+      "passed": true,
+      "public_metadata": {
+        "issuer": "https://todos.theafoundry.com",
+        "authorization_endpoint": "https://todos.theafoundry.com/oauth/authorize",
+        "token_endpoint": "https://todos.theafoundry.com/oauth/token",
+        "revocation_endpoint": "https://todos.theafoundry.com/oauth/revoke",
+        "registration_endpoint": "https://todos.theafoundry.com/oauth/register",
+        "response_types_supported": ["code"],
+        "grant_types_supported": ["authorization_code", "refresh_token"],
+        "token_endpoint_auth_methods_supported": ["none"],
+        "code_challenge_methods_supported": ["S256"],
+        "scopes_supported": [
+          "openid",
+          "email",
+          "tasks.read",
+          "tasks.write",
+          "projects.read",
+          "projects.write"
+        ]
+      }
+    },
+    {
+      "url": "https://todos.theafoundry.com/.well-known/openid-configuration",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 723,
+      "sha256": "6fec49d556b916d78b178c6b2f104994076e82997f167ceca0d3c6a2dd9f7f90",
+      "headers": {
+        "content-type": "application/json; charset=utf-8"
+      },
+      "passed": true,
+      "public_metadata": {
+        "issuer": "https://todos.theafoundry.com",
+        "authorization_endpoint": "https://todos.theafoundry.com/oauth/authorize",
+        "token_endpoint": "https://todos.theafoundry.com/oauth/token",
+        "userinfo_endpoint": "https://todos.theafoundry.com/oauth/userinfo",
+        "revocation_endpoint": "https://todos.theafoundry.com/oauth/revoke",
+        "registration_endpoint": "https://todos.theafoundry.com/oauth/register",
+        "response_types_supported": ["code"],
+        "grant_types_supported": ["authorization_code", "refresh_token"],
+        "token_endpoint_auth_methods_supported": ["none"],
+        "code_challenge_methods_supported": ["S256"],
+        "scopes_supported": [
+          "openid",
+          "email",
+          "tasks.read",
+          "tasks.write",
+          "projects.read",
+          "projects.write"
+        ],
+        "claims_supported": ["sub", "email", "email_verified"]
+      }
+    },
+    {
+      "url": "https://todos.theafoundry.com/mcp/app",
+      "status": 405,
+      "expected_status": 405,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "headers": {},
+      "passed": true
+    },
+    {
+      "url": "https://todos.theafoundry.com/oauth/userinfo",
+      "status": 401,
+      "expected_status": 401,
+      "bytes": 81,
+      "sha256": "70bcc6ece3dc44ac50131d5a6cae9e42078e788c1f4ad43c524eff2be8e483a6",
+      "headers": {
+        "cache-control": "no-store",
+        "content-type": "application/json; charset=utf-8",
+        "www-authenticate": "Bearer realm=\"todos-api-userinfo\", error=\"invalid_token\", error_description=\"A bearer access token is required\""
+      },
+      "passed": true
+    },
+    {
+      "url": "https://todos.theafoundry.com/.well-known/openai-apps-challenge",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 43,
+      "sha256": "fd405a0cd0d9bedaef32dc6d933cc0e38d73a5a0393f18469a3725a1c8b08edb",
+      "headers": {
+        "cache-control": "no-store",
+        "content-type": "text/plain; charset=utf-8"
+      },
+      "passed": true,
+      "verification_note": "A challenge is configured and public; the token was not displayed or compared to a portal challenge. Domain verification remains pending."
+    },
+    {
+      "url": "https://todos.theafoundry.com/review/todos-chatgpt-demo-v1.mp4",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 1694637,
+      "sha256": "671ff2a8e21cc23fe71484637d8db3ff6dd96f784a486f2e208243042ce10000",
+      "headers": {
+        "cache-control": "public, max-age=3600",
+        "content-type": "video/mp4"
+      },
+      "passed": true
+    },
+    {
+      "url": "https://www.planwren.com/brand/fold-coral.svg?v=fold-v1",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 630,
+      "sha256": "b839d79e8c7faf4eb33f96aa1c8e1d4c95355a3594267dc6240f35c031ec29a9",
+      "headers": {
+        "cache-control": "public, max-age=0",
+        "content-type": "image/svg+xml"
+      },
+      "passed": true
+    },
+    {
+      "url": "https://www.planwren.com/app/brand/app-icon-dark.svg?v=fold-v1",
+      "status": 200,
+      "expected_status": 200,
+      "bytes": 758,
+      "sha256": "b70cf9a005306cd2311aa8e01bd143ab2cd198ee160321325436c227c81be000",
+      "headers": {
+        "cache-control": "public, max-age=0",
+        "content-type": "image/svg+xml"
+      },
+      "passed": true
+    }
+  ],
+  "passed": true
+}

@@ -1,53 +1,94 @@
-# Portal submission copy
+# Planwren submission copy
 
-Status: draft; not submitted
+Status: prepared draft; no portal upload or submission has occurred. Review
+credentials, authenticated screenshots, and the final recording remain pending.
 
-## Name
+## Name and publisher
 
-Todos
+- Display name: **Planwren**
+- Publisher: **Thea Foundry**
+- Category: **Productivity**
+- Brand: coral Fold mark (`#E17055`) with cream (`#FFFCF5`) and ink (`#2D1F1A`)
 
 ## Short description
 
-Turn your own tasks into a focused daily plan, then capture, complete, or
-reschedule work without leaving ChatGPT.
+Plan and act on today's tasks
 
 ## Detailed description
 
-Todos is a personal planning workspace published by Thea Foundry. The ChatGPT
-app lists tasks due today, builds a deterministic plan from the time and energy
-you provide, renders that plan in an interactive Today Plan component, captures
-new tasks, and completes or reschedules tasks selected from prior structured
-results. It does not delete tasks, create projects, access another account, or
-send external messages.
+Planwren is a personal planning workspace by Thea Foundry. Connect your account
+to see work due or overdue today and build a realistic plan from your available
+time and energy. View the plan in an interactive Today Plan component, capture
+a new task, complete or reopen a task already shown, and reschedule work using
+your account's date and timezone.
 
-## URLs
+Planwren accesses the connected person's account. It does not delete tasks,
+create projects, access another person's account, send messages, or make
+purchases. Task changes return the server's authoritative state; the app does
+not guess task identifiers from titles.
 
-- Website: `https://todos.theafoundry.com`
-- Support: `https://todos.theafoundry.com/support`
-- Privacy: `https://todos.theafoundry.com/privacy`
-- Terms: `https://todos.theafoundry.com/terms`
-- MCP: `https://todos.theafoundry.com/mcp/app`
-- Demo recording: `https://todos.theafoundry.com/review/todos-chatgpt-demo-v1.mp4`
+## Starter prompts
 
-The demo recording is an illustrated walkthrough built from synthetic task
-data and the versioned component screenshot. It explains planning, the Today
-Plan component, completion and rescheduling, task capture, and the
-unsupported-delete boundary without exposing private account content. It is
-not a recording of authenticated acceptance against the current candidate.
+- “Plan my day. I have two hours and medium energy.”
+- “What is due or overdue today?”
+- “Capture: call the dentist tomorrow.”
 
-The August 12, 2026 ChatGPT developer-mode evidence belongs to an earlier
-implementation. Fresh hosted and authenticated evidence is still required for
-this candidate. The URLs above are intended review destinations; their presence
-in this copy does not establish that the candidate is deployed there.
+## Public references
+
+| Field          | Value                                                     |
+| -------------- | --------------------------------------------------------- |
+| Website        | `https://www.planwren.com`                                |
+| Privacy        | `https://www.planwren.com/privacy`                        |
+| Terms          | `https://www.planwren.com/terms`                          |
+| Support        | `https://www.planwren.com/support`                        |
+| Support email  | `hello@theafoundry.com`                                   |
+| Remote MCP     | `https://todos.theafoundry.com/mcp/app`                   |
+| OAuth issuer   | `https://todos.theafoundry.com`                           |
+| Coral Fold SVG | `https://www.planwren.com/brand/fold-coral.svg?v=fold-v1` |
+| App icon       | `https://www.planwren.com/app/icon-512.png?v=fold-v1`     |
+
+The public brand and website use Planwren. Existing protocol identifiers and
+the canonical OAuth issuer retain the `todos.theafoundry.com` origin; this
+package does not migrate OAuth, MCP, resource identifiers, or account grants.
+The deployed source is `0335614086f2a4ab587464e81037348b6486c193`. The current
+Today Plan widget retains visible Todos labels; final package/UI brand
+consistency must be assessed before submission.
 
 ## Reviewer notes
 
-Once a dedicated reviewer account and its protected portal credentials have
-been verified, start with “Plan my day. I have two hours and medium energy” to
-exercise planning and the Today Plan component. Before hosted review, confirm
-that the account works without MFA, SMS, email confirmation, VPN, or a private
-network, and restore its synthetic fixtures using the versioned runbook. These
-hosted account and credential checks remain pending.
+Use the dedicated synthetic reviewer account supplied through the portal's
+protected credential field once it has been separately authorized, created,
+verified, and tested. Account provisioning and credential handoff have not been
+performed during package preparation. The account must work without MFA, SMS,
+email confirmation during review, VPN, or private-network access.
 
-Do not select **Submit for Review** during Phase 4B. Phase 5 owns formal
-submission, review responses, and publication.
+Begin with “Plan my day. I have two hours and medium energy.” Verify the textual
+plan and the Today Plan component use the same date, budget, energy, and ordered
+task IDs. Test inline and fullscreen views, complete and undo a synthetic task,
+refresh the plan, then disconnect and reconnect. Follow
+[reviewer-guide.md](reviewer-guide.md) and record results in
+[test-cases.md](test-cases.md).
+
+## Screenshot and recording status
+
+Public-page and isolated synthetic previews may support design review. They do
+not establish authenticated ChatGPT acceptance. Any final custom-UI screenshots
+and the required recording must be captured from the actual signed-in ChatGPT session using
+the dedicated synthetic account, with no credentials or tokens visible.
+
+The existing
+`https://todos.theafoundry.com/review/todos-chatgpt-demo-v1.mp4` is a historical
+illustrated walkthrough with synthetic data and earlier Todos branding. It is
+not the final Planwren recording or acceptance evidence for the deployed source.
+Do not attach it as the final submission demo. The August 12, 2026 evidence at
+[PR #1074](https://github.com/theafoundry/todos-api/pull/1074#issuecomment-5272324021)
+also belongs to an earlier implementation.
+
+## Submission gate
+
+Package preparation does not authorize portal upload, account creation,
+credential grants, or directory submission. Before submission, complete
+publisher/domain verification, credential checks, the authenticated test matrix,
+a current authenticated recording, genuine custom-UI screenshots if included,
+and final owner approval. Follow the
+current official workflow recorded in [README.md](README.md).

@@ -1,0 +1,38 @@
+{
+  "checkWindowUTC": "2026-10-03 around 13:09 UTC",
+  "logCompletedAtUTC": "2026-10-03T13:09:09.249146+00:00",
+  "sourceIdentityReference": "public-evidence.json health observation at 2026-10-03T12:59:47.805759+00:00",
+  "applicationSHAObserved": "0335614086f2a4ab587464e81037348b6486c193",
+  "endpoint": "https://todos.theafoundry.com/mcp/app",
+  "method": "Stateless unauthenticated initialize, tools/list and resources/list; no account, credential, authenticated task call or mutation.",
+  "command": "REVIEW_BASE_URL=https://todos.theafoundry.com npm run review:widget",
+  "result": "pass",
+  "modelVisibleTools": [
+    "list_today",
+    "plan_today",
+    "capture_task",
+    "complete_task",
+    "reschedule_task",
+    "render_today_plan"
+  ],
+  "appOnlyTool": {
+    "name": "open_today_plan",
+    "visibility": ["app"],
+    "entrypoints": [
+      {
+        "type": "thread"
+      }
+    ]
+  },
+  "totalToolDefinitions": 7,
+  "component": {
+    "uri": "ui://todos/today-plan/v1.html",
+    "domain": "https://todos.theafoundry.com",
+    "availableDisplayModes": ["inline", "fullscreen"],
+    "csp": {
+      "connectDomains": [],
+      "resourceDomains": []
+    }
+  },
+  "evidenceLimit": "Discovery/metadata only; authenticated task mutations, ChatGPT UI and portal acceptance remain pending."
+}

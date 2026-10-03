@@ -1,0 +1,119 @@
+{
+  "recordedAtUTC": "2026-10-03T13:20:50.514723+00:00",
+  "scope": "Local public-package preparation and safe public metadata checks. No authenticated account/task, portal or directory acceptance.",
+  "applicationSourceSHA": "0335614086f2a4ab587464e81037348b6486c193",
+  "baseMergeSHA": "937ccec55467813d25faa40e164c6fd77a65aab6",
+  "baseApplicationTree": "9cb4f59b53bf2e70c0bc2f73896a57b812e8e8bd",
+  "package": {
+    "name": "planwren",
+    "version": "0.2.0",
+    "regularFiles": 8,
+    "compressedBytes": 30409,
+    "sha256": "5f3393d1235b0a838350c1c990a034519017b59e8615582d1c1d4037400e5f21",
+    "schemaValidation": "Agent Plugins1.0.0 plugin and MCP schemas plus current documented OpenAI constraints",
+    "extractedPackageValidated": true,
+    "reproducibilityTestPassed": true
+  },
+  "passed": [
+    {
+      "command": "npm ci; npm --prefix client-react ci",
+      "detail": "Supported Node22.22.1; root postinstall backend build; dummy unreachable loopback database only"
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "detail": "Backend TypeScript"
+    },
+    {
+      "command": "npm --prefix client-react run build:all",
+      "detail": "App, landing and auth production builds"
+    },
+    {
+      "command": "npm run format:check",
+      "detail": "Repository formatting"
+    },
+    {
+      "command": "npm run test:unit",
+      "passed": 538,
+      "suites": 31
+    },
+    {
+      "command": "npm run test:coverage:check",
+      "passed": 538,
+      "suites": 31,
+      "ratchet": {
+        "statements": 41.19,
+        "branches": 32,
+        "functions": 39.2,
+        "lines": 42.4
+      }
+    },
+    {
+      "command": "npm run test:mcp",
+      "passed": 137,
+      "suites": 7
+    },
+    {
+      "command": "CI=1 npm run test:ui:fast",
+      "passed": 81,
+      "existingSkipped": 35
+    },
+    {
+      "command": "npm run review:metadata",
+      "detail": "Canonical metadata fixture matches generated source"
+    },
+    {
+      "command": "REVIEW_BASE_URL=https://todos.theafoundry.com npm run review:widget",
+      "detail": "Public stateless initialize/tools-list/resources-list, six model tools plus one app-only tool; no tool call or credentials"
+    },
+    {
+      "command": "node scripts/validate-planwren-public-package.mjs",
+      "detail": "Final source manifests, skills, icons and package inventory"
+    },
+    {
+      "command": "node --test scripts/review/planwren-public-package.test.mjs",
+      "passed": 35
+    },
+    {
+      "command": "python3 scripts/review/test-planwren-public-package.py",
+      "passed": 22
+    },
+    {
+      "command": "python3 scripts/build-planwren-public-package.py --output; --verify",
+      "detail": "Source-byte equality, safe extraction, deterministic ZIP; independently reviewed"
+    },
+    {
+      "command": "Targeted Prettier check of public package, utilities, schema provenance and review documents",
+      "detail": "Current source after final manifest formatting"
+    }
+  ],
+  "retainedFailures": [
+    {
+      "command": "npm run eval:plugin",
+      "passed": 5,
+      "failed": 1,
+      "trial": "plugin-six-tool-resource-contract",
+      "reason": "Inherited unchanged trial expects six total tools; deployed source contains six model-visible tools plus app-only open_today_plan. No eval assertion or backend changed."
+    }
+  ],
+  "resolvedExecutionFailures": [
+    "Initial sandbox denied ephemeral test listener (EPERM); authorized local-listener run used no production database.",
+    "Two isolated socket-hang-up flakes in different unchanged coverage suites; final full538test coverage run passed after UI suite ended.",
+    "Targeted formatting initially found public manifest layout; formatted before final package build and checks."
+  ],
+  "notRun": [
+    "Signed-in ChatGPT panel/fullscreen/mobile and task mutations",
+    "Real OAuth login/code exchange/cancel/refresh/reconnect",
+    "Publisher/business/domain verification against current portal token",
+    "Dedicated synthetic reviewer-account provisioning or fixture reset",
+    "Portal metadata/skill-safety/security/MCP scans",
+    "Final authenticated recording and optional screenshots",
+    "Dependency audit (historical counts labeled separately)",
+    "iOS build (no native changes)",
+    "Push, PR creation, merge, deployment, portal upload/submission or directory publication"
+  ],
+  "pendingAssessments": [
+    "Existing complete_task/reschedule_task destructiveHint:false against current guidance",
+    "Visible Todos labels in deployed widget versus Planwren package"
+  ],
+  "libraryDelivery": "Blocked at read-only capability probe; required current prepared-upload helper lacks Library upload tools. No upload retry or alternate route."
+}

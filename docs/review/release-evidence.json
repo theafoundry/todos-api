@@ -1,0 +1,73 @@
+{
+  "completedAtUTC": "2026-10-03T05:05:59.976295+00:00",
+  "prURL": "https://github.com/theafoundry/todos-api/pull/1094",
+  "sourceSHA": "0335614086f2a4ab587464e81037348b6486c193",
+  "mergeSHA": "937ccec55467813d25faa40e164c6fd77a65aab6",
+  "reviewedAndMergedTreesIdentical": true,
+  "productionRunURL": "https://github.com/theafoundry/todos-api/actions/runs/37097991144",
+  "productionConclusion": "success",
+  "providerDeploymentIDs": ["fecb1a60-55b4-4a95-af3e-c913f321fda6"],
+  "productionMigrationsNoOp": true,
+  "ci": {
+    "pr-ci-terminal.json": {
+      "url": "https://github.com/theafoundry/todos-api/actions/runs/37097462935",
+      "headSha": "0335614086f2a4ab587464e81037348b6486c193",
+      "status": "completed",
+      "conclusion": "success",
+      "passedJobs": 12,
+      "skippedJobs": 3,
+      "nonSuccessOrSkippedJobs": []
+    },
+    "master-ci-terminal.json": {
+      "url": "https://github.com/theafoundry/todos-api/actions/runs/37097759683",
+      "headSha": "937ccec55467813d25faa40e164c6fd77a65aab6",
+      "status": "completed",
+      "conclusion": "success",
+      "passedJobs": 17,
+      "skippedJobs": 1,
+      "nonSuccessOrSkippedJobs": []
+    },
+    "master-visual-terminal.json": {
+      "url": "https://github.com/theafoundry/todos-api/actions/runs/37097759664",
+      "headSha": "937ccec55467813d25faa40e164c6fd77a65aab6",
+      "status": "completed",
+      "conclusion": "success",
+      "passedJobs": 1,
+      "skippedJobs": 0,
+      "nonSuccessOrSkippedJobs": []
+    }
+  },
+  "independentSourceReview": {
+    "passed": 15,
+    "failed": 0
+  },
+  "httpAcceptance": {
+    "requests": 84,
+    "assertions": 275,
+    "passed": 275,
+    "failed": 0
+  },
+  "browserAcceptance": {
+    "scenes": 16,
+    "galleries": 2,
+    "cacheActivations": 2,
+    "assertions": 206,
+    "passed": 206,
+    "failed": 0
+  },
+  "liveOrigins": ["https://www.planwren.com", "https://todos.theafoundry.com"],
+  "publicAssetLinks": [
+    "https://www.planwren.com/brand/fold-coral.svg?v=fold-v1",
+    "https://www.planwren.com/app/icon-512.png?v=fold-v1",
+    "https://www.planwren.com/app/brand/app-icon-dark.svg?v=fold-v1"
+  ],
+  "noNewCredentialsOrPersistentAccess": true,
+  "noDNSOrCertificateChanges": true,
+  "noUserAccountOrTaskMutations": true,
+  "notRun": [
+    "Authenticated user/task end-to-end acceptance",
+    "App-directory/portal submission",
+    "Native iOS build; no native changes"
+  ],
+  "evidenceScope": "Point-in-time deployed Fold release verification; not authenticated ChatGPT or portal acceptance."
+}
