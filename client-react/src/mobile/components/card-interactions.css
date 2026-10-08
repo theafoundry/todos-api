@@ -65,6 +65,10 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+/* Native touch-action is bounded by the scrollable face, before the carousel. */
+.m-screen--focus .m-carousel .flip-card__front {
+  touch-action: pan-y;
+}
 .m-screen--focus .m-carousel .tarot-frame {
   height: auto;
   min-height: calc(100% - 16px);

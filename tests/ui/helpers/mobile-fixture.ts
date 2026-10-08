@@ -343,37 +343,84 @@ export async function touchDrag(
   );
 }
 
-/** Synthetic pointer gestures exercise axis/cancel ownership; physical swipes remain a device check. */
+/** Synthetic pointer gestures exercise axis/cancel ownership; native capture needs browser input. */
 export async function pointerDrag(
   page: Page,
   selector: string,
   deltaX: number,
   deltaY: number,
-  cancel = false,
+  cancel: boolean | "lostcapture" = false,
 ) {
   await page.locator(selector).evaluate(
     async (element, delta) => {
       const rect = element.getBoundingClientRect();
       const x = rect.x + rect.width / 2;
       const y = rect.y + Math.min(rect.height / 2, 100);
+      const track = element.closest<HTMLElement>(".m-carousel__track");
       const send = (type: string, dx: number, dy: number) =>
-        element.dispatchEvent(
+        (type === "lostpointercapture" && track
+          ? track
+          : element
+        ).dispatchEvent(
           new PointerEvent(type, {
             bubbles: true,
             cancelable: true,
             pointerId: 1,
             pointerType: "touch",
+            isPrimary: true,
             clientX: x + dx,
             clientY: y + dy,
           }),
         );
-      send("pointerdown", 0, 0);
-      await new Promise<void>((done) => requestAnimationFrame(() => done()));
-      send("pointermove", delta.x / 2, delta.y / 2);
-      await new Promise<void>((done) => requestAnimationFrame(() => done()));
-      send("pointermove", delta.x, delta.y);
-      await new Promise<void>((done) => requestAnimationFrame(() => done()));
-      send(delta.cancel ? "pointercancel" : "pointerup", delta.x, delta.y);
+      const captureMethods = [
+        "setPointerCapture",
+        "hasPointerCapture",
+        "releasePointerCapture",
+      ] as const;
+      const originalDescriptors = captureMethods.map((name) =>
+        track ? Object.getOwnPropertyDescriptor(track, name) : undefined,
+      );
+      let captured = false;
+      // Synthetic pointer ids are absent from the browser input pipeline. Model
+      // capture locally; the CDP test checks native capture and touch scrolling.
+      if (track) {
+        Object.defineProperties(track, {
+          setPointerCapture: {
+            configurable: true,
+            value: () => (captured = true),
+          },
+          hasPointerCapture: { configurable: true, value: () => captured },
+          releasePointerCapture: {
+            configurable: true,
+            value: () => (captured = false),
+          },
+        });
+      }
+      try {
+        send("pointerdown", 0, 0);
+        await new Promise<void>((done) => requestAnimationFrame(() => done()));
+        send("pointermove", delta.x / 2, delta.y / 2);
+        await new Promise<void>((done) => requestAnimationFrame(() => done()));
+        send("pointermove", delta.x, delta.y);
+        await new Promise<void>((done) => requestAnimationFrame(() => done()));
+        send(
+          delta.cancel === "lostcapture"
+            ? "lostpointercapture"
+            : delta.cancel
+              ? "pointercancel"
+              : "pointerup",
+          delta.x,
+          delta.y,
+        );
+      } finally {
+        if (track) {
+          captureMethods.forEach((name, index) => {
+            const original = originalDescriptors[index];
+            if (original) Object.defineProperty(track, name, original);
+            else delete (track as unknown as Record<string, unknown>)[name];
+          });
+        }
+      }
     },
     { x: deltaX, y: deltaY, cancel },
   );

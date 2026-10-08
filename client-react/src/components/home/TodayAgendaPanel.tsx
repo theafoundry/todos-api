@@ -72,6 +72,7 @@ export function TodayAgendaPanel({
                   <button
                     type="button"
                     className="timeline__title"
+                    data-card-swipe-target=""
                     onClick={() => onTaskClick(item.id)}
                   >
                     {item.title}

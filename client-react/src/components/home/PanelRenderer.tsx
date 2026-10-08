@@ -53,6 +53,7 @@ function UnsortedPanel({
             <>
               <button
                 className="focus-list__item-title"
+                data-card-swipe-target=""
                 onClick={() => onTaskClick(topItem.id)}
               >
                 {topItem.title}
@@ -92,6 +93,7 @@ function UnsortedPanel({
             >
               <button
                 className="focus-list__item-title"
+                data-card-swipe-target=""
                 onClick={() => onTaskClick(item.id)}
               >
                 {item.title}
@@ -202,6 +204,7 @@ function DueSoonPanel({
             <button
               key={item.id}
               className="focus-list__item"
+              data-card-swipe-target=""
               onClick={() => onTaskClick(item.id)}
             >
               <span>{item.title}</span>
@@ -277,6 +280,7 @@ function WhatNextPanel({
           }}
           onClick={() => onTaskClick(item.id)}
           role="button"
+          data-card-swipe-target=""
           tabIndex={0}
           onKeyDown={(e) => e.key === "Enter" && onTaskClick(item.id)}
         >
@@ -362,6 +366,7 @@ function BacklogHygienePanel({
           <button
             key={item.id}
             className="focus-list__item decay-item"
+            data-card-swipe-target=""
             onClick={() => onTaskClick(item.id)}
           >
             <div className="decay-item__row">
