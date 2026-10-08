@@ -1,4 +1,9 @@
-import { test as base, expect, type Page } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type CDPSession,
+  type Page,
+} from "@playwright/test";
 import {
   installMobileFixture,
   MOBILE_TASK_ID,
@@ -775,6 +780,270 @@ function cardBrief(todos: ReturnType<typeof mobileTask>[]) {
     isStale: false,
   };
 }
+
+const activeCard = '.m-carousel__slide[aria-hidden="false"]';
+const recommendationTitle = `${activeCard} .tarot-action-band__title`;
+const agendaTitle = `${activeCard} .timeline__item:nth-child(2) .timeline__title`;
+
+async function openDenseFocus(page: Page, mobileApi: MobileFixture) {
+  const todos = Array.from({ length: 8 }, (_, index) =>
+    mobileTask({
+      id: `dense-agenda-${index}`,
+      title: `Task ${index + 1}: Review the crowded mobile card and agree on the smallest coherent implementation phases`,
+      dueDate: "2026-10-08T06:59:59.999Z",
+    }),
+  );
+  mobileApi.replaceTodos(todos);
+  mobileApi.setFocusBrief(cardBrief(todos));
+  await openMobileApp(page);
+  await page.getByRole("tab", { name: "Focus", exact: true }).tap();
+  await expect(page.locator(".m-carousel__position")).toHaveText("Card 1 of 2");
+  return todos;
+}
+
+/** Chromium's input pipeline produces native pointer/touch events and scrolling. */
+async function chromiumTouchDrag(
+  page: Page,
+  session: CDPSession,
+  selector: string,
+  deltaX: number,
+  deltaY: number,
+) {
+  const target = page.locator(selector).first();
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  expect(box).not.toBeNull();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  const point = (fraction: number) => [
+    {
+      x: x + deltaX * fraction,
+      y: y + deltaY * fraction,
+      radiusX: 5,
+      radiusY: 5,
+      force: 1,
+      id: 1,
+    },
+  ];
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: point(0),
+  });
+  for (let step = 1; step <= 8; step++) {
+    await session.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: point(step / 8),
+    });
+    await page.evaluate(
+      () => new Promise<void>((done) => requestAnimationFrame(() => done())),
+    );
+  }
+  await session.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+}
+
+test("dense Focus title drags navigate both directions, suppress trailing clicks, and preserve taps", async ({
+  page,
+  mobileApi,
+}) => {
+  const todos = await openDenseFocus(page, mobileApi);
+  const firstTitle = page.locator(recommendationTitle);
+  await pointerDrag(page, recommendationTitle, -160, 0);
+  await expect(page.locator(".m-carousel__position")).toHaveText("Card 2 of 2");
+  await page
+    .locator('.m-carousel__slide[aria-hidden="true"] .tarot-action-band__title')
+    .dispatchEvent("click", { detail: 1 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await pointerDrag(page, agendaTitle, 160, 0);
+  await expect(page.locator(".m-carousel__position")).toHaveText("Card 1 of 2");
+  await page
+    .locator('.m-carousel__slide[aria-hidden="true"] .timeline__title')
+    .first()
+    .dispatchEvent("click", { detail: 1 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(mobileApi.writes).toEqual([]);
+
+  await firstTitle.tap();
+  const details = page.getByRole("dialog", {
+    name: "Task details",
+    exact: true,
+  });
+  await expect(details).toBeVisible();
+  await expect(details).toContainText(todos[0].title);
+  expect(mobileApi.writes).toEqual([]);
+});
+
+test("dense Focus title diagonal and vertical drags leave navigation to horizontal gestures", async ({
+  page,
+  mobileApi,
+}) => {
+  await openDenseFocus(page, mobileApi);
+  await page.getByRole("button", { name: "Card 2 of 2", exact: true }).tap();
+  await pointerDrag(page, agendaTitle, 170, 150);
+  await pointerDrag(page, agendaTitle, 0, -170);
+  await expect(page.locator(".m-carousel__position")).toHaveText("Card 2 of 2");
+  await expect(page.locator(".m-carousel__track")).not.toHaveClass(
+    /m-carousel__track--dragging/,
+  );
+  const front = page.locator(`${activeCard} .flip-card__front`);
+  expect(
+    await front.evaluate((element) => getComputedStyle(element).overflowY),
+  ).toBe("auto");
+  expect(
+    await front.evaluate((element) => getComputedStyle(element).touchAction),
+  ).toBe("pan-y");
+  // DOM gestures cannot cause native scroll; Chromium's input test below does.
+  await front.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() => front.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(mobileApi.writes).toEqual([]);
+});
+
+test("cancelled and lost-capture Focus title drags restore the card without opening tasks", async ({
+  page,
+  mobileApi,
+}) => {
+  await openDenseFocus(page, mobileApi);
+  await page.getByRole("button", { name: "Card 2 of 2", exact: true }).tap();
+  for (const end of [true, "lostcapture"] as const) {
+    await pointerDrag(page, agendaTitle, 160, 0, end);
+    await page
+      .locator(agendaTitle)
+      .first()
+      .dispatchEvent("click", { detail: 1 });
+    await expect(page.locator(".m-carousel__position")).toHaveText(
+      "Card 2 of 2",
+    );
+    await expect(page.locator(".m-carousel__track")).not.toHaveClass(
+      /m-carousel__track--dragging/,
+    );
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+  await page.locator(agendaTitle).first().tap();
+  await expect(
+    page.getByRole("dialog", { name: "Task details", exact: true }),
+  ).toBeVisible();
+  expect(mobileApi.writes).toEqual([]);
+});
+
+test("Focus completion and About controls retain ownership beside swipeable titles", async ({
+  page,
+  mobileApi,
+}) => {
+  const todos = await openDenseFocus(page, mobileApi);
+  await page.getByRole("button", { name: "Card 2 of 2", exact: true }).tap();
+  await pointerDrag(
+    page,
+    `${activeCard} .timeline__item:nth-child(2) .timeline__toggle`,
+    160,
+    0,
+  );
+  await pointerDrag(page, `${activeCard} .flip-card__front .dog-ear`, 160, 0);
+  await expect(page.locator(".m-carousel__position")).toHaveText("Card 2 of 2");
+  await expect(page.locator(`${activeCard} .flip-card__back`)).toBeHidden();
+  expect(mobileApi.writes).toEqual([]);
+
+  await page
+    .getByRole("button", { name: "About this card", exact: true })
+    .tap();
+  await pointerDrag(page, `${activeCard} .flip-card__back`, 160, 0);
+  await expect(page.locator(".m-carousel__position")).toHaveText("Card 2 of 2");
+  await expect(page.locator(`${activeCard} .flip-card__back`)).toBeVisible();
+  await page
+    .getByRole("button", { name: "Show card front", exact: true })
+    .tap();
+  await page
+    .getByRole("button", { name: `Complete ${todos[0].title}`, exact: true })
+    .tap();
+  await expect.poll(() => mobileApi.todos()[0].completed).toBe(true);
+  expect(mobileApi.writes).toHaveLength(1);
+  await expect(page.locator(".m-carousel__position")).toHaveText("Card 2 of 2");
+});
+
+test("task-row swipe actions remain separate after Focus title navigation", async ({
+  page,
+  mobileApi,
+}) => {
+  const todos = await openDenseFocus(page, mobileApi);
+  await pointerDrag(page, recommendationTitle, -160, 0);
+  await page.getByRole("tab", { name: "Today", exact: true }).tap();
+  const row =
+    ".m-today__group-list .m-swipe-row:first-child .m-swipe-row__content";
+  await touchDrag(page, row, -160, 0);
+  const planned = page.getByRole("dialog", { name: "Plan for…", exact: true });
+  await expect(planned).toBeVisible();
+  expect(mobileApi.writes).toEqual([]);
+  await planned
+    .getByRole("button", { name: "Close Plan for…", exact: true })
+    .tap();
+  await touchDrag(page, row, 160, 0);
+  await expect
+    .poll(
+      () =>
+        mobileApi.todos().find((todo) => todo.id === todos[0].id)?.completed,
+    )
+    .toBe(true);
+  expect(mobileApi.writes).toHaveLength(1);
+});
+
+test("Chromium native emulated touch swipes dense titles and vertically scrolls the agenda", async ({
+  page,
+  context,
+  browserName,
+  mobileApi,
+}) => {
+  test.skip(
+    browserName !== "chromium",
+    "CDP native touch input is Chromium-only",
+  );
+  await openDenseFocus(page, mobileApi);
+  const session = await context.newCDPSession(page);
+  try {
+    await chromiumTouchDrag(page, session, recommendationTitle, -140, 0);
+    await expect(page.locator(".m-carousel__position")).toHaveText(
+      "Card 2 of 2",
+    );
+    await chromiumTouchDrag(page, session, agendaTitle, 140, 0);
+    await expect(page.locator(".m-carousel__position")).toHaveText(
+      "Card 1 of 2",
+    );
+    await chromiumTouchDrag(page, session, recommendationTitle, -140, 0);
+    await expect(page.locator(".m-carousel__position")).toHaveText(
+      "Card 2 of 2",
+    );
+    await chromiumTouchDrag(
+      page,
+      session,
+      `${activeCard} .timeline__item:nth-child(2) .timeline__toggle`,
+      140,
+      0,
+    );
+    await expect(page.locator(".m-carousel__position")).toHaveText(
+      "Card 2 of 2",
+    );
+    expect(mobileApi.writes).toEqual([]);
+    const front = page.locator(`${activeCard} .flip-card__front`);
+    const initialScroll = await front.evaluate((element) => element.scrollTop);
+    await chromiumTouchDrag(page, session, agendaTitle, 0, -140);
+    await expect
+      .poll(() => front.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(initialScroll);
+    await expect(page.locator(".m-carousel__position")).toHaveText(
+      "Card 2 of 2",
+    );
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect(mobileApi.writes).toEqual([]);
+  } finally {
+    await session.detach();
+  }
+});
 
 test("Focus controls are reachable and the complete crowded agenda has one scrolling face", async ({
   page,

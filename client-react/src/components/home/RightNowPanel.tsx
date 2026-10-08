@@ -51,6 +51,7 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
       {data.topRecommendation && (
         <button
           className="tarot-action-band"
+          data-card-swipe-target=""
           onClick={() => onTaskClick(data.topRecommendation!.taskId)}
           style={{
             border: "none",
