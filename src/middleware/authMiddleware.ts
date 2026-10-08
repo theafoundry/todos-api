@@ -8,6 +8,7 @@ declare global {
       user?: {
         userId: string;
         email: string;
+        tokenType?: "mcp";
       };
     }
   }
@@ -46,6 +47,9 @@ export function authMiddleware(authService: AuthService) {
       req.user = {
         userId: payload.userId,
         email: payload.email,
+        ...(payload.tokenType !== undefined
+          ? { tokenType: payload.tokenType }
+          : {}),
       };
 
       next();

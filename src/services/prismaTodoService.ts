@@ -374,94 +374,103 @@ export class PrismaTodoService implements ITodoService {
   }
 
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
-    const todo = await this.prisma.$transaction(async (tx) => {
-      // Lock the user row so concurrent creates are serialized and cannot
-      // compute the same next order value (same pattern as createSubtask).
-      await tx.$queryRaw`
-        SELECT "id" FROM "users" WHERE "id" = ${userId} FOR UPDATE
-      `;
+    return this.prisma.$transaction((tx) =>
+      this.createInTransaction(tx, userId, dto),
+    );
+  }
 
-      // Calculate next order: max order + 1 for this user
-      const maxOrderTodo = await tx.todo.findFirst({
-        where: { userId },
-        orderBy: { order: "desc" },
-        select: { order: true },
-      });
-      const nextOrder = (maxOrderTodo?.order ?? -1) + 1;
-      let projectId: string | null = null;
-      let category: string | null = null;
-      if (dto.projectId) {
-        const project = await this.findOwnedProject(tx, userId, dto.projectId);
-        if (!project) {
-          throw new Error(PrismaTodoService.INVALID_PROJECT_ERROR);
-        }
-        projectId = project.id;
-        category = project.name;
-      } else {
-        category = this.normalizeCategory(dto.category);
+  /** Use the canonical create path when another write must commit atomically. */
+  async createInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    dto: CreateTodoDto,
+  ): Promise<Todo> {
+    // Lock the user row so concurrent creates are serialized and cannot
+    // compute the same next order value (same pattern as createSubtask).
+    await tx.$queryRaw`
+    SELECT "id" FROM "users" WHERE "id" = ${userId} FOR UPDATE
+  `;
+
+    // Calculate next order: max order + 1 for this user
+    const maxOrderTodo = await tx.todo.findFirst({
+      where: { userId },
+      orderBy: { order: "desc" },
+      select: { order: true },
+    });
+    const nextOrder = (maxOrderTodo?.order ?? -1) + 1;
+    let projectId: string | null = null;
+    let category: string | null = null;
+    if (dto.projectId) {
+      const project = await this.findOwnedProject(tx, userId, dto.projectId);
+      if (!project) {
+        throw new Error(PrismaTodoService.INVALID_PROJECT_ERROR);
       }
-      const headingId = await this.ensureHeadingId(
-        tx,
-        userId,
-        projectId,
-        dto.headingId || null,
-      );
-      const state = this.buildTodoState({
-        nextStatus: dto.status,
-        nextCompleted: dto.completed,
-      });
-      const dependsOnTaskIds = await this.validateDependencyIds(
-        tx,
-        userId,
-        dto.dependsOnTaskIds,
-      );
-      const recurrence = this.buildRecurrenceFields(dto.recurrence);
+      projectId = project.id;
+      category = project.name;
+    } else {
+      category = this.normalizeCategory(dto.category);
+    }
+    const headingId = await this.ensureHeadingId(
+      tx,
+      userId,
+      projectId,
+      dto.headingId || null,
+    );
+    const state = this.buildTodoState({
+      nextStatus: dto.status,
+      nextCompleted: dto.completed,
+    });
+    const dependsOnTaskIds = await this.validateDependencyIds(
+      tx,
+      userId,
+      dto.dependsOnTaskIds,
+    );
+    const recurrence = this.buildRecurrenceFields(dto.recurrence);
 
-      return tx.todo.create({
-        data: {
-          title: dto.title,
-          description: dto.description,
-          status: state.status as PrismaTodoStatus,
-          completed: state.completed,
-          category,
-          projectId,
-          headingId,
-          dueDate: dto.dueDate,
-          startDate: dto.startDate,
-          scheduledDate: dto.scheduledDate,
-          reviewDate: dto.reviewDate,
-          completedAt: state.completedAt,
-          context: dto.context,
-          energy: dto.energy ?? null,
-          estimateMinutes: dto.estimateMinutes,
-          waitingOn: dto.waitingOn,
-          dependsOnTaskIds: dependsOnTaskIds ?? [],
-          tags: dto.tags ?? [],
-          order: nextOrder,
-          priority: dto.priority || "medium",
-          archived: dto.archived ?? false,
-          ...(recurrence || {}),
-          source: dto.source ?? null,
-          doDate: dto.doDate ?? null,
-          blockedReason: dto.blockedReason ?? null,
-          effortScore: dto.effortScore ?? null,
-          confidenceScore: dto.confidenceScore ?? null,
-          firstStep: dto.firstStep ?? null,
-          emotionalState: dto.emotionalState ?? null,
-          sourceText: dto.sourceText ?? null,
-          areaId: dto.areaId ?? null,
-          goalId: dto.goalId ?? null,
-          createdByPrompt: dto.createdByPrompt,
-          notes: dto.notes,
-          userId,
+    const todo = await tx.todo.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        status: state.status as PrismaTodoStatus,
+        completed: state.completed,
+        category,
+        projectId,
+        headingId,
+        dueDate: dto.dueDate,
+        startDate: dto.startDate,
+        scheduledDate: dto.scheduledDate,
+        reviewDate: dto.reviewDate,
+        completedAt: state.completedAt,
+        context: dto.context,
+        energy: dto.energy ?? null,
+        estimateMinutes: dto.estimateMinutes,
+        waitingOn: dto.waitingOn,
+        dependsOnTaskIds: dependsOnTaskIds ?? [],
+        tags: dto.tags ?? [],
+        order: nextOrder,
+        priority: dto.priority || "medium",
+        archived: dto.archived ?? false,
+        ...(recurrence || {}),
+        source: dto.source ?? null,
+        doDate: dto.doDate ?? null,
+        blockedReason: dto.blockedReason ?? null,
+        effortScore: dto.effortScore ?? null,
+        confidenceScore: dto.confidenceScore ?? null,
+        firstStep: dto.firstStep ?? null,
+        emotionalState: dto.emotionalState ?? null,
+        sourceText: dto.sourceText ?? null,
+        areaId: dto.areaId ?? null,
+        goalId: dto.goalId ?? null,
+        createdByPrompt: dto.createdByPrompt,
+        notes: dto.notes,
+        userId,
+      },
+      include: {
+        project: true,
+        subtasks: {
+          orderBy: { order: "asc" },
         },
-        include: {
-          project: true,
-          subtasks: {
-            orderBy: { order: "asc" },
-          },
-        },
-      });
+      },
     });
 
     return this.mapPrismaToTodo(todo);
@@ -498,9 +507,13 @@ export class PrismaTodoService implements ITodoService {
     return todos.map(this.mapPrismaToTodo);
   }
 
-  async findById(userId: string, id: string): Promise<Todo | null> {
+  async findById(
+    userId: string,
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Todo | null> {
     try {
-      const todo = await this.prisma.todo.findFirst({
+      const todo = await client.todo.findFirst({
         where: { id, userId },
         include: {
           project: true,

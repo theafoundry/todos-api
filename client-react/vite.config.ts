@@ -27,6 +27,7 @@ export default defineConfig({
       "/auth": apiTarget,
       "/todos": apiTarget,
       "/projects": apiTarget,
+      "/capture": apiTarget,
       "/users": apiTarget,
       "/ai": apiTarget,
       "/admin": apiTarget,

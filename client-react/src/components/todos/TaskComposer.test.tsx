@@ -13,15 +13,25 @@ vi.mock("../ai/AiOnCreateAssist", () => ({
     title: string;
     onApplySuggestion: (field: string, value: string) => void;
   }) =>
-    createElement("div", { "data-testid": "ai-assist" },
-      createElement("button", {
-        type: "button",
-        onClick: () => onApplySuggestion("priority", "high"),
-      }, "Apply priority"),
-      createElement("button", {
-        type: "button",
-        onClick: () => onApplySuggestion("dueDate", "2026-05-01"),
-      }, "Apply due date"),
+    createElement(
+      "div",
+      { "data-testid": "ai-assist" },
+      createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => onApplySuggestion("priority", "high"),
+        },
+        "Apply priority",
+      ),
+      createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => onApplySuggestion("dueDate", "2026-05-01"),
+        },
+        "Apply due date",
+      ),
     ),
 }));
 
@@ -64,6 +74,34 @@ const defaultProps = {
 };
 
 describe("TaskComposer", () => {
+  it("keeps the capture draft open on save failure and permits a deliberate retry", async () => {
+    const onCaptureToDesk = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error("Capture could not be confirmed. Check Inbox or retry."),
+      )
+      .mockResolvedValueOnce(undefined);
+    const onClose = vi.fn();
+    render(
+      createElement(TaskComposer, {
+        ...defaultProps,
+        onCaptureToDesk,
+        onClose,
+      }),
+    );
+    const title = screen.getByPlaceholderText("Task title");
+    fireEvent.change(title, { target: { value: "Review next week" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save to Inbox" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Capture could not be confirmed",
+    );
+    expect(title).toHaveValue("Review next week");
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Save to Inbox" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(onCaptureToDesk).toHaveBeenCalledTimes(2);
+  });
+
   it("renders nothing when not open", () => {
     render(createElement(TaskComposer, { ...defaultProps, isOpen: false }));
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -97,7 +135,9 @@ describe("TaskComposer", () => {
     const onSubmitTask = vi.fn().mockResolvedValue(undefined);
     render(createElement(TaskComposer, { ...defaultProps, onSubmitTask }));
 
-    const titleInput = screen.getByPlaceholderText("Task title") as HTMLInputElement;
+    const titleInput = screen.getByPlaceholderText(
+      "Task title",
+    ) as HTMLInputElement;
     fireEvent.change(titleInput, { target: { value: "New task" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Create task now" }));
@@ -114,13 +154,15 @@ describe("TaskComposer", () => {
     const onCaptureToDesk = vi.fn().mockResolvedValue(undefined);
     render(createElement(TaskComposer, { ...defaultProps, onCaptureToDesk }));
 
-    const titleInput = screen.getByPlaceholderText("Task title") as HTMLInputElement;
+    const titleInput = screen.getByPlaceholderText(
+      "Task title",
+    ) as HTMLInputElement;
     fireEvent.change(titleInput, { target: { value: "Desk item" } });
 
     // alternateRoute is "triage" from mock
-    const alternateBtn = screen.getAllByRole("button").find(
-      (btn) => btn.textContent === "Add to Desk",
-    )!;
+    const alternateBtn = screen
+      .getAllByRole("button")
+      .find((btn) => btn.textContent === "Save to Inbox")!;
     fireEvent.click(alternateBtn);
 
     await waitFor(() => {
@@ -147,13 +189,17 @@ describe("TaskComposer", () => {
     const onSubmitTask = vi.fn().mockReturnValue(submitPromise);
     render(createElement(TaskComposer, { ...defaultProps, onSubmitTask }));
 
-    const titleInput = screen.getByPlaceholderText("Task title") as HTMLInputElement;
+    const titleInput = screen.getByPlaceholderText(
+      "Task title",
+    ) as HTMLInputElement;
     fireEvent.change(titleInput, { target: { value: "Task" } });
 
     fireEvent.click(screen.getByRole("button", { name: "Create task now" }));
 
     await waitFor(() => {
-      const buttons = screen.getAllByRole("button", { name: /Saving…|Create task now|Add to Desk/ });
+      const buttons = screen.getAllByRole("button", {
+        name: /Saving…|Create task now|Save to Inbox/,
+      });
       buttons.forEach((btn) => {
         if (btn.textContent?.includes("Saving")) {
           expect(btn).toBeDisabled();
@@ -171,8 +217,12 @@ describe("TaskComposer", () => {
     const onSubmitTask = vi.fn().mockResolvedValue(undefined);
     render(createElement(TaskComposer, { ...defaultProps, onSubmitTask }));
 
-    fireEvent.change(screen.getByPlaceholderText("Task title"), { target: { value: "Full task" } });
-    fireEvent.change(screen.getByPlaceholderText("Description (optional)"), { target: { value: "Details" } });
+    fireEvent.change(screen.getByPlaceholderText("Task title"), {
+      target: { value: "Full task" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Description (optional)"), {
+      target: { value: "Details" },
+    });
 
     const statusSelect = screen.getAllByRole("combobox")[0];
     fireEvent.change(statusSelect, { target: { value: "next" } });
@@ -183,9 +233,13 @@ describe("TaskComposer", () => {
     const projectSelect = screen.getAllByRole("combobox")[2];
     fireEvent.change(projectSelect, { target: { value: "p1" } });
 
-    const dueDateInput = document.getElementById("todoDueDateInput") as HTMLInputElement;
+    const dueDateInput = document.getElementById(
+      "todoDueDateInput",
+    ) as HTMLInputElement;
     fireEvent.change(dueDateInput, { target: { value: "2026-06-15" } });
-    fireEvent.change(screen.getByPlaceholderText("e.g. work, important"), { target: { value: "work, urgent" } });
+    fireEvent.change(screen.getByPlaceholderText("e.g. work, important"), {
+      target: { value: "work, urgent" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Create task now" }));
 
@@ -208,7 +262,9 @@ describe("TaskComposer", () => {
     const onSubmitTask = vi.fn().mockResolvedValue(undefined);
     render(createElement(TaskComposer, { ...defaultProps, onSubmitTask }));
 
-    fireEvent.change(screen.getByPlaceholderText("Task title"), { target: { value: "Minimal" } });
+    fireEvent.change(screen.getByPlaceholderText("Task title"), {
+      target: { value: "Minimal" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Create task now" }));
 
     await waitFor(() => {
@@ -228,7 +284,9 @@ describe("TaskComposer", () => {
 
     // Open and fill form
     rerender(createElement(TaskComposer, { ...defaultProps, isOpen: true }));
-    fireEvent.change(screen.getByPlaceholderText("Task title"), { target: { value: "Filled" } });
+    fireEvent.change(screen.getByPlaceholderText("Task title"), {
+      target: { value: "Filled" },
+    });
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[1], { target: { value: "high" } });
 
@@ -236,7 +294,9 @@ describe("TaskComposer", () => {
     rerender(createElement(TaskComposer, { ...defaultProps, isOpen: false }));
     rerender(createElement(TaskComposer, { ...defaultProps, isOpen: true }));
 
-    expect((screen.getByPlaceholderText("Task title") as HTMLInputElement).value).toBe("");
+    expect(
+      (screen.getByPlaceholderText("Task title") as HTMLInputElement).value,
+    ).toBe("");
     const newSelects = screen.getAllByRole("combobox");
     expect((newSelects[1] as HTMLSelectElement).value).toBe("");
   });
@@ -258,7 +318,9 @@ describe("TaskComposer", () => {
     render(createElement(TaskComposer, defaultProps));
 
     fireEvent.click(screen.getByText("Apply due date"));
-    const dueDateInput = document.getElementById("todoDueDateInput") as HTMLInputElement;
+    const dueDateInput = document.getElementById(
+      "todoDueDateInput",
+    ) as HTMLInputElement;
     expect(dueDateInput.value).toBe("2026-05-01");
   });
 

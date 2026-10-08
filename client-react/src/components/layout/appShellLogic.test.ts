@@ -106,7 +106,7 @@ describe("appShellLogic", () => {
   describe("VIEW_LABELS", () => {
     it("has labels for all workspace views", () => {
       expect(VIEW_LABELS.home).toBe("Focus");
-      expect(VIEW_LABELS.all).toBe("Everything");
+      expect(VIEW_LABELS.all).toBe("Tasks");
       expect(VIEW_LABELS.today).toBe("Today");
       expect(VIEW_LABELS.horizon).toBe("Horizon");
       expect(VIEW_LABELS.completed).toBe("Completed");
@@ -509,27 +509,30 @@ describe("appShellLogic", () => {
     });
 
     it("clears selection when all selected", () => {
-      const result = computeSelectAllResult(
-        new Set(["t1", "t2", "t3"]),
-        ["t1", "t2", "t3"],
-      );
+      const result = computeSelectAllResult(new Set(["t1", "t2", "t3"]), [
+        "t1",
+        "t2",
+        "t3",
+      ]);
       expect(result).toEqual(new Set());
     });
 
     it("selects all when some selected", () => {
-      const result = computeSelectAllResult(
-        new Set(["t1"]),
-        ["t1", "t2", "t3"],
-      );
+      const result = computeSelectAllResult(new Set(["t1"]), [
+        "t1",
+        "t2",
+        "t3",
+      ]);
       expect(result).toEqual(new Set(["t1", "t2", "t3"]));
     });
 
     it("clears selection when partial match equals visible count", () => {
       // Edge case: selected set has same size as visible list
-      const result = computeSelectAllResult(
-        new Set(["t1", "t2", "t3"]),
-        ["t1", "t2", "t3"],
-      );
+      const result = computeSelectAllResult(new Set(["t1", "t2", "t3"]), [
+        "t1",
+        "t2",
+        "t3",
+      ]);
       expect(result).toEqual(new Set());
     });
   });

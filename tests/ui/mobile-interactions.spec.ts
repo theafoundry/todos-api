@@ -10,6 +10,7 @@ import {
   MOBILE_TASK_TITLE,
   mobileTask,
   openMobileApp,
+  openMobileFocus,
   openTaskEditor,
   pointerDrag,
   taskRow,
@@ -311,7 +312,7 @@ test("rescheduling changes planned time without changing an existing deadline", 
     mobileTask({ dueDate: deadline }),
   ]);
   await openMobileApp(page);
-  await page.getByRole("tab", { name: "Everything", exact: true }).tap();
+  await page.getByRole("tab", { name: "Tasks", exact: true }).tap();
   await taskRow(page).tap();
   await page
     .getByRole("dialog", { name: "Task details", exact: true })
@@ -587,7 +588,7 @@ test("legacy midnight deadlines retain their calendar day and unchanged payload"
     mobileTask({ dueDate: "2026-10-08T00:00:00.000Z" }),
   ]);
   await openMobileApp(page);
-  await page.getByRole("tab", { name: "Everything", exact: true }).tap();
+  await page.getByRole("tab", { name: "Tasks", exact: true }).tap();
   const editor = await openTaskEditor(page);
   await expect(editor.getByLabel("Due by", { exact: true })).toHaveValue(
     "2026-10-08",
@@ -693,13 +694,13 @@ test("reload reads the saved task, restores the active tab, and clears transient
     page.getByRole("dialog", { name: "Task details", exact: true }),
   ).toBeVisible();
   await page.goBack();
-  await page.getByRole("tab", { name: "Everything", exact: true }).tap();
+  await page.getByRole("tab", { name: "Tasks", exact: true }).tap();
   const readsBefore = mobileApi.reads.filter(
     (path) => path === "/todos",
   ).length;
   await page.reload();
   await expect(
-    page.getByRole("tab", { name: "Everything", exact: true }),
+    page.getByRole("tab", { name: "Tasks", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await expect(taskRow(page, "Reloaded saved title")).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -730,7 +731,7 @@ test("native list offset survives tab changes and a reload without leaving the t
   await expect
     .poll(() => scroller.evaluate((element) => element.scrollTop))
     .toBe(500);
-  await page.getByRole("tab", { name: "Everything", exact: true }).tap();
+  await page.getByRole("tab", { name: "Tasks", exact: true }).tap();
   await page.getByRole("tab", { name: "Today", exact: true }).tap();
   await expect
     .poll(() => scroller.evaluate((element) => element.scrollTop))
@@ -796,7 +797,7 @@ async function openDenseFocus(page: Page, mobileApi: MobileFixture) {
   mobileApi.replaceTodos(todos);
   mobileApi.setFocusBrief(cardBrief(todos));
   await openMobileApp(page);
-  await page.getByRole("tab", { name: "Focus", exact: true }).tap();
+  await openMobileFocus(page);
   await expect(page.locator(".m-carousel__position")).toHaveText("Card 1 of 2");
   return todos;
 }
@@ -1059,7 +1060,7 @@ test("Focus controls are reachable and the complete crowded agenda has one scrol
   mobileApi.replaceTodos(todos);
   mobileApi.setFocusBrief(cardBrief(todos));
   await openMobileApp(page);
-  await page.getByRole("tab", { name: "Focus", exact: true }).tap();
+  await openMobileFocus(page);
   await expect(page.getByText("8 tasks today", { exact: true })).toBeVisible();
   const second = page.getByRole("button", { name: "Card 2 of 2", exact: true });
   const carousel = await page.locator(".m-carousel").boundingBox();
@@ -1101,7 +1102,7 @@ test("card flip ownership prevents swipe and explicit navigation restores a usab
 }) => {
   mobileApi.setFocusBrief(cardBrief([mobileTask()]));
   await openMobileApp(page);
-  await page.getByRole("tab", { name: "Focus", exact: true }).tap();
+  await openMobileFocus(page);
   await page.getByRole("button", { name: "Card 2 of 2", exact: true }).tap();
   const activeFront = page.locator(
     '.m-carousel__slide[aria-hidden="false"] .flip-card__front',
@@ -1310,7 +1311,7 @@ test("Focus project selection opens its task list and reload preserves that proj
   });
   mobileApi.setFocusBrief(brief);
   await openMobileApp(page);
-  await page.getByRole("tab", { name: "Focus", exact: true }).tap();
+  await openMobileFocus(page);
   await page.getByRole("button", { name: "Card 3 of 3", exact: true }).tap();
   await page.getByRole("button", { name: /Mobile project/ }).tap();
   await expect(
@@ -1356,7 +1357,7 @@ test("a refreshed Focus brief clamps a removed active card to an available card"
   });
   mobileApi.setFocusBrief(brief);
   await openMobileApp(page);
-  await page.getByRole("tab", { name: "Focus", exact: true }).tap();
+  await openMobileFocus(page);
   await page.getByRole("button", { name: "Card 3 of 3", exact: true }).tap();
   await expect(page.locator(".m-carousel__position")).toHaveText("Card 3 of 3");
   mobileApi.setFocusBrief(cardBrief([mobileTask()]));
@@ -1391,7 +1392,7 @@ test("cached Focus task references follow live completion, undo, editing, and de
   await expect(
     page.getByRole("status").filter({ hasText: "Completed task" }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "Focus", exact: true }).tap();
+  await openMobileFocus(page);
   await expect(
     page.getByRole("button", { name: /^Strongest action/ }),
   ).toHaveCount(0);
@@ -1586,7 +1587,7 @@ test("scrolling the still-visible list during a gated refresh is retained when t
   await expect
     .poll(() => scroller.evaluate((element) => element.scrollTop))
     .toBeGreaterThanOrEqual(300);
-  await page.getByRole("tab", { name: "Everything", exact: true }).tap();
+  await page.getByRole("tab", { name: "Tasks", exact: true }).tap();
   await page.getByRole("tab", { name: "Today", exact: true }).tap();
   await expect
     .poll(() => scroller.evaluate((element) => element.scrollTop))

@@ -11,7 +11,12 @@ export function useViewTransition() {
       "startViewTransition" in document &&
       typeof document.startViewTransition === "function"
     ) {
-      document.startViewTransition(callback);
+      const transition = document.startViewTransition(callback);
+      void transition.ready.catch((error: unknown) => {
+        // A newer navigation can skip the animation after its update has run.
+        if (!(error instanceof DOMException && error.name === "AbortError"))
+          throw error;
+      });
     } else {
       callback();
     }

@@ -7,7 +7,13 @@ import type { ActiveFilters } from "../todos/FilterPanel";
 import { applyFilters } from "../todos/FilterPanel";
 import { PROJECT_RAIL_BACKLOG_SENTINEL } from "../projects/projectEditorModels";
 
-export type WorkspaceView = "home" | "all" | "today" | "horizon" | "completed";
+export type WorkspaceView =
+  | "inbox"
+  | "home"
+  | "all"
+  | "today"
+  | "horizon"
+  | "completed";
 export type HorizonSegment = "due" | "planned" | "pending" | "later";
 
 interface FilterTodosOptions {

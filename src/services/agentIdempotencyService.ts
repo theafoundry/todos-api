@@ -74,9 +74,10 @@ export class AgentIdempotencyService {
     userId: string,
     idempotencyKey: string,
     input: unknown,
+    client: Prisma.TransactionClient | undefined = this.prisma,
   ): Promise<IdempotencyLookupResult> {
-    if (this.prisma) {
-      const existing = await this.prisma.agentIdempotencyRecord.findUnique({
+    if (client) {
+      const existing = await client.agentIdempotencyRecord.findUnique({
         where: {
           action_userId_idempotencyKey: {
             action,
@@ -91,7 +92,7 @@ export class AgentIdempotencyService {
       }
 
       if (existing.expiresAt.getTime() <= Date.now()) {
-        await this.prisma.agentIdempotencyRecord.delete({
+        await client.agentIdempotencyRecord.delete({
           where: {
             action_userId_idempotencyKey: {
               action,
@@ -142,9 +143,10 @@ export class AgentIdempotencyService {
     input: unknown,
     status: number,
     body: unknown,
+    client: Prisma.TransactionClient | undefined = this.prisma,
   ): Promise<void> {
-    if (this.prisma) {
-      const existing = await this.prisma.agentIdempotencyRecord.findUnique({
+    if (client) {
+      const existing = await client.agentIdempotencyRecord.findUnique({
         where: {
           action_userId_idempotencyKey: {
             action,
@@ -158,7 +160,7 @@ export class AgentIdempotencyService {
         return;
       }
 
-      await this.prisma.agentIdempotencyRecord.create({
+      await client.agentIdempotencyRecord.create({
         data: {
           action,
           userId,

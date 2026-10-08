@@ -40,7 +40,7 @@ test.describe("Mobile shell", () => {
 
     // All tab labels present.
     await expect(
-      page.locator(".m-tab-bar__label", { hasText: "Focus" }),
+      page.locator(".m-tab-bar__label", { hasText: "Inbox" }),
     ).toBeVisible();
     await expect(
       page.locator(".m-tab-bar__label", { hasText: "Today" }),
@@ -54,14 +54,14 @@ test.describe("Mobile shell", () => {
     await expect(fab).toBeVisible();
   });
 
-  test("Focus tab is active by default", async ({ page }) => {
+  test("Inbox tab is active by default", async ({ page }) => {
     await bootstrapTodosContext(page.context());
     await page.goto("/app/");
     await waitForTodosViewIdle(page);
 
-    const focusTab = page.locator('.m-tab-bar__tab[role="tab"]').first();
-    await expect(focusTab).toHaveAttribute("aria-selected", "true");
-    await expect(focusTab).toHaveClass(/m-tab-bar__tab--active/);
+    const inboxTab = page.locator('.m-tab-bar__tab[role="tab"]').first();
+    await expect(inboxTab).toHaveAttribute("aria-selected", "true");
+    await expect(inboxTab).toHaveClass(/m-tab-bar__tab--active/);
   });
 
   test("tapping Today tab switches to today view", async ({ page }) => {

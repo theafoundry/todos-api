@@ -10,6 +10,7 @@ import { useFocusBrief } from "../hooks/useFocusBrief";
 import { useServiceWorker } from "../hooks/useServiceWorker";
 import { usePalette } from "./hooks/usePalette";
 import { useTaskActions } from "./hooks/useTaskActions";
+import { ViewActivityProvider } from "../components/layout/ViewActivityContext";
 import { TabBar } from "./components/TabBar";
 import { BottomSheet } from "./components/BottomSheet";
 import { TaskDetails } from "./components/TaskDetails";
@@ -25,6 +26,7 @@ import { InstallBanner } from "./components/InstallBanner";
 import { Onboarding } from "./components/Onboarding";
 import { IllustrationConstruction } from "./components/Illustrations";
 import { FocusScreen } from "./screens/FocusScreen";
+import { InboxScreen } from "./screens/InboxScreen";
 import { TodayScreen } from "./screens/TodayScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
 import { CustomScreen } from "./screens/CustomScreen";
@@ -57,6 +59,8 @@ export function MobileShell() {
     loadProjects,
   } = useProjectsStore();
   const { activeTab, setActiveTab, customView, setCustomView } = useTabBar();
+  const inboxRefreshRef = useRef<(() => Promise<boolean>) | null>(null);
+  const openingAcceptedTask = useRef(false);
   const { palette, setPalette } = usePalette();
   const focusBrief = useFocusBrief();
   const reconcileTasks = useCallback(async () => {
@@ -184,9 +188,10 @@ export function MobileShell() {
       loadTodos({}),
       loadProjects(),
       focusBrief.revalidate(),
+      activeTab === "inbox" ? (inboxRefreshRef.current?.() ?? true) : true,
     ]);
     return results.every(Boolean);
-  }, [loadTodos, loadProjects, focusBrief.revalidate]);
+  }, [loadTodos, loadProjects, focusBrief.revalidate, activeTab]);
   const handleSnoozeTodo = useCallback(
     (id: string) => {
       if (actions.pendingIds.has(id)) return;
@@ -319,6 +324,42 @@ export function MobileShell() {
     if (selectedProjectId) closeProject();
     setActiveTab(tab);
   };
+  const handleAcceptedCapture = useCallback(
+    async (task: Todo) => {
+      const refreshed = await reconcileTasks();
+      if (!refreshed || !getTodo(task.id))
+        throw new Error(
+          "The task was added, but Tasks could not be refreshed. Refresh to see it.",
+        );
+    },
+    [reconcileTasks, getTodo],
+  );
+  const handleOpenAcceptedTask = useCallback(
+    async (id: string) => {
+      if (openingAcceptedTask.current) return;
+      openingAcceptedTask.current = true;
+      try {
+        if (!getTodo(id)) {
+          actions.setFeedback({ kind: "pending", message: "Loading task…" });
+          if (!(await loadTodos({})) || !getTodo(id)) {
+            actions.setFeedback({
+              kind: "error",
+              message:
+                "The task is saved, but could not be loaded. Refresh Tasks and try opening it again.",
+            });
+            return;
+          }
+        }
+        // Keep Inbox as the return destination after closing task details.
+        handleTodoClick(id);
+      } finally {
+        openingAcceptedTask.current = false;
+      }
+    },
+    [getTodo, loadTodos, actions.setFeedback, handleTodoClick],
+  );
+  const showingFocus =
+    activeTab === "focus" || (activeTab === "custom" && customView === "home");
   useEffect(() => {
     if (
       surface.mode === "details" &&
@@ -340,7 +381,7 @@ export function MobileShell() {
         />
       )}
       <div
-        className={`m-shell__content${activeTab === "focus" ? " m-shell__content--focus" : ""}`}
+        className={`m-shell__content${showingFocus ? " m-shell__content--focus" : ""}`}
         ref={scrollRef}
       >
         <PullToRefresh
@@ -378,7 +419,7 @@ export function MobileShell() {
               </button>
             </div>
           )}
-          {activeTab === "focus" && focusBrief.error && (
+          {showingFocus && focusBrief.error && (
             <div role="alert" className="m-mobile-load">
               <p>Focus could not be updated. {focusBrief.error}</p>
               <button
@@ -391,9 +432,21 @@ export function MobileShell() {
               </button>
             </div>
           )}
+          <div hidden={activeTab !== "inbox"}>
+            <ViewActivityProvider isActive={activeTab === "inbox"}>
+              <InboxScreen
+                user={user}
+                refreshRef={inboxRefreshRef}
+                onAvatarClick={handleAvatarClick}
+                onSearch={() => openSurface({ mode: "search" })}
+                onAccepted={handleAcceptedCapture}
+                onOpenTask={handleOpenAcceptedTask}
+              />
+            </ViewActivityProvider>
+          </div>
           {(loadState === "loaded" || todos.length > 0) && (
             <>
-              {activeTab === "focus" && (
+              {showingFocus && (
                 <FocusScreen
                   {...screenProps}
                   onSelectProject={handleProjectClick}
@@ -414,9 +467,10 @@ export function MobileShell() {
                   onSnoozeTodo={handleSnoozeTodo}
                 />
               )}
-              {activeTab === "custom" && (
+              {(activeTab === "tasks" ||
+                (activeTab === "custom" && customView !== "home")) && (
                 <CustomScreen
-                  view={customView}
+                  view={activeTab === "tasks" ? "all" : customView}
                   {...screenProps}
                   onSnoozeTodo={handleSnoozeTodo}
                 />
@@ -507,7 +561,15 @@ export function MobileShell() {
         customView={customView}
         onChangeCustomView={setCustomView}
         onLogout={logout}
-        onNavigate={(destination) => openPage(destination as typeof page)}
+        onNavigate={(destination) => {
+          if (destination === "focus") {
+            handleTabChange("focus");
+          } else if (destination === "tasks") {
+            handleTabChange("tasks");
+          } else {
+            openPage(destination as typeof page);
+          }
+        }}
         palette={palette}
         onChangePalette={setPalette}
       />

@@ -49,6 +49,7 @@ async function openSettledDashboard(context: BrowserContext): Promise<Page> {
 
   await expect(page.locator("aside.app-sidebar")).toBeVisible();
   await expect(page.locator(".app-main")).toBeVisible();
+  await page.locator('button[data-workspace-view="home"]').click();
   await expect(page.getByTestId("home-dashboard")).toBeVisible();
   await expect(page.locator(".app-main .loading-bar")).toHaveCount(0);
   await expect(page.locator("[aria-busy='true']")).toHaveCount(0);

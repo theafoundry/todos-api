@@ -7,7 +7,8 @@ import type { Project, Todo } from "../../types";
 
 // Mock Illustrations
 vi.mock("./Illustrations", () => ({
-  IllustrationNoResults: () => createElement("div", { "data-testid": "no-results" }),
+  IllustrationNoResults: () =>
+    createElement("div", { "data-testid": "no-results" }),
 }));
 
 // Mock useOverlayFocusTrap
@@ -16,14 +17,104 @@ vi.mock("./useOverlayFocusTrap", () => ({
 }));
 
 const mockProjects: Project[] = [
-  { id: "p1", name: "Work", status: "active", archived: false, userId: "u1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
-  { id: "p2", name: "Personal", status: "active", archived: false, userId: "u1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
-  { id: "p3", name: "Archived", status: "active", archived: true, userId: "u1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+  {
+    id: "p1",
+    name: "Work",
+    status: "active",
+    archived: false,
+    userId: "u1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "p2",
+    name: "Personal",
+    status: "active",
+    archived: false,
+    userId: "u1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "p3",
+    name: "Archived",
+    status: "active",
+    archived: true,
+    userId: "u1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
 ];
 
 const mockTodos: Todo[] = [
-  { id: "t1", title: "Call dentist", description: "Book annual checkup", status: "next", completed: false, tags: [], category: "health", userId: "u1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", completedAt: null, projectId: null, headingId: null, context: null, energy: null, dueDate: null, startDate: null, scheduledDate: null, reviewDate: null, doDate: null, estimateMinutes: null, waitingOn: null, dependsOnTaskIds: [], order: 0, priority: null, archived: false, firstStep: null, emotionalState: null, effortScore: null, source: null, recurrence: null, subtasks: undefined },
-  { id: "t2", title: "Buy groceries", description: "Milk, eggs, bread", status: "next", completed: false, tags: [], category: "errands", userId: "u1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", completedAt: null, projectId: null, headingId: null, context: null, energy: null, dueDate: null, startDate: null, scheduledDate: null, reviewDate: null, doDate: null, estimateMinutes: null, waitingOn: null, dependsOnTaskIds: [], order: 1, priority: null, archived: false, firstStep: null, emotionalState: null, effortScore: null, source: null, recurrence: null, subtasks: undefined },
+  {
+    id: "t1",
+    title: "Call dentist",
+    description: "Book annual checkup",
+    status: "next",
+    completed: false,
+    tags: [],
+    category: "health",
+    userId: "u1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    completedAt: null,
+    projectId: null,
+    headingId: null,
+    context: null,
+    energy: null,
+    dueDate: null,
+    startDate: null,
+    scheduledDate: null,
+    reviewDate: null,
+    doDate: null,
+    estimateMinutes: null,
+    waitingOn: null,
+    dependsOnTaskIds: [],
+    order: 0,
+    priority: null,
+    archived: false,
+    firstStep: null,
+    emotionalState: null,
+    effortScore: null,
+    source: null,
+    recurrence: null,
+    subtasks: undefined,
+  },
+  {
+    id: "t2",
+    title: "Buy groceries",
+    description: "Milk, eggs, bread",
+    status: "next",
+    completed: false,
+    tags: [],
+    category: "errands",
+    userId: "u1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    completedAt: null,
+    projectId: null,
+    headingId: null,
+    context: null,
+    energy: null,
+    dueDate: null,
+    startDate: null,
+    scheduledDate: null,
+    reviewDate: null,
+    doDate: null,
+    estimateMinutes: null,
+    waitingOn: null,
+    dependsOnTaskIds: [],
+    order: 1,
+    priority: null,
+    archived: false,
+    firstStep: null,
+    emotionalState: null,
+    effortScore: null,
+    source: null,
+    recurrence: null,
+    subtasks: undefined,
+  },
 ];
 
 const defaultCommandProps = {
@@ -52,13 +143,17 @@ describe("CommandPalette", () => {
   });
 
   it("renders nothing when not open", () => {
-    render(createElement(CommandPalette, { ...defaultCommandProps, isOpen: false }));
+    render(
+      createElement(CommandPalette, { ...defaultCommandProps, isOpen: false }),
+    );
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("renders the command palette dialog when open", () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    expect(screen.getByRole("dialog", { name: "Command palette" })).toBeTruthy();
+    expect(
+      screen.getByRole("dialog", { name: "Command palette" }),
+    ).toBeTruthy();
   });
 
   it("renders the search input", () => {
@@ -71,12 +166,14 @@ describe("CommandPalette", () => {
     expect(screen.getByText("Create Task")).toBeTruthy();
     expect(screen.getByText("Go to Focus")).toBeTruthy();
     expect(screen.getByText("Go to Today")).toBeTruthy();
-    expect(screen.getByText("Go to Everything")).toBeTruthy();
+    expect(screen.getByText("Go to Tasks")).toBeTruthy();
   });
 
   it("filters commands by query matching label", () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "dark" } });
     expect(screen.getByText("Toggle Dark Mode")).toBeTruthy();
     expect(screen.queryByText("Create Task")).toBeNull();
@@ -84,7 +181,9 @@ describe("CommandPalette", () => {
 
   it("filters commands by query matching keywords", () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "bug" } });
     expect(screen.getByText("Go to Feedback")).toBeTruthy();
   });
@@ -96,18 +195,24 @@ describe("CommandPalette", () => {
 
   it("shows task matches when query matches todo titles", () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "dentist" } });
     expect(screen.getByText("Call dentist")).toBeTruthy();
     expect(screen.getByText("Tasks")).toBeTruthy();
   });
 
   it("shows task meta with category and status", () => {
-    render(createElement(CommandPalette, {
-      ...defaultCommandProps,
-      todos: [{ ...mockTodos[0], status: "waiting" as const }],
-    }));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    render(
+      createElement(CommandPalette, {
+        ...defaultCommandProps,
+        todos: [{ ...mockTodos[0], status: "waiting" as const }],
+      }),
+    );
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "dentist" } });
     expect(screen.getByText(/health · waiting/)).toBeTruthy();
   });
@@ -118,21 +223,31 @@ describe("CommandPalette", () => {
       id: `t-${i}`,
       title: `Task ${i}`,
     }));
-    render(createElement(CommandPalette, {
-      ...defaultCommandProps,
-      todos: manyTodos,
-    }));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
-    fireEvent.change(input, { target: { value: "task" } });
-    const taskOptions = screen.getAllByRole("option").filter((opt) =>
-      opt.querySelector(".command-palette__option-label")?.textContent?.startsWith("Task"),
+    render(
+      createElement(CommandPalette, {
+        ...defaultCommandProps,
+        todos: manyTodos,
+      }),
     );
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "task" } });
+    const taskOptions = screen
+      .getAllByRole("option")
+      .filter((opt) =>
+        opt
+          .querySelector(".command-palette__option-label")
+          ?.textContent?.startsWith("Task"),
+      );
     expect(taskOptions.length).toBeLessThanOrEqual(6);
   });
 
   it("shows empty state when no matches", () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "zzzznotfound" } });
     expect(screen.getByTestId("no-results")).toBeTruthy();
     expect(screen.getByText("No results")).toBeTruthy();
@@ -194,7 +309,9 @@ describe("CommandPalette", () => {
 
   it("filters out archived projects from project commands", () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "project" } });
     expect(screen.getByText("Go to project: Work")).toBeTruthy();
     expect(screen.getByText("Go to project: Personal")).toBeTruthy();
@@ -211,7 +328,9 @@ describe("CommandPalette", () => {
 
   it("calls onTodoClick when task option is clicked", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "dentist" } });
     fireEvent.click(screen.getByText("Call dentist"));
     await waitFor(() => {
@@ -220,20 +339,28 @@ describe("CommandPalette", () => {
   });
 
   it("resets query when closed and reopened", async () => {
-    const { unmount } = render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const { unmount } = render(
+      createElement(CommandPalette, defaultCommandProps),
+    );
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "search" } });
     expect(input.value).toBe("search");
 
     unmount();
     render(createElement(CommandPalette, defaultCommandProps));
-    const newInput = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const newInput = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     expect(newInput.value).toBe("");
   });
 
   it("executes navigation commands correctly", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: "today" } });
     fireEvent.click(screen.getByText("Go to Today"));
@@ -244,7 +371,9 @@ describe("CommandPalette", () => {
 
   it("executes toggle dark mode command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "dark" } });
     fireEvent.click(screen.getByText("Toggle Dark Mode"));
     await waitFor(() => {
@@ -254,7 +383,9 @@ describe("CommandPalette", () => {
 
   it("executes keyboard shortcuts command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "shortcuts" } });
     fireEvent.click(screen.getByText("Show Keyboard Shortcuts"));
     await waitFor(() => {
@@ -264,7 +395,9 @@ describe("CommandPalette", () => {
 
   it("executes weekly review command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "review" } });
     fireEvent.click(screen.getByText("Go to Weekly Reset"));
     await waitFor(() => {
@@ -274,7 +407,9 @@ describe("CommandPalette", () => {
 
   it("executes settings command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "settings" } });
     fireEvent.click(screen.getByText("Go to Settings"));
     await waitFor(() => {
@@ -284,7 +419,9 @@ describe("CommandPalette", () => {
 
   it("executes feedback command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "feedback" } });
     fireEvent.click(screen.getByText("Go to Feedback"));
     await waitFor(() => {
@@ -294,7 +431,9 @@ describe("CommandPalette", () => {
 
   it("executes export calendar command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "calendar" } });
     fireEvent.click(screen.getByText("Export Calendar"));
     await waitFor(() => {
@@ -304,7 +443,9 @@ describe("CommandPalette", () => {
 
   it("executes logout command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "logout" } });
     fireEvent.click(screen.getByText("Logout"));
     await waitFor(() => {
@@ -314,7 +455,9 @@ describe("CommandPalette", () => {
 
   it("executes focus search command", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: "search" } });
     fireEvent.click(screen.getByText("Focus Search"));
     await waitFor(() => {
@@ -324,12 +467,16 @@ describe("CommandPalette", () => {
 
   it("executes Horizon segment navigation commands", async () => {
     render(createElement(CommandPalette, defaultCommandProps));
-    const input = screen.getByPlaceholderText("Type a command…") as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      "Type a command…",
+    ) as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: "due" } });
     fireEvent.click(screen.getByText("Go to Horizon: Due"));
     await waitFor(() => {
-      expect(defaultCommandProps.onNavigateHorizonSegment).toHaveBeenCalledWith("due");
+      expect(defaultCommandProps.onNavigateHorizonSegment).toHaveBeenCalledWith(
+        "due",
+      );
     });
   });
 });

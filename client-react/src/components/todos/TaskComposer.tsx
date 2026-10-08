@@ -46,6 +46,8 @@ export function TaskComposer({
   const [dueDate, setDueDate] = useState("");
   const [tags, setTags] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const submitRef = useRef(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const { suggestion, loading, preferredRoute, alternateRoute } =
     useCaptureRoute({
@@ -64,6 +66,7 @@ export function TaskComposer({
       setProjectId(defaultProjectId || "");
       setDueDate("");
       setTags("");
+      setError("");
       requestAnimationFrame(() => titleRef.current?.focus());
     }
   }, [isOpen, defaultProjectId]);
@@ -71,7 +74,7 @@ export function TaskComposer({
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !submitRef.current) onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -79,8 +82,10 @@ export function TaskComposer({
 
   const handleSubmit = async (route: "task" | "triage") => {
     const trimmed = title.trim();
-    if (!trimmed || submitting) return;
+    if (!trimmed || submitRef.current) return;
+    submitRef.current = true;
     setSubmitting(true);
+    setError("");
     try {
       if (route === "triage") {
         await onCaptureToDesk(trimmed);
@@ -110,7 +115,14 @@ export function TaskComposer({
       };
       await onSubmitTask(dto);
       onClose();
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "Could not save this item. Your draft is ready to retry.",
+      );
     } finally {
+      submitRef.current = false;
       setSubmitting(false);
     }
   };
@@ -120,13 +132,18 @@ export function TaskComposer({
     : loading
       ? "Reviewing capture…"
       : suggestion?.why
-        ? `Suggested: ${preferredRoute === "task" ? "Create task now" : "Add to Desk"}. ${suggestion.why}`
+        ? `Suggested: ${preferredRoute === "task" ? "Create task now" : "Save to Inbox"}. ${suggestion.why}`
         : "";
 
   if (!isOpen) return null;
 
   return (
-    <div className="composer-overlay" onClick={onClose}>
+    <div
+      className="composer-overlay"
+      onClick={() => {
+        if (!submitRef.current) onClose();
+      }}
+    >
       <div
         className="composer"
         onClick={(e) => e.stopPropagation()}
@@ -135,7 +152,11 @@ export function TaskComposer({
       >
         <div className="composer__header">
           <h3 className="composer__title">New Task</h3>
-          <button className="todo-drawer__close" onClick={onClose}>
+          <button
+            className="todo-drawer__close"
+            disabled={submitting}
+            onClick={onClose}
+          >
             ✕
           </button>
         </div>
@@ -146,14 +167,15 @@ export function TaskComposer({
             type="text"
             placeholder="Task title"
             value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(preferredRoute);
-                }
-              }}
-            />
+            disabled={submitting}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(preferredRoute);
+              }
+            }}
+          />
           <textarea
             className="composer__textarea"
             placeholder="Description (optional)"
@@ -227,9 +249,7 @@ export function TaskComposer({
           </div>
 
           <div className="composer__field">
-            <label className="todo-drawer__label">
-              Tags (comma-separated)
-            </label>
+            <label className="todo-drawer__label">Tags (comma-separated)</label>
             <input
               id="todoTagsInput"
               className="todo-drawer__input"
@@ -250,9 +270,14 @@ export function TaskComposer({
             }}
           />
           {routeHint && <p className="capture-route-hint">{routeHint}</p>}
+          {error && (
+            <p role="alert" className="inbox-review__error">
+              {error}
+            </p>
+          )}
         </div>
         <div className="composer__footer">
-          <button className="btn" onClick={onClose}>
+          <button className="btn" disabled={submitting} onClick={onClose}>
             Cancel
           </button>
           <button
@@ -260,7 +285,7 @@ export function TaskComposer({
             onClick={() => handleSubmit(alternateRoute)}
             disabled={!title.trim() || submitting}
           >
-            {alternateRoute === "task" ? "Create task now" : "Add to Desk"}
+            {alternateRoute === "task" ? "Create task now" : "Save to Inbox"}
           </button>
           <button
             className="btn"
@@ -276,7 +301,7 @@ export function TaskComposer({
               ? "Saving…"
               : preferredRoute === "task"
                 ? "Create task now"
-                : "Add to Desk"}
+                : "Save to Inbox"}
           </button>
         </div>
       </div>

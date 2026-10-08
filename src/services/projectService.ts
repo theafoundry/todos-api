@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { IProjectService } from "../interfaces/IProjectService";
 import {
   CreateProjectDto,
@@ -38,10 +38,12 @@ export class PrismaProjectService implements IProjectService {
       updatedAt: Date;
       _count: { todos: number };
     }>,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<Project[]> {
     const projectCounts = await this.getProjectCountMaps(
       userId,
       rows.map((row) => row.id),
+      client,
     );
 
     return rows.map((row) => ({
@@ -71,6 +73,7 @@ export class PrismaProjectService implements IProjectService {
   private async getProjectCountMaps(
     userId: string,
     projectIds: string[],
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<{
     openByProjectId: Map<string, number>;
     completedByProjectId: Map<string, number>;
@@ -83,7 +86,7 @@ export class PrismaProjectService implements IProjectService {
     }
 
     const [openRows, completedRows] = await Promise.all([
-      this.prisma.todo.groupBy({
+      client.todo.groupBy({
         by: ["projectId"],
         where: {
           userId,
@@ -93,7 +96,7 @@ export class PrismaProjectService implements IProjectService {
         },
         _count: { _all: true },
       }),
-      this.prisma.todo.groupBy({
+      client.todo.groupBy({
         by: ["projectId"],
         where: {
           userId,
@@ -132,9 +135,13 @@ export class PrismaProjectService implements IProjectService {
     return this.mapProjectRows(userId, rows);
   }
 
-  async findById(userId: string, projectId: string): Promise<Project | null> {
+  async findById(
+    userId: string,
+    projectId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Project | null> {
     try {
-      const row = await this.prisma.project.findFirst({
+      const row = await client.project.findFirst({
         where: { id: projectId, userId },
         include: {
           _count: {
@@ -146,7 +153,7 @@ export class PrismaProjectService implements IProjectService {
         return null;
       }
 
-      const [project] = await this.mapProjectRows(userId, [row]);
+      const [project] = await this.mapProjectRows(userId, [row], client);
       return project;
     } catch (error: unknown) {
       if (hasPrismaCode(error, ["P2023"])) {
@@ -157,11 +164,19 @@ export class PrismaProjectService implements IProjectService {
   }
 
   async create(userId: string, dto: CreateProjectDto): Promise<Project> {
+    return this.createInTransaction(this.prisma, userId, dto);
+  }
+
+  async createInTransaction(
+    client: Prisma.TransactionClient,
+    userId: string,
+    dto: CreateProjectDto,
+  ): Promise<Project> {
     try {
       const archived = dto.archived === true || dto.status === "archived";
       const status = archived ? "archived" : dto.status || "active";
       const archivedAt = archived ? new Date() : null;
-      const row = await this.prisma.project.create({
+      const row = await client.project.create({
         data: {
           name: dto.name,
           description: dto.description,

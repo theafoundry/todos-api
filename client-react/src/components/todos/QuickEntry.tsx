@@ -25,7 +25,11 @@ function parseNaturalDate(input: string): ParsedDate | null {
   const lower = input.toLowerCase();
   const today = new Date();
 
-  const patterns: Array<{ regex: RegExp; resolve: (m: RegExpMatchArray) => Date | null; label: string }> = [
+  const patterns: Array<{
+    regex: RegExp;
+    resolve: (m: RegExpMatchArray) => Date | null;
+    label: string;
+  }> = [
     {
       regex: /\b(today)\b/,
       resolve: () => today,
@@ -41,12 +45,21 @@ function parseNaturalDate(input: string): ParsedDate | null {
       label: "Tomorrow",
     },
     {
-      regex: /\bnext (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
+      regex:
+        /\bnext (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
       resolve: (m) => {
-        const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const days = [
+          "sunday",
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+        ];
         const target = days.indexOf(m[1]);
         const d = new Date(today);
-        const diff = ((target - d.getDay() + 7) % 7) || 7;
+        const diff = (target - d.getDay() + 7) % 7 || 7;
         d.setDate(d.getDate() + diff);
         return d;
       },
@@ -62,9 +75,23 @@ function parseNaturalDate(input: string): ParsedDate | null {
       label: "",
     },
     {
-      regex: /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+(\d{1,2})\b/,
+      regex:
+        /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+(\d{1,2})\b/,
       resolve: (m) => {
-        const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+        const months = [
+          "jan",
+          "feb",
+          "mar",
+          "apr",
+          "may",
+          "jun",
+          "jul",
+          "aug",
+          "sep",
+          "oct",
+          "nov",
+          "dec",
+        ];
         const month = months.indexOf(m[1].slice(0, 3));
         if (month === -1) return null;
         const d = new Date(today.getFullYear(), month, parseInt(m[2]));
@@ -81,11 +108,13 @@ function parseNaturalDate(input: string): ParsedDate | null {
       const date = p.resolve(match);
       if (!date) continue;
       const iso = date.toISOString().split("T")[0];
-      const label = p.label || date.toLocaleDateString(undefined, {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      });
+      const label =
+        p.label ||
+        date.toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
       return { text: label, date: iso };
     }
   }
@@ -93,7 +122,7 @@ function parseNaturalDate(input: string): ParsedDate | null {
 }
 
 function getRouteLabel(route: "task" | "triage") {
-  return route === "task" ? "Create task now" : "Add to Desk";
+  return route === "task" ? "Create task now" : "Save to Inbox";
 }
 
 function formatAssistDueDate(value: string): ParsedDate | null {
@@ -126,6 +155,8 @@ export function QuickEntry({
 }: Props) {
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const submitRef = useRef(false);
   const [parsedDate, setParsedDate] = useState<ParsedDate | null>(null);
   const [dateApplied, setDateApplied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -153,48 +184,60 @@ export function QuickEntry({
     return () => clearTimeout(debounceRef.current);
   }, [title]);
 
-  const handleSubmit = useCallback(async (route: "task" | "triage") => {
-    const trimmed = title.trim();
-    if (!trimmed || submitting) return;
-    setSubmitting(true);
-    try {
-      if (route === "triage") {
-        await onCaptureToDesk(trimmed);
-      } else {
-        const extractedDueDate =
-          suggestion?.extractedFields?.dueDate &&
-          typeof suggestion.extractedFields.dueDate === "string"
-            ? suggestion.extractedFields.dueDate
-            : null;
-        await onAddTask({
-          title: suggestion?.cleanedTitle?.trim() || trimmed,
-          ...(projectId ? { projectId } : {}),
-          ...((dateApplied && parsedDate) || extractedDueDate
-            ? {
-                dueDate:
-                  (dateApplied && parsedDate ? parsedDate.date : null) ??
-                  extractedDueDate,
-              }
-            : {}),
-        });
+  const handleSubmit = useCallback(
+    async (route: "task" | "triage") => {
+      const trimmed = title.trim();
+      if (!trimmed || submitRef.current) return;
+      submitRef.current = true;
+      setSubmitting(true);
+      setError("");
+      try {
+        if (route === "triage") {
+          await onCaptureToDesk(trimmed);
+        } else {
+          const extractedDueDate =
+            suggestion?.extractedFields?.dueDate &&
+            typeof suggestion.extractedFields.dueDate === "string"
+              ? suggestion.extractedFields.dueDate
+              : null;
+          await onAddTask({
+            title: suggestion?.cleanedTitle?.trim() || trimmed,
+            ...(projectId ? { projectId } : {}),
+            ...((dateApplied && parsedDate) || extractedDueDate
+              ? {
+                  dueDate:
+                    (dateApplied && parsedDate ? parsedDate.date : null) ??
+                    extractedDueDate,
+                }
+              : {}),
+          });
+        }
+        setTitle("");
+        setParsedDate(null);
+        setDateApplied(false);
+        inputRef.current?.focus();
+      } catch (failure) {
+        setError(
+          failure instanceof Error
+            ? failure.message
+            : "Could not save this item. Your draft is ready to retry.",
+        );
+      } finally {
+        submitRef.current = false;
+        setSubmitting(false);
       }
-      setTitle("");
-      setParsedDate(null);
-      setDateApplied(false);
-      inputRef.current?.focus();
-    } finally {
-      setSubmitting(false);
-    }
-  }, [
-    title,
-    submitting,
-    projectId,
-    dateApplied,
-    parsedDate,
-    onAddTask,
-    onCaptureToDesk,
-    suggestion,
-  ]);
+    },
+    [
+      title,
+      submitting,
+      projectId,
+      dateApplied,
+      parsedDate,
+      onAddTask,
+      onCaptureToDesk,
+      suggestion,
+    ],
+  );
 
   const routeHint = !title.trim()
     ? ""
@@ -238,6 +281,7 @@ export function QuickEntry({
         placeholder={placeholder}
         aria-label={placeholder}
         value={title}
+        disabled={submitting}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") handleSubmit(preferredRoute);
@@ -248,7 +292,11 @@ export function QuickEntry({
           <button
             className={`natural-date-chip${dateApplied ? " natural-date-chip--applied" : ""}`}
             onClick={() => setDateApplied(!dateApplied)}
-            title={dateApplied ? "Click to remove due date" : "Click to set as due date"}
+            title={
+              dateApplied
+                ? "Click to remove due date"
+                : "Click to set as due date"
+            }
           >
             {parsedDate.text}
             {dateApplied && (
@@ -269,6 +317,11 @@ export function QuickEntry({
         <span className="capture-route-hint" aria-live="polite">
           {routeHint}
         </span>
+      )}
+      {error && (
+        <p role="alert" className="inbox-review__error">
+          {error}
+        </p>
       )}
       <AiOnCreateAssist
         title={title}

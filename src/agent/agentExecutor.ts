@@ -1855,6 +1855,49 @@ export class AgentExecutor {
     const readOnly = false;
     const idempotencyKey = context.idempotencyKey;
 
+    if (
+      action === "capture_inbox_item" &&
+      idempotencyKey &&
+      this.captureService
+    ) {
+      const result = await this.captureService.createWithReceipt(
+        context.userId,
+        input as { text: string; source?: string },
+        idempotencyKey,
+        this.idempotencyService,
+        (item) => ({
+          status: successStatus,
+          body: this.buildSuccessBody(action, readOnly, context, { item }),
+        }),
+      );
+      if (result.kind === "conflict") {
+        throw new AgentExecutionError(
+          409,
+          "IDEMPOTENCY_CONFLICT",
+          "Idempotency key already used for different input",
+          false,
+          "Reuse the original payload or supply a new idempotency key.",
+        );
+      }
+      const body = result.replayed
+        ? {
+            ...result.body,
+            trace: buildTrace(context, {
+              replayed: true,
+              originalRequestId: result.body.trace.requestId,
+            }),
+          }
+        : result.body;
+      this.persistActionAudit(context, {
+        action,
+        readOnly,
+        status: result.status,
+        outcome: "success",
+        replayed: result.replayed,
+      });
+      return { status: result.status, body };
+    }
+
     if (idempotencyKey) {
       const lookup = await this.idempotencyService.lookup(
         action,

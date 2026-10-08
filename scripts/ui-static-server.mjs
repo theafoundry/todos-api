@@ -176,6 +176,7 @@ const server = http.createServer(async (req, res) => {
       "GET:/users/me/settings": () => JSON.stringify({}),
       "GET:/todos": () => JSON.stringify([]),
       "GET:/projects": () => JSON.stringify([]),
+      "GET:/capture": () => JSON.stringify([]),
       "GET:/tuneup": () =>
         JSON.stringify({
           stale: [],

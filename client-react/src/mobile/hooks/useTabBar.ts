@@ -1,16 +1,30 @@
 import { useState, useCallback } from "react";
 import type { WorkspaceView } from "../../components/projects/Sidebar";
 
-export type MobileTab = "focus" | "today" | "projects" | "custom";
+export type MobileTab =
+  | "inbox"
+  | "focus"
+  | "today"
+  | "projects"
+  | "tasks"
+  | "custom";
 
 const CUSTOM_TAB_KEY = "mobile:customTab";
 const ACTIVE_TAB_KEY = "mobile:activeTab";
-const MOBILE_TABS: MobileTab[] = ["focus", "today", "projects", "custom"];
+const MOBILE_TABS: MobileTab[] = [
+  "inbox",
+  "focus",
+  "today",
+  "projects",
+  "tasks",
+  "custom",
+];
 
 export const CUSTOM_TAB_OPTIONS: { key: WorkspaceView; label: string }[] = [
+  { key: "all", label: "Tasks" },
   { key: "horizon", label: "Upcoming" },
-  { key: "all", label: "Everything" },
   { key: "completed", label: "Completed" },
+  { key: "home", label: "Focus" },
 ];
 
 function getStoredTab(): MobileTab {
@@ -18,9 +32,9 @@ function getStoredTab(): MobileTab {
     const stored = sessionStorage.getItem(ACTIVE_TAB_KEY);
     return MOBILE_TABS.includes(stored as MobileTab)
       ? (stored as MobileTab)
-      : "focus";
+      : "inbox";
   } catch {
-    return "focus";
+    return "inbox";
   }
 }
 
@@ -32,7 +46,7 @@ function getStoredCustomView(): WorkspaceView {
   } catch {
     // Use the default view when browser storage is disabled.
   }
-  return "horizon";
+  return "all";
 }
 
 export function useTabBar() {

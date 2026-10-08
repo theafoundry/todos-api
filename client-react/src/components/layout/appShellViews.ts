@@ -60,6 +60,8 @@ export function getViewTitle(
     return project ? project.name : "Project";
   }
   switch (activeView) {
+    case "inbox":
+      return "Inbox";
     case "home":
       return "Focus";
     case "today":
@@ -78,7 +80,7 @@ export function getViewTitle(
     case "completed":
       return "Completed";
     case "all":
-      return "Everything";
+      return "Tasks";
   }
 }
 
@@ -111,10 +113,8 @@ export function isBlockingOverlayOpen(options: {
   );
 }
 
-export function getActiveViewFromHash(
-  hash: string,
-): WorkspaceView | undefined {
-  const match = hash.match(/^#\/(home|today|horizon|completed|all)$/);
+export function getActiveViewFromHash(hash: string): WorkspaceView | undefined {
+  const match = hash.match(/^#\/(inbox|home|today|horizon|completed|all)$/);
   if (!match) return undefined;
   return match[1] as WorkspaceView;
 }

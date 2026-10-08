@@ -138,7 +138,7 @@ export async function installMobileFixture(
     const method = request.method();
     // Only application assets may reach the loopback server; every API route is intercepted.
     if (
-      !/^\/(?:auth|users|todos|projects|ai|api|agent|admin|tuneup|activity|search)(?:\/|$)/.test(
+      !/^\/(?:auth|users|todos|projects|capture|ai|api|agent|admin|tuneup|activity|search)(?:\/|$)/.test(
         path,
       )
     ) {
@@ -169,6 +169,7 @@ export async function installMobileFixture(
       if (path === "/users/me/settings") return json({});
       if (path === "/todos") return json(todos);
       if (path === "/projects") return json(projects);
+      if (path === "/capture") return json([]);
       if (path === "/api/agent-profiles") return json({ agents: [] });
       if (path === "/ai/focus-brief") return json(focusBrief);
     }
@@ -278,6 +279,18 @@ export async function openMobileApp(page: Page) {
   await expect(
     page.getByRole("heading", { name: "Today", exact: true }),
   ).toBeVisible();
+}
+
+/** Focus remains available through More without occupying a fixed primary tab. */
+export async function openMobileFocus(page: Page) {
+  await page
+    .getByRole("button", { name: "Profile and settings", exact: true })
+    .tap();
+  await page
+    .getByRole("dialog", { name: "Profile and settings", exact: true })
+    .getByRole("button", { name: "Focus", exact: true })
+    .tap();
+  await expect(page.locator(".m-carousel")).toBeVisible();
 }
 
 export function taskRow(page: Page, title = MOBILE_TASK_TITLE) {

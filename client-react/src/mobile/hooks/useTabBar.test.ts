@@ -11,9 +11,9 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("useTabBar", () => {
-  it("defaults to focus tab", () => {
+  it("defaults to the capture review Inbox", () => {
     const { result } = renderHook(() => useTabBar());
-    expect(result.current.activeTab).toBe("focus");
+    expect(result.current.activeTab).toBe("inbox");
   });
 
   it("switches tabs", () => {
@@ -35,8 +35,8 @@ describe("useTabBar", () => {
     sessionStorage.setItem("mobile:activeTab", "obsolete-tab");
     localStorage.setItem("mobile:customTab", "obsolete-view");
     const { result } = renderHook(() => useTabBar());
-    expect(result.current.activeTab).toBe("focus");
-    expect(result.current.customView).toBe("horizon");
+    expect(result.current.activeTab).toBe("inbox");
+    expect(result.current.customView).toBe("all");
   });
 
   it("still switches tabs when session storage is unavailable", () => {
@@ -51,9 +51,9 @@ describe("useTabBar", () => {
     expect(result.current.activeTab).toBe("today");
   });
 
-  it("defaults custom tab to horizon (Upcoming)", () => {
+  it("defaults custom tab to Tasks", () => {
     const { result } = renderHook(() => useTabBar());
-    expect(result.current.customView).toBe("horizon");
+    expect(result.current.customView).toBe("all");
   });
 
   it("persists custom view to localStorage", () => {
@@ -67,5 +67,24 @@ describe("useTabBar", () => {
     localStorage.setItem("mobile:customTab", "completed");
     const { result } = renderHook(() => useTabBar());
     expect(result.current.customView).toBe("completed");
+  });
+
+  it("retains the existing Focus session and optional fourth-tab choice", () => {
+    sessionStorage.setItem("mobile:activeTab", "focus");
+    localStorage.setItem("mobile:customTab", "horizon");
+    const { result } = renderHook(() => useTabBar());
+    expect(result.current.activeTab).toBe("focus");
+    expect(result.current.customView).toBe("horizon");
+    act(() => result.current.setCustomView("home"));
+    expect(result.current.customView).toBe("home");
+  });
+
+  it("opens all Tasks without overwriting the configured fourth tab", () => {
+    localStorage.setItem("mobile:customTab", "completed");
+    const { result } = renderHook(() => useTabBar());
+    act(() => result.current.setActiveTab("tasks"));
+    expect(result.current.activeTab).toBe("tasks");
+    expect(result.current.customView).toBe("completed");
+    expect(localStorage.getItem("mobile:customTab")).toBe("completed");
   });
 });

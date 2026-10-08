@@ -1,5 +1,20 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { CaptureService } from "../services/captureService";
+import { validateId, ValidationError } from "../validation/validation";
+
+function requireWebReviewSession(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  if (req.user?.tokenType !== undefined) {
+    res.status(403).json({
+      error: "Review captures using a signed-in web session",
+    });
+    return;
+  }
+  next();
+}
 
 export function createCaptureRouter(captureService: CaptureService): Router {
   const router = Router();
@@ -38,15 +53,77 @@ export function createCaptureRouter(captureService: CaptureService): Router {
       const lifecycleRaw = req.query.lifecycle;
       const lifecycle =
         typeof lifecycleRaw === "string" ? lifecycleRaw : undefined;
-      const items = await captureService.findAll(
-        userId,
-        lifecycle as "new" | "triaged" | "discarded" | undefined,
-      );
+      if (req.query.review !== undefined && req.query.review !== "pending") {
+        throw new ValidationError("review must be pending");
+      }
+      const items =
+        req.query.review === "pending"
+          ? await captureService.findPendingReview(userId)
+          : await captureService.findAll(
+              userId,
+              lifecycle as "new" | "triaged" | "discarded" | undefined,
+            );
       res.json(items);
     } catch (error) {
       next(error);
     }
   });
+
+  router.post(
+    "/:id/accept",
+    requireWebReviewSession,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+        const id = req.params.id as string;
+        validateId(id);
+        const body = req.body ?? {};
+        if (
+          !body ||
+          typeof body !== "object" ||
+          Array.isArray(body) ||
+          Object.keys(body).some((key) => key !== "title")
+        ) {
+          throw new ValidationError(
+            "Only title may be supplied when accepting a capture",
+          );
+        }
+        if (
+          body.title !== undefined &&
+          (typeof body.title !== "string" ||
+            !body.title.trim() ||
+            body.title.trim().length > 200)
+        ) {
+          throw new ValidationError("title must contain 1 to 200 characters");
+        }
+        const result = await captureService.acceptAsTask(
+          userId,
+          id,
+          body.title,
+        );
+        return res.status(result.created ? 201 : 200).json(result);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/discard",
+    requireWebReviewSession,
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+        const id = req.params.id as string;
+        validateId(id);
+        return res.json(await captureService.discard(userId, id));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   router.get(
     "/:id",
@@ -102,6 +179,7 @@ export function createCaptureRouter(captureService: CaptureService): Router {
           id,
           lifecycle as "new" | "triaged" | "discarded",
           triageResult,
+          { allowRestore: lifecycle !== "discarded" },
         );
         if (!item) {
           res.status(404).json({ error: "Not found" });
