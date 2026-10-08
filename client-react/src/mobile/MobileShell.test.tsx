@@ -16,6 +16,10 @@ vi.mock("../auth/AuthProvider", () => ({
 vi.mock("../store/useTodosStore", () => ({
   useTodosStore: () => ({
     todos: [],
+    loadState: "loaded",
+    errorMessage: "",
+    getTodo: vi.fn(),
+    getTodos: () => [],
     loadTodos: vi.fn().mockResolvedValue(undefined),
     addTodo: vi.fn().mockResolvedValue(undefined),
     toggleTodo: vi.fn().mockResolvedValue(undefined),
@@ -27,6 +31,7 @@ vi.mock("../store/useTodosStore", () => ({
 vi.mock("../store/useProjectsStore", () => ({
   useProjectsStore: () => ({
     projects: [],
+    getProjects: () => [],
     loadProjects: vi.fn().mockResolvedValue(undefined),
   }),
 }));
@@ -84,7 +89,8 @@ vi.mock("./components/ProfileSheet", () => ({
 }));
 
 vi.mock("./components/FieldPicker", () => ({
-  FieldPicker: ({ label }: any) => createElement("div", { "data-testid": `field-${label}` }),
+  FieldPicker: ({ label }: any) =>
+    createElement("div", { "data-testid": `field-${label}` }),
 }));
 
 vi.mock("./components/PullToSearch", () => ({
@@ -92,15 +98,18 @@ vi.mock("./components/PullToSearch", () => ({
 }));
 
 vi.mock("./components/PullToRefresh", () => ({
-  PullToRefresh: ({ children }: any) => createElement("div", { "data-testid": "pull-to-refresh" }, children),
+  PullToRefresh: ({ children }: any) =>
+    createElement("div", { "data-testid": "pull-to-refresh" }, children),
 }));
 
 vi.mock("./components/OfflineBanner", () => ({
-  OfflineBanner: () => createElement("div", { "data-testid": "offline-banner" }),
+  OfflineBanner: () =>
+    createElement("div", { "data-testid": "offline-banner" }),
 }));
 
 vi.mock("./components/InstallBanner", () => ({
-  InstallBanner: () => createElement("div", { "data-testid": "install-banner" }),
+  InstallBanner: () =>
+    createElement("div", { "data-testid": "install-banner" }),
 }));
 
 vi.mock("./components/Onboarding", () => ({
@@ -112,7 +121,8 @@ vi.mock("./components/SnoozePicker", () => ({
 }));
 
 vi.mock("./components/Illustrations", () => ({
-  IllustrationConstruction: () => createElement("div", { "data-testid": "illustration-construction" }),
+  IllustrationConstruction: () =>
+    createElement("div", { "data-testid": "illustration-construction" }),
 }));
 
 vi.mock("./screens/FocusScreen", () => ({
@@ -124,7 +134,8 @@ vi.mock("./screens/TodayScreen", () => ({
 }));
 
 vi.mock("./screens/ProjectsScreen", () => ({
-  ProjectsScreen: () => createElement("div", { "data-testid": "projects-screen" }),
+  ProjectsScreen: () =>
+    createElement("div", { "data-testid": "projects-screen" }),
 }));
 
 vi.mock("./screens/CustomScreen", () => ({

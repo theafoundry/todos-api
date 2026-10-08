@@ -1,0 +1,50 @@
+.timeline--actions {
+  padding-left: 0;
+}
+.timeline--actions .timeline__line {
+  left: 22px;
+}
+.timeline--actions .timeline__item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.timeline--actions .timeline__toggle {
+  flex: 0 0 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.timeline--actions .timeline__toggle:disabled {
+  opacity: 0.5;
+}
+.timeline--actions .timeline__toggle:focus-visible {
+  outline: 2px solid var(--tarot-gold);
+  border-radius: 4px;
+}
+.timeline--actions .timeline__dot {
+  display: block;
+  position: static;
+  margin: auto;
+  width: 18px;
+  height: 18px;
+  line-height: 14px;
+  text-align: center;
+  font-size: 12px;
+}
+.timeline--actions .timeline__content {
+  flex: 1;
+  min-width: 0;
+}
+.timeline--actions .timeline__title {
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+.timeline--actions .timeline__meta {
+  margin-left: 6px;
+}

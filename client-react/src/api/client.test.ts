@@ -31,7 +31,9 @@ describe("api/client", () => {
   describe("apiCall", () => {
     it("includes auth token header when present", async () => {
       localStorage.setItem("authToken", "token-123");
-      vi.mocked(global.fetch).mockResolvedValue(new Response("{}", { status: 200 }));
+      vi.mocked(global.fetch).mockResolvedValue(
+        new Response("{}", { status: 200 }),
+      );
 
       await apiCall("/todos");
 
@@ -46,7 +48,9 @@ describe("api/client", () => {
     });
 
     it("does not include auth header when no token", async () => {
-      vi.mocked(global.fetch).mockResolvedValue(new Response("{}", { status: 200 }));
+      vi.mocked(global.fetch).mockResolvedValue(
+        new Response("{}", { status: 200 }),
+      );
 
       await apiCall("/auth/register", { method: "POST" });
 
@@ -61,7 +65,9 @@ describe("api/client", () => {
     });
 
     it("merges custom headers", async () => {
-      vi.mocked(global.fetch).mockResolvedValue(new Response("{}", { status: 200 }));
+      vi.mocked(global.fetch).mockResolvedValue(
+        new Response("{}", { status: 200 }),
+      );
 
       await apiCall("/todos", {
         headers: { "X-Custom": "value" },
@@ -85,9 +91,12 @@ describe("api/client", () => {
       mockFetch
         .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
         .mockResolvedValueOnce(
-          new Response(JSON.stringify({ token: "new-token", refreshToken: "new-refresh" }), {
-            status: 200,
-          }),
+          new Response(
+            JSON.stringify({ token: "new-token", refreshToken: "new-refresh" }),
+            {
+              status: 200,
+            },
+          ),
         )
         .mockResolvedValueOnce(new Response("{}", { status: 200 }));
 
@@ -103,13 +112,17 @@ describe("api/client", () => {
 
     it("returns 401 response when no refresh token (caller handles navigation)", async () => {
       localStorage.setItem("authToken", "token-123");
-      vi.mocked(global.fetch).mockResolvedValue(new Response("Unauthorized", { status: 401 }));
+      vi.mocked(global.fetch).mockResolvedValue(
+        new Response("Unauthorized", { status: 401 }),
+      );
 
       const res = await apiCall("/todos");
 
       expect(res.status).toBe(401);
       // No navigation — caller handles the 401
-      expect(vi.mocked(pageTransitions.navigateWithFade)).not.toHaveBeenCalled();
+      expect(
+        vi.mocked(pageTransitions.navigateWithFade),
+      ).not.toHaveBeenCalled();
     });
 
     it("navigates to auth on 401 when refresh fails", async () => {
@@ -138,28 +151,37 @@ describe("api/client", () => {
       });
       mockFetch
         .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
-        .mockImplementation(() => refreshPromise as any);
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockImplementationOnce(() => refreshPromise)
+        .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+        .mockResolvedValueOnce(new Response("{}", { status: 200 }));
 
       // Fire two concurrent calls that both get 401
       const call1 = apiCall("/todos");
       const call2 = apiCall("/users/me");
 
-      // Resolve the refresh
+      await vi.waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
+      // Resolve the one shared refresh after both original requests returned401.
       resolveRefresh!(
-        new Response(JSON.stringify({ token: "new", refreshToken: "new-refresh" }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({ token: "new", refreshToken: "new-refresh" }),
+          {
+            status: 200,
+          },
+        ),
       );
-      mockFetch.mockResolvedValueOnce(new Response("{}", { status: 200 })); // retry for call1
-      mockFetch.mockResolvedValueOnce(new Response("{}", { status: 200 })); // retry for call2
 
       const [res1, res2] = await Promise.all([call1, call2]);
 
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);
-      // Only 3 fetches: original 401, refresh, 2 retries = but the refresh is deduplicated
-      // So: call1-401, refresh, call1-retry, call2-retry = 4 total
-      expect(mockFetch).toHaveBeenCalledTimes(4);
+      // Two original401s, one refresh, and two retries.
+      expect(mockFetch).toHaveBeenCalledTimes(5);
+      expect(
+        mockFetch.mock.calls.filter(([url]) =>
+          String(url).endsWith("/auth/refresh"),
+        ),
+      ).toHaveLength(1);
     });
 
     it("clears all auth storage on refresh failure", async () => {
@@ -195,29 +217,104 @@ describe("api/client", () => {
     });
   });
 
+  describe("manual offline authentication", () => {
+    it("preserves manual retry mode through token refresh and the retried write", async () => {
+      localStorage.setItem("authToken", "old-token");
+      localStorage.setItem("refreshToken", "refresh-123");
+      const mockFetch = vi.mocked(global.fetch);
+      mockFetch
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ token: "new-token", refreshToken: "new-refresh" }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+      await apiCall("/todos", {
+        method: "POST",
+        headers: { "X-Planwren-Offline-Mode": "manual" },
+      });
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        "http://localhost:3000/auth/refresh",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "X-Planwren-Offline-Mode": "manual",
+          }),
+        }),
+      );
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        3,
+        "http://localhost:3000/todos",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "X-Planwren-Offline-Mode": "manual",
+            Authorization: "Bearer new-token",
+          }),
+        }),
+      );
+    });
+
+    it.each([
+      new Response(JSON.stringify({ queued: true }), { status: 202 }),
+      new Response(JSON.stringify({ success: true }), { status: 200 }),
+    ])(
+      "never stores a queue receipt or invalid token response as credentials",
+      async (refreshResponse) => {
+        localStorage.setItem("authToken", "old-token");
+        localStorage.setItem("refreshToken", "refresh-123");
+        const mockFetch = vi.mocked(global.fetch);
+        mockFetch
+          .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+          .mockResolvedValueOnce(refreshResponse);
+        const response = await apiCall("/todos", {
+          method: "POST",
+          headers: { "X-Planwren-Offline-Mode": "manual" },
+        });
+        expect(response.status).toBe(401);
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(localStorage.getItem("authToken")).toBeNull();
+        expect(localStorage.getItem("refreshToken")).toBeNull();
+        expect(pageTransitions.navigateWithFade).toHaveBeenCalledWith(
+          "/auth?next=/app",
+          { replace: true },
+        );
+      },
+    );
+  });
+
   describe("buildUrl", () => {
     it("returns path unchanged with no params", () => {
       expect(buildUrl("/todos")).toBe("/todos");
     });
 
     it("appends query params", () => {
-      expect(buildUrl("/todos", { projectId: "proj-1", completed: false })).toBe(
-        "/todos?projectId=proj-1&completed=false",
-      );
+      expect(
+        buildUrl("/todos", { projectId: "proj-1", completed: false }),
+      ).toBe("/todos?projectId=proj-1&completed=false");
     });
 
     it("omits null and undefined params", () => {
-      expect(buildUrl("/todos", { projectId: null, status: undefined, completed: true })).toBe(
-        "/todos?completed=true",
-      );
+      expect(
+        buildUrl("/todos", {
+          projectId: null,
+          status: undefined,
+          completed: true,
+        }),
+      ).toBe("/todos?completed=true");
     });
 
     it("omits empty string params", () => {
-      expect(buildUrl("/todos", { projectId: "", status: "next" })).toBe("/todos?status=next");
+      expect(buildUrl("/todos", { projectId: "", status: "next" })).toBe(
+        "/todos?status=next",
+      );
     });
 
     it("handles numeric params", () => {
-      expect(buildUrl("/todos", { limit: 20, offset: 0 })).toBe("/todos?limit=20&offset=0");
+      expect(buildUrl("/todos", { limit: 20, offset: 0 })).toBe(
+        "/todos?limit=20&offset=0",
+      );
     });
   });
 });

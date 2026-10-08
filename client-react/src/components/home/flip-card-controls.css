@@ -1,0 +1,47 @@
+.flip-card .dog-ear {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0 6px 0 6px;
+  background: transparent;
+  color: var(--tarot-muted, #8a7e6e);
+  font: inherit;
+}
+.dog-ear__label {
+  position: relative;
+  display: block;
+  font-size: 16px;
+  line-height: 44px;
+  text-align: center;
+}
+.flip-card .dog-ear:focus-visible {
+  outline: 2px solid var(--tarot-muted, #8a7e6e);
+  outline-offset: -2px;
+}
+
+/* The fold control is a sibling of .tarot-card, where these tokens are scoped. */
+.flip-card .dog-ear__fold {
+  border-color: transparent
+    color-mix(in oklab, var(--tarot-muted, #8a7e6e) 15%, transparent)
+    transparent transparent;
+}
+.flip-card .dog-ear__under {
+  border-color: transparent var(--tarot-parchment, #faf8f5) transparent
+    transparent;
+}
+.flip-card .dog-ear:hover .dog-ear__fold {
+  border-color: transparent
+    color-mix(in oklab, var(--tarot-muted, #8a7e6e) 30%, transparent)
+    transparent transparent;
+}
+
+/* WebKit can flatten a scrolling 3D face; backface-visibility alone can bleed. */
+.flip-card__front[aria-hidden="true"],
+.flip-card__back[aria-hidden="true"] {
+  visibility: hidden;
+}
+.flip-card__front[aria-hidden="false"],
+.flip-card__back[aria-hidden="false"] {
+  visibility: visible;
+}

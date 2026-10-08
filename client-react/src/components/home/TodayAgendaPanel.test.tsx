@@ -99,4 +99,52 @@ describe("TodayAgendaPanel", () => {
     );
     expect(screen.getByText(/Light day/)).toBeTruthy();
   });
+
+  it("separates completion from opening a task and disables duplicate actions while pending", () => {
+    const onToggle = vi.fn();
+    const onTaskClick = vi.fn();
+    const items: AgendaItem[] = [
+      {
+        id: "1",
+        title: "Agenda task",
+        dueDate: null,
+        estimateMinutes: null,
+        priority: "normal",
+        overdue: false,
+        completed: false,
+      },
+    ];
+    const { rerender } = render(
+      ce(TodayAgendaPanel, { items, onTaskClick, onToggle }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Complete Agenda task" }),
+    );
+    expect(onToggle).toHaveBeenCalledWith("1", true);
+    expect(onTaskClick).not.toHaveBeenCalled();
+    rerender(
+      ce(TodayAgendaPanel, {
+        items,
+        onTaskClick,
+        onToggle,
+        pendingIds: new Set(["1"]),
+      }),
+    );
+    const toggle = screen.getByRole("button", { name: "Complete Agenda task" });
+    expect(toggle).toBeDisabled();
+    expect(toggle).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(toggle);
+    expect(onToggle).toHaveBeenCalledOnce();
+    rerender(
+      ce(TodayAgendaPanel, {
+        items: [{ ...items[0], completed: true }],
+        onTaskClick,
+        onToggle,
+      }),
+    );
+    const reopen = screen.getByRole("button", { name: "Reopen Agenda task" });
+    expect(reopen).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(reopen);
+    expect(onToggle).toHaveBeenLastCalledWith("1", false);
+  });
 });

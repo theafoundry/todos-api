@@ -20,7 +20,7 @@ export function OfflineBanner() {
     <div className="m-offline-banner" role="status">
       <span className="m-offline-banner__dot" />
       <span className="m-offline-banner__text">
-        You're offline — changes will sync when you reconnect
+        You're offline. Keep your draft and retry saving when you reconnect.
       </span>
     </div>
   );

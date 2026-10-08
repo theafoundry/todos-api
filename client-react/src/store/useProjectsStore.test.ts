@@ -46,6 +46,7 @@ describe("useProjectsStore", () => {
 
       await act(async () => {
         await result.current.loadProjects();
+        expect(result.current.getProjects()).toEqual(projects);
       });
 
       expect(projectsApi.fetchProjects).toHaveBeenCalled();
@@ -54,7 +55,9 @@ describe("useProjectsStore", () => {
     });
 
     it("handles load failure gracefully (projects may not be configured)", async () => {
-      vi.mocked(projectsApi.fetchProjects).mockRejectedValue(new Error("Not configured"));
+      vi.mocked(projectsApi.fetchProjects).mockRejectedValue(
+        new Error("Not configured"),
+      );
 
       const { result } = renderHook(() => useProjectsStore());
 
@@ -65,6 +68,22 @@ describe("useProjectsStore", () => {
       // Should not crash — projects stay empty, loading stops
       expect(result.current.projects).toEqual([]);
       expect(result.current.loading).toBe(false);
+    });
+
+    it("retains visible projects and reports a failed refresh truthfully", async () => {
+      const project = makeProject();
+      vi.mocked(projectsApi.fetchProjects)
+        .mockResolvedValueOnce([project])
+        .mockRejectedValueOnce(new Error("Connection lost"));
+      const { result } = renderHook(() => useProjectsStore());
+      await act(async () => {
+        expect(await result.current.loadProjects()).toBe(true);
+      });
+      await act(async () => {
+        expect(await result.current.loadProjects()).toBe(false);
+      });
+      expect(result.current.projects).toEqual([project]);
+      expect(result.current.error).toBe("Connection lost");
     });
   });
 });

@@ -52,4 +52,42 @@ describe("useSwipeAction", () => {
     expect(result.current.state).toBe("idle");
     expect(result.current.offsetX).toBe(0);
   });
+  it("locks vertical movement so later horizontal movement cannot complete a task", () => {
+    const { result } = renderHook(() => useSwipeAction());
+    act(() => result.current.onTouchStart(100, 100));
+    act(() => result.current.onTouchMove(105, 125));
+    act(() => result.current.onTouchMove(230, 125));
+    let direction: string | null = "right";
+    act(() => {
+      direction = result.current.onTouchEnd();
+    });
+    expect(direction).toBeNull();
+    expect(result.current.offsetX).toBe(0);
+  });
+
+  it("rejects an ambiguous diagonal gesture even if it later becomes horizontal", () => {
+    const { result } = renderHook(() => useSwipeAction());
+    act(() => result.current.onTouchStart(100, 100));
+    act(() => result.current.onTouchMove(125, 125));
+    act(() => result.current.onTouchMove(230, 125));
+    let direction: string | null = "right";
+    act(() => {
+      direction = result.current.onTouchEnd();
+    });
+    expect(direction).toBeNull();
+  });
+
+  it("clears a cancelled horizontal gesture without committing it", () => {
+    const { result } = renderHook(() => useSwipeAction());
+    act(() => result.current.onTouchStart(100, 100));
+    act(() => result.current.onTouchMove(230, 100));
+    act(() => result.current.onTouchCancel());
+    let direction: string | null = "right";
+    act(() => {
+      direction = result.current.onTouchEnd();
+    });
+    expect(direction).toBeNull();
+    expect(result.current.offsetX).toBe(0);
+    expect(result.current.state).toBe("idle");
+  });
 });

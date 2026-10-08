@@ -2,12 +2,23 @@ const CACHE_NAME = "todos-react-fold-v1";
 const DB_NAME = "todos-offline";
 const STORE_NAME = "mutations";
 const MUTATION_TTL = 24 * 60 * 60 * 1000; // 24 hours
+let replayPromise;
 
 // Static assets to pre-cache
 const PRE_CACHE = ["/app-react/"];
 
 // API paths that should never be cached
-const API_PREFIXES = ["/auth", "/todos", "/users", "/admin", "/ai", "/projects", "/agent", "/mcp", "/api"];
+const API_PREFIXES = [
+  "/auth",
+  "/todos",
+  "/users",
+  "/admin",
+  "/ai",
+  "/projects",
+  "/agent",
+  "/mcp",
+  "/api",
+];
 
 // Install: pre-cache shell
 self.addEventListener("install", (event) => {
@@ -20,11 +31,13 @@ self.addEventListener("install", (event) => {
 // Activate: clean old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)),
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)),
+        ),
       ),
-    ),
   );
   self.clients.claim();
 });
@@ -40,6 +53,12 @@ self.addEventListener("fetch", (event) => {
   const isApi = API_PREFIXES.some((p) => url.pathname.startsWith(p));
   if (isApi) {
     if (event.request.method === "GET") return; // Let browser handle
+
+    // Manual retry callers must receive failures, not an automatic queue receipt.
+    if (event.request.headers.get("X-Planwren-Offline-Mode") === "manual") {
+      event.respondWith(fetch(event.request.clone()));
+      return;
+    }
 
     // Mutable API requests: try network, queue on failure
     event.respondWith(
@@ -58,16 +77,28 @@ self.addEventListener("fetch", (event) => {
 
   // Static assets: network-first for HTML/JS/CSS, cache-first for images/fonts
   const ext = url.pathname.split(".").pop() || "";
-  const cacheFirst = ["png", "jpg", "jpeg", "svg", "woff", "woff2", "ico"].includes(ext);
+  const cacheFirst = [
+    "png",
+    "jpg",
+    "jpeg",
+    "svg",
+    "woff",
+    "woff2",
+    "ico",
+  ].includes(ext);
 
   if (cacheFirst) {
     event.respondWith(
-      caches.match(event.request).then((cached) =>
-        cached || fetch(event.request).then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return res;
-        }),
+      caches.match(event.request).then(
+        (cached) =>
+          cached ||
+          fetch(event.request).then((res) => {
+            const clone = res.clone();
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, clone));
+            return res;
+          }),
       ),
     );
   } else {
@@ -76,12 +107,16 @@ self.addEventListener("fetch", (event) => {
       fetch(event.request)
         .then((res) => {
           const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          caches
+            .open(CACHE_NAME)
+            .then((cache) => cache.put(event.request, clone));
           return res;
         })
-        .catch(() => caches.match(event.request).then((cached) =>
-          cached || caches.match("/app-react/"),
-        )),
+        .catch(() =>
+          caches
+            .match(event.request)
+            .then((cached) => cached || caches.match("/app-react/")),
+        ),
     );
   }
 });
@@ -96,7 +131,7 @@ self.addEventListener("sync", (event) => {
 // Listen for manual replay trigger from client
 self.addEventListener("message", (event) => {
   if (event.data === "replay-mutations") {
-    replayMutations();
+    event.waitUntil(replayMutations());
   }
 });
 
@@ -106,7 +141,10 @@ function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+      req.result.createObjectStore(STORE_NAME, {
+        keyPath: "id",
+        autoIncrement: true,
+      });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -131,7 +169,16 @@ async function queueMutation(request) {
   });
 }
 
-async function replayMutations() {
+function replayMutations() {
+  if (!replayPromise) {
+    replayPromise = performReplay().finally(() => {
+      replayPromise = undefined;
+    });
+  }
+  return replayPromise;
+}
+
+async function performReplay() {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readonly");
   const store = tx.objectStore(STORE_NAME);
