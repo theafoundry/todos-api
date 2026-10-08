@@ -1,64 +1,70 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { FlipCard } from "./FlipCard";
+import { CardInteractionContext } from "./CardInteractionContext";
 
 describe("FlipCard", () => {
-  it("shows front by default", () => {
-    render(
+  it("exposes only front actions initially", () => {
+    const { container } = render(
       <FlipCard
-        front={<div>Front content</div>}
-        back={<div>Back content</div>}
+        front={<button>Open task</button>}
+        back={<button>Read source</button>}
       />,
     );
-    expect(screen.getByText("Front content")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open task" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Read source" })).toBeNull();
+    expect(container.querySelector(".flip-card__back")).toHaveAttribute(
+      "inert",
+    );
   });
 
-  it("flips to back when dog-ear is clicked", () => {
-    render(
+  it("flips using named buttons and moves focus to the newly operable face", () => {
+    const { container } = render(
       <FlipCard
-        front={<div>Front content</div>}
-        back={<div>Back content</div>}
+        front={<button>Open task</button>}
+        back={<button>Read source</button>}
       />,
     );
-    const dogEar = screen.getAllByTitle(/flip/i)[0];
-    fireEvent.click(dogEar);
-    // After flip, back should be visible (the card has rotated)
-    expect(screen.getByText("Back content")).toBeInTheDocument();
+    const about = screen.getByRole("button", { name: "About this card" });
+    expect(about).toHaveAttribute("type", "button");
+    fireEvent.click(about);
+    expect(container.querySelector(".flip-card")).toHaveClass(
+      "flip-card--flipped",
+    );
+    expect(container.querySelector(".flip-card__front")).toHaveAttribute(
+      "inert",
+    );
+    expect(screen.queryByRole("button", { name: "Open task" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Show card front" }),
+    ).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: "Read source" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show card front" }));
+    expect(container.querySelector(".flip-card")).not.toHaveClass(
+      "flip-card--flipped",
+    );
+    expect(
+      screen.getByRole("button", { name: "About this card" }),
+    ).toHaveFocus();
   });
 
-  it("flips back to front when back dog-ear is clicked", () => {
-    render(
-      <FlipCard
-        front={<div>Front content</div>}
-        back={<div>Back content</div>}
-      />,
+  it("reports flipped state to a carousel and resets when its slide becomes inactive", () => {
+    const onFlipChange = vi.fn();
+    const view = (active: boolean) => (
+      <CardInteractionContext.Provider value={{ active, onFlipChange }}>
+        <FlipCard front="Front" back="Back" />
+      </CardInteractionContext.Provider>
     );
-    // Flip to back
-    const dogEars = screen.getAllByTitle(/flip/i);
-    fireEvent.click(dogEars[0]);
-    // Flip back to front
-    const backDogEars = screen.getAllByTitle(/flip/i);
-    fireEvent.click(backDogEars[1] || backDogEars[0]);
-    // Should show front again
-    expect(screen.getByText("Front content")).toBeInTheDocument();
-  });
-
-  it("toggles flip state on dog-ear click", () => {
-    render(
-      <FlipCard
-        front={<div>Front</div>}
-        back={<div>Back</div>}
-      />,
+    const { rerender, container } = render(view(true));
+    fireEvent.click(screen.getByRole("button", { name: "About this card" }));
+    expect(onFlipChange).toHaveBeenCalledWith(true);
+    rerender(view(false));
+    expect(container.querySelector(".flip-card")).not.toHaveClass(
+      "flip-card--flipped",
     );
-    expect(document.querySelector(".flip-card--flipped")).not.toBeInTheDocument();
-
-    const dogEar = screen.getAllByTitle(/flip/i)[0];
-    fireEvent.click(dogEar);
-    expect(document.querySelector(".flip-card--flipped")).toBeInTheDocument();
-
-    // Flip back
-    const backDogEars = screen.getAllByTitle(/flip/i);
-    fireEvent.click(backDogEars[1] || backDogEars[0]);
-    expect(document.querySelector(".flip-card--flipped")).not.toBeInTheDocument();
   });
 });

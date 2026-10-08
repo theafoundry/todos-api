@@ -1,5 +1,23 @@
 # Brief — Current Project Context
 
+## Current React/mobile context — 2026-10-08 candidate
+
+The current web client is React + Vite in `client-react/`; the previous vanilla client is archived (see `docs/reference/vanilla-client-archive.md`). Earlier brief sections about `client/modules`, `store.js`, EventBus, `switchView` and Railway describe historical work, not current React mobile architecture or deployment verification. Express + Prisma + PostgreSQL remain the backend. Desktop `AppShell` and mobile `MobileShell` are separate rendering paths; the mobile breakpoint is ≤700 CSS pixels.
+
+The mobile reliability candidate starts from verified snapshot `37f59cd1a2154f2461d2f43fe4f66c7f9c4364d6`. The candidate is on `codex/planwren-mobile-reliability`; the draft PR records its exact SHA and checks. It is not a new deployment. User authorization covers implementation and draft PR work; merge/deploy and production task mutation are not implied.
+
+The bounded mobile model is list/card → Details → Edit draft → explicit Save, with one shared frame, local drafts, More details, retained failures and synchronous pending ownership. Complete/Reopen, Undo, reschedule and confirmed Delete use consistent feedback. Uncertain outcomes refresh/reconcile before another write; mobile offline mode retains drafts for explicit retry rather than promising queued synchronization. Service-worker behavior and desktop shared-API changes require separate regression checks.
+
+Plan for is scheduledDate, distinct from Due by. Existing exact values are preserved unless changed; explicitly selected deadlines use the end of the device-local day and display its timezone. Account timezone is not available in the browser user DTO. Legacy midnight deadlines preserve their named day and require an explicit normalization action when needed.
+
+Mobile tabs, selected project and native scroll restore safely; browser history contains markers, not draft contents. Back consults the active dirty/pending owner, and Forward cannot resurrect discarded/saved sheets. Reload resets transient sheets. Background refresh retains data, surfaces errors and updates task/project/Focus reads while continuing to record user scroll.
+
+Keep Fold's Focus cards and compact Today/Everything/project lists. Current work repairs clipped agenda access, named card navigation/flip controls, inactive-face focus isolation, project routing and gesture/count recovery. No card hiding or broad redesign is authorized; a denser or shorter preview remains a later product choice.
+
+The regression setup uses strict isolated synthetic fixtures in Chromium/WebKit touch, plus focused draft/store/navigation/date/worker tests. Final-SHA CI, authenticated UI-to-backend persistence and real-iPhone Safari are pending until results are recorded. Final device checks must include keyboard, native date controls, edge Back, safe areas/rotation, network recovery and VoiceOver on the exact candidate. Emulation is preliminary evidence only.
+
+## Historical context through March 2026
+
 Target: <=2 pages. When this grows beyond 2 pages, compact:
 extract new rules -> Canon, archive old sections -> Archive, reset Brief.
 
@@ -104,6 +122,7 @@ Four PRs forming a coherent sequence: decouple render triggers → tighten modul
 - **PR #202 (Task 159):** Overlay coordination centralized via expanded `overlayManager.js`. Selector layer (`selectorLayer.js`) and targeted row patching (`todosViewPatches.js`) introduced to reduce avoidable full rerenders. Full rerender fallbacks preserved.
 
 Key invariants added by P1:
+
 - EventBus is the only render trigger — domain modules emit, renderers subscribe
 - `filterTodosList()` is a pure function (no DOM reads)
 - All overlay open/close goes through OverlayManager
@@ -113,6 +132,7 @@ Key invariants added by P1:
 ## P3 Sprint — COMPLETE (PR #207, Task 163, merged 2026-03-10)
 
 Responsive architecture cleanup, targeted DOM patching, and debounce narrowing.
+
 - `responsiveLayout.js` (new) — single owner of viewport mode and rail presentation state
 - `stateActions.js` + `store.js` — viewport and rail presentation actions/fields added
 - `railUi.js` — targeted project row reconciliation by identity; no more container replacement
@@ -121,11 +141,13 @@ Responsive architecture cleanup, targeted DOM patching, and debounce narrowing.
 - `taskDrawerAssist.js` + `filterLogic.js` — viewport inference routed through responsiveLayout.js
 
 Key invariants added by P3:
+
 - Responsive state is owned in one place — consumers never infer viewport independently
 - Project row updates are targeted; container replacement eliminated from the rail
 - Debounce applies to filter/search only, not all declarative inputs
 
 Three new focused modules reducing structural duplication in high-churn UI flows:
+
 - `stateActions.js` — explicit `applyUiAction(type, payload)` dispatcher replacing ad-hoc boolean writes
 - `asyncLifecycle.js` — `runAsyncLifecycle()` helper normalizing load/error/empty patterns
 - `uiTemplates.js` — shared string-template helpers replacing duplicated inline HTML construction

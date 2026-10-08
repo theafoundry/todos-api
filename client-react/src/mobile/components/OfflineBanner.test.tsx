@@ -37,6 +37,8 @@ describe("OfflineBanner", () => {
     render(ce(OfflineBanner));
     expect(screen.getByRole("status")).toBeTruthy();
     expect(screen.getByText(/You're offline/i)).toBeTruthy();
+    expect(screen.getByText(/retry saving when you reconnect/i)).toBeTruthy();
+    expect(screen.queryByText(/will sync/i)).toBeNull();
   });
 
   it("shows after offline event", async () => {

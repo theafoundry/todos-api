@@ -4,12 +4,14 @@ import { TarotCardFront, TarotCardBack } from "./TarotCard";
 import { CardBackContent } from "./CardBack";
 import { SunriseArt } from "./pixel-art";
 import type { AgendaItem, PanelProvenance } from "../../types/focusBrief";
+import "./agenda-actions.css";
 
 interface Props {
   items: AgendaItem[];
   provenance?: PanelProvenance;
   onTaskClick: (id: string) => void;
   onToggle: (id: string, completed: boolean) => void;
+  pendingIds?: ReadonlySet<string>;
 }
 
 // Data-viz palette (Okabe-Ito adapted, colorblind-safe) — categorical
@@ -23,7 +25,13 @@ function dotColor(item: AgendaItem): string {
   return "var(--viz-2)";
 }
 
-export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle: _onToggle }: Props) {
+export function TodayAgendaPanel({
+  items,
+  provenance,
+  onTaskClick,
+  onToggle,
+  pendingIds,
+}: Props) {
   const front = (
     <TarotCardFront
       name="The Dawn"
@@ -39,13 +47,33 @@ export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle: _on
         <p className="tarot-light-day">All clear. Enjoy your day.</p>
       ) : (
         <>
-          <div className="timeline">
+          <div className="timeline timeline--actions">
             <div className="timeline__line" />
             {items.map((item) => (
               <div key={item.id} className="timeline__item">
-                <div className="timeline__dot" style={{ background: dotColor(item) }} />
+                <button
+                  type="button"
+                  className="timeline__toggle"
+                  aria-label={`${item.completed ? "Reopen" : "Complete"} ${item.title}`}
+                  aria-pressed={item.completed}
+                  aria-busy={pendingIds?.has(item.id) ?? false}
+                  disabled={pendingIds?.has(item.id)}
+                  onClick={() => onToggle(item.id, !item.completed)}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="timeline__dot"
+                    style={{ background: dotColor(item) }}
+                  >
+                    {pendingIds?.has(item.id) ? "…" : item.completed ? "✓" : ""}
+                  </span>
+                </button>
                 <div className="timeline__content">
-                  <button className="timeline__title" onClick={() => onTaskClick(item.id)}>
+                  <button
+                    type="button"
+                    className="timeline__title"
+                    onClick={() => onTaskClick(item.id)}
+                  >
                     {item.title}
                   </button>
                   <span className="timeline__meta">

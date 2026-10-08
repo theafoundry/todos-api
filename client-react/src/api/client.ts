@@ -23,7 +23,7 @@ function clearAuth() {
   localStorage.removeItem("user");
 }
 
-async function refreshAccessToken(): Promise<boolean> {
+async function refreshAccessToken(manualRetry = false): Promise<boolean> {
   const refresh = getRefreshToken();
   if (!refresh) return false;
 
@@ -33,14 +33,26 @@ async function refreshAccessToken(): Promise<boolean> {
     try {
       const res = await fetch(`${API_URL}/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(manualRetry && { "X-Planwren-Offline-Mode": "manual" }),
+        },
         body: JSON.stringify({ refreshToken: refresh }),
       });
-      if (!res.ok) {
+      if (!res.ok || res.status === 202) {
         clearAuth();
         return false;
       }
       const data = await res.json();
+      if (
+        typeof data.token !== "string" ||
+        !data.token ||
+        typeof data.refreshToken !== "string" ||
+        !data.refreshToken
+      ) {
+        clearAuth();
+        return false;
+      }
       setTokens(data.token, data.refreshToken);
       return true;
     } catch {
@@ -70,7 +82,9 @@ export async function apiCall(
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
   if (res.status === 401 && getRefreshToken()) {
-    const refreshed = await refreshAccessToken();
+    const refreshed = await refreshAccessToken(
+      headers["X-Planwren-Offline-Mode"] === "manual",
+    );
     if (refreshed) {
       const newToken = getToken();
       if (newToken) {

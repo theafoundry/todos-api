@@ -2,6 +2,7 @@ import type { User } from "../../types";
 import type { WorkspaceView } from "../../components/projects/Sidebar";
 import { CUSTOM_TAB_OPTIONS } from "../hooks/useTabBar";
 import { PALETTES, type PaletteKey } from "../hooks/usePalette";
+import { MobileModal } from "./MobileModal";
 
 interface Props {
   open: boolean;
@@ -46,23 +47,20 @@ export function ProfileSheet({
   palette,
   onChangePalette,
 }: Props) {
-  if (!open) return null;
-
   return (
-    <>
-      <div className="m-capture__backdrop" onClick={onClose} />
-      <div className="m-profile" role="dialog" aria-modal="true" aria-label="Profile and settings">
-        <div className="m-bottom-sheet__handle">
-          <div className="m-bottom-sheet__handle-bar" />
-        </div>
-
+    <MobileModal open={open} title="Profile and settings" onClose={onClose}>
+      <div className="m-profile-content">
         {/* User info section */}
         <div className="m-profile__user">
           <div className="m-profile__avatar">{getUserInitial(user)}</div>
           <div className="m-profile__user-text">
-            {user?.name && <div className="m-profile__user-name">{user.name}</div>}
+            {user?.name && (
+              <div className="m-profile__user-name">{user.name}</div>
+            )}
             <div className="m-profile__user-email">{user?.email ?? ""}</div>
-            {user?.plan && <div className="m-profile__user-plan">{user.plan}</div>}
+            {user?.plan && (
+              <div className="m-profile__user-plan">{user.plan}</div>
+            )}
           </div>
         </div>
 
@@ -74,12 +72,18 @@ export function ProfileSheet({
           <div className="m-profile__row">
             <span className="m-profile__row-label">Dark mode</span>
             <button
-              className={`m-profile__toggle${dark ? " m-profile__toggle--on" : ""}`}
+              type="button"
+              className="m-profile__toggle-target"
               onClick={onToggleDark}
               aria-pressed={dark}
               aria-label="Toggle dark mode"
             >
-              <span className="m-profile__toggle-knob" />
+              <span
+                aria-hidden="true"
+                className={`m-profile__toggle${dark ? " m-profile__toggle--on" : ""}`}
+              >
+                <span className="m-profile__toggle-knob" />
+              </span>
             </button>
           </div>
         </div>
@@ -95,12 +99,20 @@ export function ProfileSheet({
               {PALETTES.map((p) => (
                 <button
                   key={p.key}
-                  className={`m-profile__palette-dot${palette === p.key ? " m-profile__palette-dot--active" : ""}`}
-                  style={{ background: `linear-gradient(135deg, ${p.gradient[0]}, ${p.gradient[1]})` }}
+                  type="button"
+                  className="m-profile__palette-target"
                   onClick={() => onChangePalette(p.key)}
                   aria-label={p.label}
                   aria-pressed={palette === p.key}
-                />
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`m-profile__palette-dot${palette === p.key ? " m-profile__palette-dot--active" : ""}`}
+                    style={{
+                      background: `linear-gradient(135deg, ${p.gradient[0]}, ${p.gradient[1]})`,
+                    }}
+                  />
+                </button>
               ))}
             </div>
           </div>
@@ -128,14 +140,32 @@ export function ProfileSheet({
         {/* Navigation section */}
         <div className="m-profile__section">
           <div className="m-profile__section-label">More</div>
-          <button className="m-profile__nav-link" onClick={() => { onNavigate("ai"); onClose(); }}>
+          <button
+            className="m-profile__nav-link"
+            onClick={() => {
+              onNavigate("ai");
+              onClose();
+            }}
+          >
             AI Workspace
           </button>
-          <button className="m-profile__nav-link" onClick={() => { onNavigate("review"); onClose(); }}>
+          <button
+            className="m-profile__nav-link"
+            onClick={() => {
+              onNavigate("review");
+              onClose();
+            }}
+          >
             Weekly Review
           </button>
           {user?.role === "admin" && (
-            <button className="m-profile__nav-link" onClick={() => { onNavigate("admin"); onClose(); }}>
+            <button
+              className="m-profile__nav-link"
+              onClick={() => {
+                onNavigate("admin");
+                onClose();
+              }}
+            >
               Admin
             </button>
           )}
@@ -146,12 +176,15 @@ export function ProfileSheet({
         <div className="m-profile__footer">
           <button
             className="m-profile__logout"
-            onClick={() => { onLogout(); onClose(); }}
+            onClick={() => {
+              onLogout();
+              onClose();
+            }}
           >
             Log out
           </button>
         </div>
       </div>
-    </>
+    </MobileModal>
   );
 }

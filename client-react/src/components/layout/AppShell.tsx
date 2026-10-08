@@ -24,7 +24,7 @@ import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import type { Project, Todo } from "../../types";
 import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
-import { UndoToast } from "../shared/UndoToast";
+import { UndoToast, type ToastVariant } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
@@ -111,6 +111,7 @@ type UiMode = "normal" | "simple";
 interface UndoAction {
   message: string;
   onUndo?: () => void;
+  variant?: ToastVariant;
 }
 
 export function AppShell() {
@@ -123,14 +124,14 @@ export function AppShell() {
   // their own row density. Other views share the global key so they
   // behave as before. Values must stay a subset of WorkspaceView.
   const densityViewKey =
-    activeView === "today" ||
-    activeView === "horizon" ||
-    activeView === "all"
+    activeView === "today" || activeView === "horizon" || activeView === "all"
       ? activeView
       : undefined;
-  const { density, setDensity, cycle: cycleDensity } = useDensity(
-    densityViewKey,
-  );
+  const {
+    density,
+    setDensity,
+    cycle: cycleDensity,
+  } = useDensity(densityViewKey);
   const { groupBy, setGroupBy } = useGroupBy();
   const { startTransition } = useViewTransition();
   const [horizonSegment, setHorizonSegment] = useState<HorizonSegment>(() => {
@@ -154,6 +155,8 @@ export function AppShell() {
   const fullPageTaskId =
     taskNav.state.mode === "fullPage" ? taskNav.state.taskId : null;
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const deletePendingRef = useRef(false);
+  const deleteAttemptedRef = useRef(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -382,6 +385,16 @@ export function AppShell() {
 
   // --- Handlers ---
 
+  const reportTaskFailure = useCallback((error: unknown) => {
+    setUndoAction({
+      message:
+        error instanceof Error
+          ? error.message
+          : "The task could not be changed. Try again.",
+      variant: "error",
+    });
+  }, []);
+
   const handleQuickEdit = useCallback(
     (id: string) => {
       taskNav.openQuickEdit(id);
@@ -428,7 +441,10 @@ export function AppShell() {
 
       const todo = todos.find((t) => t.id === id);
       const payload = computeSnoozePayload(action as SnoozeAction);
-      const message = getLifecycleUndoMessage(action as SnoozeAction, todo?.title ?? "Task");
+      const message = getLifecycleUndoMessage(
+        action as SnoozeAction,
+        todo?.title ?? "Task",
+      );
 
       if (payload.status) {
         await editTodo(id, { status: payload.status as Todo["status"] });
@@ -490,27 +506,47 @@ export function AppShell() {
   const handleToggle = useCallback(
     async (id: string, completed: boolean) => {
       const todo = todos.find((t) => t.id === id);
-      await toggleTodo(id, completed);
+      try {
+        await toggleTodo(id, completed);
+      } catch (error) {
+        reportTaskFailure(error);
+        return;
+      }
       if (todo) {
         setUndoAction({
           message: completed
             ? `"${todo.title}" completed`
             : `"${todo.title}" marked incomplete`,
-          onUndo: () => toggleTodo(id, !completed),
+          onUndo: () => {
+            void toggleTodo(id, !completed).catch(reportTaskFailure);
+          },
         });
       }
     },
-    [todos, toggleTodo],
+    [todos, toggleTodo, reportTaskFailure],
   );
 
   const handleDeleteRequest = useCallback((id: string) => {
+    if (deletePendingRef.current) return;
+    deleteAttemptedRef.current = false;
     setDeleteTarget(id);
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || deleteAttemptedRef.current) return;
+    deleteAttemptedRef.current = true;
+    deletePendingRef.current = true;
     const todo = todos.find((t) => t.id === deleteTarget);
-    await removeTodo(deleteTarget);
+    try {
+      await removeTodo(deleteTarget);
+    } catch (error) {
+      // The confirmation has already animated out; close it and show the error.
+      setDeleteTarget(null);
+      reportTaskFailure(error);
+      return;
+    } finally {
+      deletePendingRef.current = false;
+    }
     if (activeTodoId === deleteTarget) taskNav.collapse();
     setDeleteTarget(null);
     if (todo) {
@@ -518,11 +554,20 @@ export function AppShell() {
         message: `"${todo.title}" deleted`,
         onUndo: () => {
           // Re-create (best effort — server assigns new ID)
-          addTodo({ title: todo.title, projectId: todo.projectId });
+          void addTodo({ title: todo.title, projectId: todo.projectId }).catch(
+            reportTaskFailure,
+          );
         },
       });
     }
-  }, [deleteTarget, activeTodoId, todos, removeTodo, addTodo]);
+  }, [
+    deleteTarget,
+    activeTodoId,
+    todos,
+    removeTodo,
+    addTodo,
+    reportTaskFailure,
+  ]);
 
   // --- Project next step handlers ---
 
@@ -552,11 +597,13 @@ export function AppShell() {
     async (id: string, payload: ProjectSavePayload) => {
       const body: Record<string, unknown> = {};
       if (payload.name !== undefined) body.name = payload.name;
-      if (payload.description !== undefined) body.description = payload.description;
+      if (payload.description !== undefined)
+        body.description = payload.description;
       if (payload.goal !== undefined) body.goal = payload.goal;
       if (payload.area !== undefined) body.area = payload.area;
       if (payload.priority !== undefined) body.priority = payload.priority;
-      if (payload.targetDate !== undefined) body.targetDate = payload.targetDate;
+      if (payload.targetDate !== undefined)
+        body.targetDate = payload.targetDate;
       if (payload.status !== undefined) body.status = payload.status;
       if (id === DRAFT_PROJECT_ID) {
         const response = await apiCall("/projects", {
@@ -640,7 +687,10 @@ export function AppShell() {
 
   const handleSelectAll = useCallback(() => {
     setSelectedIds(
-      computeSelectAllResult(selectedIds, visibleTodos.map((t) => t.id)),
+      computeSelectAllResult(
+        selectedIds,
+        visibleTodos.map((t) => t.id),
+      ),
     );
   }, [selectedIds, visibleTodos]);
 

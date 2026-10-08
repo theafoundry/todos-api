@@ -105,8 +105,12 @@ test.describe("Mobile shell", () => {
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
     // The text input should be focused.
-    const input = page.getByRole("textbox", { name: "What needs to be done?" });
+    const input = dialog.getByRole("textbox", {
+      name: "Task title",
+      exact: true,
+    });
     await expect(input).toBeVisible();
+    await expect(input).toBeFocused();
   });
 
   test("offline banner component exists in DOM", async ({ page }) => {

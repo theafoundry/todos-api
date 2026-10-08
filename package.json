@@ -34,6 +34,7 @@
     "test:coverage:check": "NODE_ENV=test SKIP_DB_SETUP=true jest --config jest.unit.config.js --runInBand --coverage --coverageReporters=json-summary && node scripts/check-coverage-ratchet.mjs",
     "test:ui": "start-server-and-test preview:static http://127.0.0.1:4173/app/ \"playwright test\"",
     "test:ui:fast": "start-server-and-test preview:static http://127.0.0.1:4173/app/ \"playwright test --grep-invert @visual\"",
+    "test:ui:mobile": "playwright test --config playwright.mobile.config.ts",
     "test:ui:headed": "start-server-and-test preview:static http://127.0.0.1:4173/app/ \"playwright test --headed\"",
     "test:ui:update": "start-server-and-test preview:static http://127.0.0.1:4173/app/ \"playwright test --update-snapshots\"",
     "preview:static": "node scripts/ui-static-server.mjs",

@@ -23,7 +23,11 @@ vi.mock("../../hooks/useDarkMode", () => ({
 }));
 
 vi.mock("../../hooks/useDensity", () => ({
-  useDensity: () => ({ density: "comfortable", setDensity: vi.fn(), cycle: vi.fn() }),
+  useDensity: () => ({
+    density: "comfortable",
+    setDensity: vi.fn(),
+    cycle: vi.fn(),
+  }),
 }));
 
 vi.mock("../../hooks/useGroupBy", () => ({
@@ -43,16 +47,7 @@ vi.mock("../../hooks/useIcsExport", () => ({
 }));
 
 vi.mock("../../hooks/useTaskNavigation", () => ({
-  useTaskNavigation: () => ({
-    state: { mode: "collapsed" },
-    activeTaskId: null,
-    openQuickEdit: vi.fn(),
-    openDrawer: vi.fn(),
-    openFullPage: vi.fn(),
-    escalate: vi.fn(),
-    deescalate: vi.fn(),
-    collapse: vi.fn(),
-  }),
+  useTaskNavigation: vi.fn(),
 }));
 
 vi.mock("../../hooks/useHashRoute", () => ({
@@ -81,46 +76,124 @@ vi.mock("../../api/todos", () => ({
 
 // Mock child components
 vi.mock("../projects/Sidebar", () => ({
-  Sidebar: ({ onNewTask, onOpenSettings, onOpenActivity, onToggleTheme, onOpenShortcuts, onLogout, onSearchChange, searchQuery, isCollapsed }: any) =>
-    React.createElement("aside", { "data-testid": "sidebar", "data-collapsed": isCollapsed ? "true" : "false" },
-      React.createElement("button", { "data-testid": "sidebar-new-task", onClick: onNewTask }, "New Task"),
-      React.createElement("button", { "data-testid": "sidebar-settings", onClick: onOpenSettings }, "Settings"),
-      React.createElement("button", { "data-testid": "sidebar-activity", onClick: onOpenActivity }, "Activity"),
-      React.createElement("button", { "data-testid": "sidebar-dark-mode", onClick: onToggleTheme }, "Dark Mode"),
-      React.createElement("button", { "data-testid": "sidebar-shortcuts", onClick: onOpenShortcuts }, "Shortcuts"),
-      React.createElement("button", { "data-testid": "sidebar-logout", onClick: onLogout }, "Logout"),
-      React.createElement("input", { "data-testid": "sidebar-search", value: searchQuery || "", onChange: (e: any) => onSearchChange?.(e.target.value) }),
+  Sidebar: ({
+    onNewTask,
+    onOpenSettings,
+    onOpenActivity,
+    onToggleTheme,
+    onOpenShortcuts,
+    onLogout,
+    onSearchChange,
+    searchQuery,
+    isCollapsed,
+  }: any) =>
+    React.createElement(
+      "aside",
+      {
+        "data-testid": "sidebar",
+        "data-collapsed": isCollapsed ? "true" : "false",
+      },
+      React.createElement(
+        "button",
+        { "data-testid": "sidebar-new-task", onClick: onNewTask },
+        "New Task",
+      ),
+      React.createElement(
+        "button",
+        { "data-testid": "sidebar-settings", onClick: onOpenSettings },
+        "Settings",
+      ),
+      React.createElement(
+        "button",
+        { "data-testid": "sidebar-activity", onClick: onOpenActivity },
+        "Activity",
+      ),
+      React.createElement(
+        "button",
+        { "data-testid": "sidebar-dark-mode", onClick: onToggleTheme },
+        "Dark Mode",
+      ),
+      React.createElement(
+        "button",
+        { "data-testid": "sidebar-shortcuts", onClick: onOpenShortcuts },
+        "Shortcuts",
+      ),
+      React.createElement(
+        "button",
+        { "data-testid": "sidebar-logout", onClick: onLogout },
+        "Logout",
+      ),
+      React.createElement("input", {
+        "data-testid": "sidebar-search",
+        value: searchQuery || "",
+        onChange: (e: any) => onSearchChange?.(e.target.value),
+      }),
     ),
 }));
 
 vi.mock("../todos/SortableTodoList", () => ({
-  SortableTodoList: () => React.createElement("div", { "data-testid": "todo-list" }),
+  SortableTodoList: () =>
+    React.createElement("div", { "data-testid": "todo-list" }),
 }));
 
 vi.mock("../todos/TodoDrawer", () => ({
-  TodoDrawer: ({ todo }: any) => todo
-    ? React.createElement("div", { "data-testid": "todo-drawer" })
-    : null,
+  TodoDrawer: ({ todo, onDelete }: any) =>
+    todo
+      ? React.createElement(
+          "div",
+          { "data-testid": "todo-drawer" },
+          React.createElement(
+            "button",
+            { onClick: () => onDelete(todo.id) },
+            "Request task deletion",
+          ),
+        )
+      : null,
 }));
 
 vi.mock("../shared/UndoToast", () => ({
-  UndoToast: () => React.createElement("div", { "data-testid": "undo-toast" }),
+  UndoToast: ({ action }: any) =>
+    React.createElement(
+      "div",
+      {
+        "data-testid": "undo-toast",
+        "data-variant": action?.variant ?? "default",
+      },
+      action?.message,
+      action?.onUndo &&
+        React.createElement(
+          "button",
+          { onClick: action.onUndo },
+          "Undo task change",
+        ),
+    ),
 }));
 
 vi.mock("../shared/ConfirmDialog", () => ({
-  ConfirmDialog: () => React.createElement("div", { "data-testid": "confirm-dialog" }),
+  ConfirmDialog: ({ onConfirm }: any) =>
+    React.createElement(
+      "div",
+      { "data-testid": "confirm-dialog" },
+      React.createElement(
+        "button",
+        { onClick: onConfirm },
+        "Confirm task deletion",
+      ),
+    ),
 }));
 
 vi.mock("../shared/CommandPalette", () => ({
-  CommandPalette: ({ isOpen }: any) => isOpen
-    ? React.createElement("div", { "data-testid": "command-palette" })
-    : null,
+  CommandPalette: ({ isOpen }: any) =>
+    isOpen
+      ? React.createElement("div", { "data-testid": "command-palette" })
+      : null,
 }));
 
 vi.mock("../shared/ShortcutsOverlay", () => ({
-  ShortcutsOverlay: ({ isOpen }: any) => isOpen
-    ? React.createElement("div", { "data-testid": "shortcuts-overlay" })
-    : null,
+  ShortcutsOverlay: ({ isOpen }: any) =>
+    isOpen
+      ? React.createElement("div", { "data-testid": "shortcuts-overlay" })
+      : null,
 }));
 
 vi.mock("../todos/FilterPanel", () => ({
@@ -133,16 +206,35 @@ vi.mock("../shared/ErrorBoundary", () => ({
 }));
 
 vi.mock("./ViewRouter", () => ({
-  ViewRouter: ({ children }: any) => React.createElement("div", { "data-testid": "view-router" }, children),
-  ViewRoute: ({ children, viewKey }: any) => React.createElement("div", { "data-testid": `view-route-${viewKey}`, "data-view-key": viewKey }, children),
+  ViewRouter: ({ children }: any) =>
+    React.createElement("div", { "data-testid": "view-router" }, children),
+  ViewRoute: ({ children, viewKey }: any) =>
+    React.createElement(
+      "div",
+      { "data-testid": `view-route-${viewKey}`, "data-view-key": viewKey },
+      children,
+    ),
 }));
 
 vi.mock("./HomeDashboard", () => ({
-  HomeDashboard: () => React.createElement("div", { "data-testid": "home-dashboard" }, "Home Dashboard"),
+  HomeDashboard: ({ todos, onToggleTodo }: any) =>
+    React.createElement(
+      "div",
+      { "data-testid": "home-dashboard" },
+      "Home Dashboard",
+      todos.map((todo: any) =>
+        React.createElement(
+          "button",
+          { key: todo.id, onClick: () => onToggleTodo(todo.id, true) },
+          "Complete task",
+        ),
+      ),
+    ),
 }));
 
 vi.mock("./ListViewHeader", () => ({
-  ListViewHeader: () => React.createElement("div", { "data-testid": "list-header" }),
+  ListViewHeader: () =>
+    React.createElement("div", { "data-testid": "list-header" }),
 }));
 
 vi.mock("../../utils/focusTargets", () => ({
@@ -151,45 +243,55 @@ vi.mock("../../utils/focusTargets", () => ({
 }));
 
 vi.mock("../shared/OnboardingFlow", () => ({
-  OnboardingFlow: () => React.createElement("div", { "data-testid": "onboarding-flow" }),
+  OnboardingFlow: () =>
+    React.createElement("div", { "data-testid": "onboarding-flow" }),
 }));
 
 vi.mock("../todos/TaskFullPage", () => ({
-  TaskFullPage: () => React.createElement("div", { "data-testid": "task-full-page" }),
+  TaskFullPage: () =>
+    React.createElement("div", { "data-testid": "task-full-page" }),
 }));
 
 vi.mock("../todos/TaskComposer", () => ({
-  TaskComposer: ({ isOpen }: any) => isOpen
-    ? React.createElement("div", { "data-testid": "task-composer" })
-    : null,
+  TaskComposer: ({ isOpen }: any) =>
+    isOpen
+      ? React.createElement("div", { "data-testid": "task-composer" })
+      : null,
 }));
 
 vi.mock("../projects/ProjectCrud", () => ({
-  ProjectCrud: () => React.createElement("div", { "data-testid": "project-crud" }),
+  ProjectCrud: () =>
+    React.createElement("div", { "data-testid": "project-crud" }),
 }));
 
 vi.mock("./ComponentGalleryPage", () => ({
-  ComponentGalleryPage: () => React.createElement("div", { "data-testid": "component-gallery" }),
+  ComponentGalleryPage: () =>
+    React.createElement("div", { "data-testid": "component-gallery" }),
 }));
 
 vi.mock("./SettingsPage", () => ({
-  SettingsPage: () => React.createElement("div", { "data-testid": "settings-page" }),
+  SettingsPage: () =>
+    React.createElement("div", { "data-testid": "settings-page" }),
 }));
 
 vi.mock("../tuneup/TuneUpView", () => ({
-  TuneUpView: () => React.createElement("div", { "data-testid": "tuneup-view" }),
+  TuneUpView: () =>
+    React.createElement("div", { "data-testid": "tuneup-view" }),
 }));
 
 vi.mock("./WeeklyReview", () => ({
-  WeeklyReview: () => React.createElement("div", { "data-testid": "weekly-review" }),
+  WeeklyReview: () =>
+    React.createElement("div", { "data-testid": "weekly-review" }),
 }));
 
 vi.mock("../activity/AgentActivityView", () => ({
-  AgentActivityView: () => React.createElement("div", { "data-testid": "agent-activity-view" }),
+  AgentActivityView: () =>
+    React.createElement("div", { "data-testid": "agent-activity-view" }),
 }));
 
 vi.mock("../projects/ProjectEditorView", () => ({
-  ProjectEditorView: () => React.createElement("div", { "data-testid": "project-editor-view" }),
+  ProjectEditorView: () =>
+    React.createElement("div", { "data-testid": "project-editor-view" }),
 }));
 
 vi.mock("../projects/projectEditorModels", () => ({
@@ -208,6 +310,7 @@ import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import { useTaskNavigation } from "../../hooks/useTaskNavigation";
 import { AppShell } from "./AppShell";
 
 const mockUseAuth = vi.mocked(useAuth);
@@ -215,17 +318,24 @@ const mockUseTodosStore = vi.mocked(useTodosStore);
 const mockUseProjectsStore = vi.mocked(useProjectsStore);
 const mockUseIsMobile = vi.mocked(useIsMobile);
 const mockUseDarkMode = vi.mocked(useDarkMode);
+const mockUseTaskNavigation = vi.mocked(useTaskNavigation);
 
-function setupOverrides(overrides: {
-  user?: any;
-  todos?: any[];
-  loadState?: "idle" | "loading" | "loaded" | "error";
-  projects?: any[];
-  isMobile?: boolean;
-  dark?: boolean;
-} = {}) {
+function setupOverrides(
+  overrides: {
+    user?: any;
+    todos?: any[];
+    loadState?: "idle" | "loading" | "loaded" | "error";
+    projects?: any[];
+    isMobile?: boolean;
+    dark?: boolean;
+  } = {},
+) {
   mockUseAuth.mockReturnValue({
-    user: overrides.user ?? { id: "u1", name: "Test User", email: "test@example.com" },
+    user: overrides.user ?? {
+      id: "u1",
+      name: "Test User",
+      email: "test@example.com",
+    },
     loading: false,
     logout: vi.fn(),
     setUser: vi.fn(),
@@ -234,7 +344,13 @@ function setupOverrides(overrides: {
   });
   mockUseTodosStore.mockReturnValue({
     todos: overrides.todos ?? [],
-    loadState: (overrides.loadState ?? "loaded") as "idle" | "loading" | "loaded" | "error",
+    getTodo: (id: string) => overrides.todos?.find((todo) => todo.id === id),
+    getTodos: () => overrides.todos ?? [],
+    loadState: (overrides.loadState ?? "loaded") as
+      | "idle"
+      | "loading"
+      | "loaded"
+      | "error",
     errorMessage: "",
     loadTodos: vi.fn(),
     addTodo: vi.fn(),
@@ -244,11 +360,26 @@ function setupOverrides(overrides: {
   });
   mockUseProjectsStore.mockReturnValue({
     projects: overrides.projects ?? [],
+    getProjects: () => overrides.projects ?? [],
     loading: false,
+    error: null,
     loadProjects: vi.fn(),
   });
   mockUseIsMobile.mockReturnValue(overrides.isMobile ?? false);
-  mockUseDarkMode.mockReturnValue({ dark: overrides.dark ?? false, toggle: vi.fn() });
+  mockUseDarkMode.mockReturnValue({
+    dark: overrides.dark ?? false,
+    toggle: vi.fn(),
+  });
+  mockUseTaskNavigation.mockReturnValue({
+    state: { mode: "collapsed" },
+    activeTaskId: null,
+    openQuickEdit: vi.fn(),
+    openDrawer: vi.fn(),
+    openFullPage: vi.fn(),
+    escalate: vi.fn(),
+    deescalate: vi.fn(),
+    collapse: vi.fn(),
+  });
 }
 
 describe("AppShell", () => {
@@ -295,12 +426,16 @@ describe("AppShell", () => {
 
     it("renders the list header", () => {
       render(ce(AppShell));
-      expect(screen.getAllByTestId("list-header").length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByTestId("list-header").length,
+      ).toBeGreaterThanOrEqual(1);
     });
 
     it("renders the todo list", () => {
       render(ce(AppShell));
-      expect(screen.getAllByTestId("todo-list").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByTestId("todo-list").length).toBeGreaterThanOrEqual(
+        1,
+      );
     });
   });
 
@@ -375,7 +510,12 @@ describe("AppShell", () => {
 
     it("does not render onboarding flow when user is onboarded", () => {
       setupOverrides({
-        user: { id: "u1", name: "Test User", email: "test@example.com", onboardingCompletedAt: "2026-01-01" },
+        user: {
+          id: "u1",
+          name: "Test User",
+          email: "test@example.com",
+          onboardingCompletedAt: "2026-01-01",
+        },
       });
       render(ce(AppShell));
       expect(screen.queryByTestId("onboarding-flow")).toBeNull();
@@ -383,7 +523,12 @@ describe("AppShell", () => {
 
     it("renders onboarding flow when user is not onboarded", () => {
       setupOverrides({
-        user: { id: "u1", name: "Test User", email: "test@example.com", onboardingCompletedAt: null },
+        user: {
+          id: "u1",
+          name: "Test User",
+          email: "test@example.com",
+          onboardingCompletedAt: null,
+        },
       });
       render(ce(AppShell));
       expect(screen.getByTestId("onboarding-flow")).toBeTruthy();
@@ -526,12 +671,16 @@ describe("AppShell", () => {
   describe("view routing", () => {
     it("renders view-router container", () => {
       const { container } = render(ce(AppShell));
-      expect(container.querySelector('[data-testid="view-router"]')).toBeTruthy();
+      expect(
+        container.querySelector('[data-testid="view-router"]'),
+      ).toBeTruthy();
     });
 
     it("renders home view route by default", () => {
       const { container } = render(ce(AppShell));
-      expect(container.querySelector('[data-testid="view-route-home"]')).toBeTruthy();
+      expect(
+        container.querySelector('[data-testid="view-route-home"]'),
+      ).toBeTruthy();
     });
   });
 
@@ -578,7 +727,9 @@ describe("AppShell", () => {
   describe("top bar header (desktop)", () => {
     it("renders new task button in top bar on home view", () => {
       const { container } = render(ce(AppShell));
-      const newTaskBtn = container.querySelector('[data-new-task-trigger="true"]');
+      const newTaskBtn = container.querySelector(
+        '[data-new-task-trigger="true"]',
+      );
       expect(newTaskBtn).toBeTruthy();
     });
 
@@ -651,5 +802,196 @@ describe("AppShell", () => {
       // Project crud should render when editing a project
       // This depends on the routing state
     });
+  });
+});
+
+const desktopTask = {
+  id: "desktop-task",
+  title: "Review paper",
+  status: "next" as const,
+  completed: false,
+  tags: [],
+  dependsOnTaskIds: [],
+  order: 0,
+  archived: false,
+  userId: "u1",
+  createdAt: "2026-10-08T12:00:00.000Z",
+  updatedAt: "2026-10-08T12:00:00.000Z",
+};
+
+function openDesktopTask() {
+  const navigation = mockUseTaskNavigation();
+  mockUseTaskNavigation.mockReturnValue({
+    ...navigation,
+    activeTaskId: desktopTask.id,
+    state: { mode: "drawer", taskId: desktopTask.id },
+  });
+  return navigation;
+}
+
+describe("desktop mutation failure feedback", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    setupOverrides({
+      todos: [desktopTask],
+      user: {
+        id: "u1",
+        name: "Test User",
+        email: "test@example.com",
+        onboardingCompletedAt: "2026-10-08T12:00:00.000Z",
+      },
+    });
+  });
+
+  it("shows completion failure without offering a false success or Undo", async () => {
+    const store = mockUseTodosStore();
+    vi.mocked(store.toggleTodo).mockRejectedValueOnce(
+      new Error("Completion was not saved"),
+    );
+    render(ce(AppShell));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Complete task" }));
+    });
+    expect(store.toggleTodo).toHaveBeenCalledWith(desktopTask.id, true);
+    expect(screen.getByTestId("undo-toast")).toHaveTextContent(
+      "Completion was not saved",
+    );
+    expect(screen.getByTestId("undo-toast")).toHaveAttribute(
+      "data-variant",
+      "error",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Undo task change" }),
+    ).toBeNull();
+  });
+
+  it("catches a failed completion Undo and keeps its error visible", async () => {
+    const store = mockUseTodosStore();
+    vi.mocked(store.toggleTodo)
+      .mockResolvedValueOnce({ ...desktopTask, completed: true })
+      .mockRejectedValueOnce(new Error("Undo was not saved"));
+    render(ce(AppShell));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Complete task" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Undo task change" }));
+    });
+    expect(store.toggleTodo).toHaveBeenLastCalledWith(desktopTask.id, false);
+    expect(screen.getByTestId("undo-toast")).toHaveTextContent(
+      "Undo was not saved",
+    );
+    expect(screen.getByTestId("undo-toast")).toHaveAttribute(
+      "data-variant",
+      "error",
+    );
+  });
+
+  it("closes the exiting confirmation after deletion failure and permits an intentional retry", async () => {
+    const store = mockUseTodosStore();
+    vi.mocked(store.removeTodo)
+      .mockRejectedValueOnce(new Error("Deletion was not saved"))
+      .mockResolvedValueOnce(undefined);
+    const navigation = openDesktopTask();
+    render(ce(AppShell));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Request task deletion" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Confirm task deletion" }),
+      );
+    });
+    expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    expect(navigation.collapse).not.toHaveBeenCalled();
+    expect(screen.getByTestId("undo-toast")).toHaveTextContent(
+      "Deletion was not saved",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Undo task change" }),
+    ).toBeNull();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Request task deletion" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Confirm task deletion" }),
+      );
+    });
+    expect(store.removeTodo).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("undo-toast")).toHaveTextContent(
+      '"Review paper" deleted',
+    );
+  });
+
+  it("sends only one deletion while confirmation callbacks are repeated during a slow response", async () => {
+    const store = mockUseTodosStore();
+    let resolveDeletion!: () => void;
+    vi.mocked(store.removeTodo).mockReturnValueOnce(
+      new Promise<void>((resolve) => {
+        resolveDeletion = resolve;
+      }),
+    );
+    openDesktopTask();
+    render(ce(AppShell));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Request task deletion" }),
+      );
+    });
+    await act(async () => {
+      const confirm = screen.getByRole("button", {
+        name: "Confirm task deletion",
+      });
+      fireEvent.click(confirm);
+      fireEvent.click(confirm);
+      fireEvent.click(
+        screen.getByRole("button", { name: "Request task deletion" }),
+      );
+    });
+    expect(store.removeTodo).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveDeletion();
+    });
+    expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+  });
+
+  it("catches a failed deletion Undo instead of dropping a rejected capture promise", async () => {
+    const store = mockUseTodosStore();
+    vi.mocked(store.removeTodo).mockResolvedValueOnce(undefined);
+    vi.mocked(store.addTodo).mockRejectedValueOnce(
+      new Error("Restoring the task failed"),
+    );
+    openDesktopTask();
+    render(ce(AppShell));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Request task deletion" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Confirm task deletion" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Undo task change" }));
+    });
+    expect(store.addTodo).toHaveBeenCalledWith({
+      title: desktopTask.title,
+      projectId: undefined,
+    });
+    expect(screen.getByTestId("undo-toast")).toHaveTextContent(
+      "Restoring the task failed",
+    );
+    expect(screen.getByTestId("undo-toast")).toHaveAttribute(
+      "data-variant",
+      "error",
+    );
   });
 });
