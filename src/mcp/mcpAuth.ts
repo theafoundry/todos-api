@@ -112,7 +112,8 @@ export async function resolveMcpAuthContext(input: {
   let session: McpTokenPayload;
   try {
     session = await input.authService.verifyMcpToken(parts[1], {
-      resource: input.requiredResource,
+      resource:
+        input.requiredResource ?? new URL("/mcp", config.baseUrl).toString(),
       requireResource: Boolean(input.requiredResource),
     });
   } catch (error) {

@@ -27,6 +27,7 @@ import {
   validateCreateMcpTokenInput,
   validateExchangeMcpAuthorizationCodeInput,
   validateRevokeMcpSessionInput,
+  validateLegacyMcpResourceMode,
 } from "../validation/mcpValidation";
 
 interface AuthRouterDeps {
@@ -296,6 +297,16 @@ function mapAuthorizationCodeError(error: unknown) {
           hint: "Retry the exchange with the same clientId and redirectUri used during authorization.",
         }),
       };
+    case "Authorization code resource mismatch":
+      return {
+        status: 401,
+        error: buildStructuredMcpError({
+          code: "MCP_AUTH_CODE_RESOURCE_MISMATCH",
+          message: "Authorization code resource binding mismatch",
+          retryable: false,
+          hint: "Use the OAuth exchange for the originally authorized MCP resource.",
+        }),
+      };
     case "Invalid code verifier":
       return {
         status: 401,
@@ -344,6 +355,16 @@ function mapAuthorizationCodeError(error: unknown) {
           message: "Refresh token client binding mismatch",
           retryable: false,
           hint: "Use the same clientId that originally received the refresh token.",
+        }),
+      };
+    case "Refresh token resource mismatch":
+      return {
+        status: 401,
+        error: buildStructuredMcpError({
+          code: "MCP_REFRESH_TOKEN_RESOURCE_MISMATCH",
+          message: "Refresh token resource binding mismatch",
+          retryable: false,
+          hint: "Use the OAuth exchange for the originally authorized MCP resource.",
         }),
       };
     case "Assistant session revoked":
@@ -560,6 +581,7 @@ export function createAuthRouter({
           );
         }
 
+        validateLegacyMcpResourceMode(req.body);
         const input = validateCreateMcpTokenInput(req.body);
         const session = await mcpOAuthService.createAssistantSession({
           userId: resolvedUser.user.id,
@@ -624,6 +646,7 @@ export function createAuthRouter({
           );
         }
 
+        validateLegacyMcpResourceMode(req.body);
         const input = validateCreateMcpAuthorizationCodeInput(req.body);
         const authCode = await mcpOAuthService.createAuthorizationCode({
           userId: resolvedUser.user.id,
@@ -690,6 +713,7 @@ export function createAuthRouter({
           return sendStructuredError(res, 501, error);
         }
 
+        validateLegacyMcpResourceMode(req.body);
         const input = validateExchangeMcpAuthorizationCodeInput(req.body);
         const exchange =
           input.grantType === "authorization_code"

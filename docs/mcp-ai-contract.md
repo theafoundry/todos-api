@@ -52,6 +52,13 @@ All responses share a common envelope:
 
 Authentication is Bearer-token based and is required when the server is configured with MCP auth.
 
+Direct `/agent` requests use an ordinary application access token, including the
+access token issued to an enrolled runner. Scoped MCP credentials are accepted
+by `/mcp` or `/mcp/app` according to their resource binding, rather than by
+application REST or direct `/agent` endpoints. The scope requirements below
+apply to MCP tool execution. See [remote MCP authentication](remote-mcp-auth.md)
+for token-class, resource and revocation rules.
+
 ### Request headers
 
 | Header | Required | Description |

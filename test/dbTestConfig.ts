@@ -4,6 +4,7 @@ const DEFAULT_DB_REQUIRED_TEST_PATTERNS = [
   "src/ai.api.integration.test.ts",
   "src/adaptation.api.integration.test.ts",
   "src/auth.api.test.ts",
+  "src/authBoundary.integration.test.ts",
   "src/authService.test.ts",
   "src/capture.api.integration.test.ts",
   "src/coreProductJourneys.integration.test.ts",
