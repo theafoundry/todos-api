@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import type { Project, User } from "../../types";
 import {
   IconFocus,
+  IconDesk,
   IconEverything,
   IconToday,
   IconUpcoming,
@@ -29,9 +30,10 @@ const WORKSPACE_VIEWS: {
   label: string;
   icon: React.ComponentType;
 }[] = [
-  { key: "home", label: "Focus", icon: IconFocus },
-  { key: "all", label: "Everything", icon: IconEverything },
+  { key: "inbox", label: "Inbox", icon: IconDesk },
   { key: "today", label: "Today", icon: IconToday },
+  { key: "all", label: "Tasks", icon: IconEverything },
+  { key: "home", label: "Focus", icon: IconFocus },
   { key: "horizon", label: "Horizon", icon: IconUpcoming },
   { key: "completed", label: "Completed", icon: IconCompleted },
 ];
@@ -137,7 +139,10 @@ export function Sidebar({
   const isSimple = uiMode === "simple";
 
   // Group active projects by area (matching classic railUi.js logic)
-  const projectGroups = useMemo(() => groupProjectsByArea(projects), [projects]);
+  const projectGroups = useMemo(
+    () => groupProjectsByArea(projects),
+    [projects],
+  );
 
   const toggleArea = (area: string) => {
     setCollapsedAreas((prev) => {

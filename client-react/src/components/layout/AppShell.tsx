@@ -34,6 +34,7 @@ import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { HomeDashboard } from "./HomeDashboard";
+import { DesktopInbox } from "../inbox/DesktopInbox";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import {
   ProjectEditorView,
@@ -111,6 +112,7 @@ type UiMode = "normal" | "simple";
 interface UndoAction {
   message: string;
   onUndo?: () => void;
+  actionLabel?: string;
   variant?: ToastVariant;
 }
 
@@ -119,7 +121,8 @@ export function AppShell() {
   const isMobile = useIsMobile();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [activeView, setActiveView] = useState<WorkspaceView>("home");
+  const [activeView, setActiveView] = useState<WorkspaceView>("inbox");
+  const [inboxRefreshKey, setInboxRefreshKey] = useState(0);
   // Per-view density: list surfaces (today / horizon / all) each remember
   // their own row density. Other views share the global key so they
   // behave as before. Values must stay a subset of WorkspaceView.
@@ -205,6 +208,7 @@ export function AppShell() {
 
   const {
     todos,
+    getTodo,
     loadState,
     errorMessage,
     loadTodos,
@@ -413,15 +417,23 @@ export function AppShell() {
     taskNav.deescalate();
   }, [taskNav]);
 
-  const handleCaptureToDesk = useCallback(async (text: string) => {
-    const ok = await captureInboxItem(text);
-    if (!ok) {
-      throw new Error("Failed to add capture");
-    }
-    setUndoAction({
-      message: "Added to Desk",
-    });
-  }, []);
+  const handleCaptureToDesk = useCallback(
+    async (text: string) => {
+      await captureInboxItem(text);
+      setInboxRefreshKey((value) => value + 1);
+      setUndoAction({
+        message: "Saved to Inbox for review",
+        actionLabel: "Open Inbox",
+        onUndo: () => {
+          setPage("todos");
+          setSelectedProjectId(null);
+          setActiveView("inbox");
+          taskNav.collapse();
+        },
+      });
+    },
+    [taskNav],
+  );
 
   const handleInlineEdit = useCallback(
     async (id: string, title: string) => {
@@ -970,6 +982,41 @@ export function AppShell() {
           </div>
         )}
         <ErrorBoundary>
+          <DesktopInbox
+            userId={user?.id}
+            isActive={page === "todos" && activeViewKey === "inbox"}
+            refreshKey={inboxRefreshKey}
+            onReconcileTasks={async () => {
+              if (!(await loadTodos(queryParams)))
+                throw new Error("Tasks could not be refreshed. Try again.");
+            }}
+            onAccepted={async () => {
+              if (!(await loadTodos(queryParams))) {
+                throw new Error("Tasks could not be refreshed");
+              }
+            }}
+            onOpenTask={async (id) => {
+              const refreshed = await loadTodos(
+                buildQueryParams({
+                  activeView: "all",
+                  selectedProjectId: null,
+                  sortBy,
+                  sortOrder,
+                }),
+              );
+              if (!refreshed || !getTodo(id)) {
+                setUndoAction({
+                  message:
+                    "Task was accepted. It could not be loaded; refresh Tasks and try again.",
+                  variant: "error",
+                });
+                return;
+              }
+              setSelectedProjectId(null);
+              setActiveView("all");
+              taskNav.openDrawer(id);
+            }}
+          />
           {page === "settings" && showTuneUp ? (
             <TuneUpView
               onOpenTask={(taskId) => {

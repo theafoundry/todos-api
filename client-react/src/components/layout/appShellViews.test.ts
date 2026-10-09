@@ -144,8 +144,12 @@ describe("appShellViews", () => {
       expect(getViewTitle("completed", "due", null, [])).toBe("Completed");
     });
 
-    it("returns Everything for all view", () => {
-      expect(getViewTitle("all", "due", null, [])).toBe("Everything");
+    it("returns Tasks for the compatible all view", () => {
+      expect(getViewTitle("all", "due", null, [])).toBe("Tasks");
+    });
+
+    it("returns Inbox for pending capture review", () => {
+      expect(getViewTitle("inbox", "due", null, [])).toBe("Inbox");
     });
   });
 

@@ -115,10 +115,7 @@ export function getPageLabel(page: AppPage): string {
   }
 }
 
-export function buildDocumentTitle(
-  page: AppPage,
-  headerTitle: string,
-): string {
+export function buildDocumentTitle(page: AppPage, headerTitle: string): string {
   const pageLabel = page === "todos" ? headerTitle : getPageLabel(page);
   return `${pageLabel} — Planwren`;
 }
@@ -126,8 +123,9 @@ export function buildDocumentTitle(
 // ── Header title derivation ───────────────────────────────────────────────
 
 export const VIEW_LABELS: Record<WorkspaceView, string> = {
+  inbox: "Inbox",
   home: "Focus",
-  all: "Everything",
+  all: "Tasks",
   today: "Today",
   horizon: "Horizon",
   completed: "Completed",
@@ -231,11 +229,17 @@ export function dispatchKeyboardShortcut(options: {
         ? { type: "navigate-up", count: visibleTodoIds.length }
         : { type: "none" };
     case "x":
-      return activeTodoId ? { type: "toggle-complete", todoId: activeTodoId } : { type: "none" };
+      return activeTodoId
+        ? { type: "toggle-complete", todoId: activeTodoId }
+        : { type: "none" };
     case "e":
-      return activeTodoId ? { type: "open-drawer", todoId: activeTodoId } : { type: "none" };
+      return activeTodoId
+        ? { type: "open-drawer", todoId: activeTodoId }
+        : { type: "none" };
     case "d":
-      return activeTodoId ? { type: "request-delete", todoId: activeTodoId } : { type: "none" };
+      return activeTodoId
+        ? { type: "request-delete", todoId: activeTodoId }
+        : { type: "none" };
     default:
       return { type: "none" };
   }

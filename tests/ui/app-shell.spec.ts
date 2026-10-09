@@ -36,8 +36,9 @@ test.describe("App shell (desktop)", () => {
     const page = await openTodosViewWithStorageState(context);
 
     const navItems = [
+      { key: "inbox", label: "Inbox" },
       { key: "home", label: "Focus" },
-      { key: "all", label: "Everything" },
+      { key: "all", label: "Tasks" },
       { key: "today", label: "Today" },
       { key: "horizon", label: "Horizon" },
       { key: "completed", label: "Completed" },
@@ -75,19 +76,17 @@ test.describe("App shell (desktop)", () => {
     await context.close();
   });
 
-  test("Focus view is active by default and renders home dashboard", async ({
+  test("Inbox is active by default and renders capture review", async ({
     browser,
   }) => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
-    // Focus nav item should be highlighted.
-    const focusBtn = page.locator('button[data-workspace-view="home"]');
-    await expect(focusBtn).toHaveClass(/projects-rail-item--active/);
-
-    // Home dashboard renders (may take a moment for focus brief to load).
-    const dashboard = page.locator('[data-testid="home-dashboard"]');
-    await expect(dashboard).toBeVisible({ timeout: 10000 });
+    const inboxBtn = page.locator('button[data-workspace-view="inbox"]');
+    await expect(inboxBtn).toHaveClass(/projects-rail-item--active/);
+    await expect(
+      page.getByRole("region", { name: "Inbox review" }),
+    ).toBeVisible();
 
     await context.close();
   });
@@ -117,10 +116,11 @@ test.describe("App shell (desktop)", () => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
-    // Start on Focus (home).
+    // Start on Inbox, then exercise the retained Focus/Today/Horizon views.
     await expect(
-      page.locator('button[data-workspace-view="home"]'),
+      page.locator('button[data-workspace-view="inbox"]'),
     ).toHaveClass(/projects-rail-item--active/);
+    await page.locator('button[data-workspace-view="home"]').click();
 
     // Switch to Today.
     await page.locator('button[data-workspace-view="today"]').click();
@@ -154,8 +154,8 @@ test.describe("App shell (desktop)", () => {
     const activeSlot = page.locator('.view-router__slot[data-active="true"]');
     await expect(activeSlot).toBeVisible();
 
-    // Active view should be "home".
-    await expect(activeSlot).toHaveAttribute("data-view-key", "home");
+    // Active view should be the conversational capture review.
+    await expect(activeSlot).toHaveAttribute("data-view-key", "inbox");
 
     await context.close();
   });
@@ -192,8 +192,10 @@ test.describe("App shell (desktop)", () => {
     // Open profile menu.
     await page.locator(".profile-launcher__trigger").click();
 
-    // Logout button should appear.
-    const logoutBtn = page.locator("button:has-text('Logout')");
+    const logoutBtn = page.getByRole("menuitem", {
+      name: "Sign out",
+      exact: true,
+    });
     await expect(logoutBtn).toBeVisible({ timeout: 5000 });
 
     await context.close();
@@ -203,8 +205,11 @@ test.describe("App shell (desktop)", () => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
-    // Dark mode toggle button exists somewhere in the DOM.
-    const darkModeBtn = page.locator('[aria-label="Toggle dark mode"]');
+    await page.locator(".profile-launcher__trigger").click();
+    const darkModeBtn = page.getByRole("menuitem", {
+      name: "Dark mode",
+      exact: true,
+    });
     await expect(darkModeBtn).toBeVisible();
 
     await context.close();

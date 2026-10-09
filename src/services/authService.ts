@@ -36,6 +36,7 @@ export interface AuthResponse {
 export interface JwtPayload {
   userId: string;
   email: string;
+  tokenType?: "mcp";
 }
 
 export interface McpTokenPayload extends JwtPayload {

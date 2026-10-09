@@ -83,6 +83,13 @@ export function CommandPalette({
         keywords: "add create todo quick entry",
       },
       {
+        id: "nav-inbox",
+        label: "Go to Inbox",
+        section: "Commands",
+        action: () => onNavigate("inbox"),
+        keywords: "capture review desk saved intentions",
+      },
+      {
         id: "nav-focus",
         label: "Go to Focus",
         section: "Commands",
@@ -91,7 +98,7 @@ export function CommandPalette({
       },
       {
         id: "nav-everything",
-        label: "Go to Everything",
+        label: "Go to Tasks",
         section: "Commands",
         action: () => onNavigate("all"),
         keywords: "all tasks",
@@ -286,8 +293,7 @@ export function CommandPalette({
     if (filtered.length === 0) return [];
 
     const nextRows: Array<
-      | { kind: "section"; label: string }
-      | { kind: "item"; item: CommandItem }
+      { kind: "section"; label: string } | { kind: "item"; item: CommandItem }
     > = [];
     let currentSection: CommandItem["section"] | null = null;
 
@@ -326,7 +332,9 @@ export function CommandPalette({
   }, [isOpen]);
 
   useEffect(() => {
-    setActiveIndex((index) => Math.min(index, Math.max(0, filtered.length - 1)));
+    setActiveIndex((index) =>
+      Math.min(index, Math.max(0, filtered.length - 1)),
+    );
   }, [filtered.length]);
 
   const execute = useCallback(
@@ -355,7 +363,9 @@ export function CommandPalette({
         e.preventDefault();
         e.stopPropagation();
         if (filtered.length === 0) return;
-        setActiveIndex((index) => (index - 1 + filtered.length) % filtered.length);
+        setActiveIndex(
+          (index) => (index - 1 + filtered.length) % filtered.length,
+        );
         return;
       }
 

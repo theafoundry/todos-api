@@ -20,7 +20,6 @@ import {
 import { AgentExecutionError } from "./agentExecutionError";
 import type { ActionRegistry, ActionRuntime } from "./actionRegistry";
 import type { AgentExecutionContext, AgentExecutionResult } from "./agentTypes";
-import type { Prisma } from "@prisma/client";
 
 type RawParams = Record<string, unknown>;
 
@@ -293,59 +292,28 @@ export function registerCaptureActions(registry: ActionRegistry): void {
         projectId,
         title: titleOverride,
       } = validateAgentPromoteInboxItemInput(params);
-      const captureItem = await runtime.captureService.findById(
-        context.userId,
-        captureItemId,
-      );
-      if (!captureItem) {
+      if (type === "project" && !runtime.projectService) {
         throw new AgentExecutionError(
-          404,
-          "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-          "Capture item not found",
+          501,
+          "NOT_CONFIGURED",
+          "Project service not available",
           false,
-          "Verify the capture item ID belongs to the authenticated user.",
         );
       }
-      const derivedTitle = titleOverride ?? captureItem.text.slice(0, 200);
-      let promoted: Record<string, unknown>;
-      if (type === "task") {
-        const task = await runtime.agentService.createTask(context.userId, {
-          title: derivedTitle,
-          status: "inbox",
-          ...(projectId ? { projectId } : {}),
-        });
-        promoted = { type: "task", task };
-      } else {
-        if (!runtime.projectService) {
-          throw new AgentExecutionError(
-            501,
-            "NOT_CONFIGURED",
-            "Project service not available",
-            false,
-          );
-        }
-        const project = await runtime.agentService.createProject(
-          context.userId,
-          {
-            name: derivedTitle,
-          },
-        );
-        promoted = { type: "project", project };
-      }
-      await runtime.captureService.updateLifecycle(
+      const result = await runtime.captureService.promote(
         context.userId,
         captureItemId,
-        "triaged",
-        {
-          promotedAs: type,
-          promotedId: (promoted[type] as { id: string }).id,
-        },
+        { type, title: titleOverride, projectId, status: "inbox" },
       );
+      const promoted =
+        result.type === "task"
+          ? { type: "task", task: result.task }
+          : { type: "project", project: result.project };
       return runtime.exec.success(
         "promote_inbox_item",
         false,
         context,
-        201,
+        result.created ? 201 : 200,
         promoted,
       );
     },
@@ -383,14 +351,14 @@ export function registerCaptureActions(registry: ActionRegistry): void {
       const recommendation = triageCaptureText(item.text);
       let applied = false;
       if (mode === "apply") {
-        await runtime.persistencePrisma.captureItem.updateMany({
-          where: { id: captureItemId, userId: context.userId },
-          data: {
-            lifecycle: "triaged",
-            triageResult: recommendation as unknown as Prisma.JsonObject,
-          },
-        });
-        applied = true;
+        const updated = await runtime.captureService!.updateLifecycle(
+          context.userId,
+          captureItemId,
+          "triaged",
+          recommendation,
+        );
+        const result = updated?.triageResult as { promotedId?: string } | null;
+        applied = updated?.lifecycle === "triaged" && !result?.promotedId;
       }
       const policies = await runtime.actionPolicyService.getPolicies(
         context.userId,
@@ -435,13 +403,12 @@ export function registerCaptureActions(registry: ActionRegistry): void {
       if (mode === "apply" && items.length > 0) {
         for (const item of items) {
           const rec = triaged.find((t) => t.captureItemId === item.id);
-          await runtime.persistencePrisma.captureItem.updateMany({
-            where: { id: item.id, userId: context.userId },
-            data: {
-              lifecycle: "triaged",
-              triageResult: rec?.recommendation as unknown as Prisma.JsonObject,
-            },
-          });
+          await runtime.captureService!.updateLifecycle(
+            context.userId,
+            item.id,
+            "triaged",
+            rec?.recommendation,
+          );
         }
       }
       return runtime.exec.success("triage_inbox", false, context, 200, {

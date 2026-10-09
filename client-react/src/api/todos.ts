@@ -39,7 +39,7 @@ const stringFields = [
   "source",
 ];
 
-function isTodo(value: unknown): value is Todo {
+export function isTodo(value: unknown): value is Todo {
   if (!value || typeof value !== "object") return false;
   const todo = value as Record<string, unknown>;
   return (

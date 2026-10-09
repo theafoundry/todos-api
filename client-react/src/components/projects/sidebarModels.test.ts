@@ -111,7 +111,12 @@ describe("sidebarModels", () => {
     it("filters out archived projects", () => {
       const projects = [
         makeProject({ id: "p1", name: "Active", area: "work" }),
-        makeProject({ id: "p2", name: "Archived", area: "work", archived: true }),
+        makeProject({
+          id: "p2",
+          name: "Archived",
+          area: "work",
+          archived: true,
+        }),
       ];
       const groups = groupProjectsByArea(projects);
       expect(groups).toHaveLength(1);
@@ -142,12 +147,19 @@ describe("sidebarModels", () => {
   describe("getVisibleViews", () => {
     it("returns all views in normal mode", () => {
       const views = getVisibleViews(false);
-      expect(views).toEqual(["home", "all", "today", "horizon", "completed"]);
+      expect(views).toEqual([
+        "inbox",
+        "today",
+        "all",
+        "home",
+        "horizon",
+        "completed",
+      ]);
     });
 
     it("excludes home view in simple mode", () => {
       const views = getVisibleViews(true);
-      expect(views).toEqual(["all", "today", "horizon", "completed"]);
+      expect(views).toEqual(["inbox", "today", "all", "horizon", "completed"]);
     });
   });
 });

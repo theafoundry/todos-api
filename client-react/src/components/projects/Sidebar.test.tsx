@@ -5,9 +5,9 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { Sidebar } from "./Sidebar";
 import type { Project, User } from "../../types";
 
-
 vi.mock("../shared/ProfileLauncher", () => ({
-  ProfileLauncher: () => ce("div", { "data-testid": "profile-launcher" }, "Profile"),
+  ProfileLauncher: () =>
+    ce("div", { "data-testid": "profile-launcher" }, "Profile"),
 }));
 
 function makeProject(overrides: Partial<Project> = {}): Project {
@@ -23,7 +23,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     targetDate: null,
     archived: overrides.archived ?? false,
     userId: "u1",
-    
+
     updatedAt: "2026-01-01T00:00:00.000Z",
     createdAt: "2026-01-01T00:00:00.000Z",
   };
@@ -36,7 +36,6 @@ const mockUser: User = {
   onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
   onboardingStep: 4,
   plan: "free",
-  
 };
 
 const defaultProps = {
@@ -77,7 +76,7 @@ describe("Sidebar", () => {
     it("renders all workspace views in normal mode", () => {
       render(ce(Sidebar, defaultProps));
       expect(screen.getByText("Focus")).toBeTruthy();
-      expect(screen.getByText("Everything")).toBeTruthy();
+      expect(screen.getByText("Tasks")).toBeTruthy();
       expect(screen.getByText("Today")).toBeTruthy();
       expect(screen.getByText("Horizon")).toBeTruthy();
       expect(screen.getByText("Completed")).toBeTruthy();
@@ -86,7 +85,7 @@ describe("Sidebar", () => {
     it("excludes Focus view in simple mode", () => {
       render(ce(Sidebar, { ...defaultProps, uiMode: "simple" }));
       expect(screen.queryByText("Focus")).toBeNull();
-      expect(screen.getByText("Everything")).toBeTruthy();
+      expect(screen.getByText("Tasks")).toBeTruthy();
     });
 
     it("shows view counts when provided", () => {
@@ -111,9 +110,7 @@ describe("Sidebar", () => {
     });
 
     it("marks active view when no project selected", () => {
-      render(
-        ce(Sidebar, { ...defaultProps, activeView: "today" }),
-      );
+      render(ce(Sidebar, { ...defaultProps, activeView: "today" }));
       const todayBtn = screen.getByText("Today").closest("button");
       expect(todayBtn).toHaveClass("projects-rail-item--active");
     });
@@ -207,7 +204,9 @@ describe("Sidebar", () => {
 
     it("clears search on Escape key", () => {
       render(ce(Sidebar, { ...defaultProps, searchQuery: "test" }));
-      fireEvent.keyDown(screen.getByPlaceholderText("Search…"), { key: "Escape" });
+      fireEvent.keyDown(screen.getByPlaceholderText("Search…"), {
+        key: "Escape",
+      });
       expect(defaultProps.onSearchChange).toHaveBeenCalledWith("");
     });
   });
@@ -226,7 +225,9 @@ describe("Sidebar", () => {
     });
 
     it("collapses/expands areas on click", () => {
-      const projects = [makeProject({ id: "p1", name: "Work Project", area: "work" })];
+      const projects = [
+        makeProject({ id: "p1", name: "Work Project", area: "work" }),
+      ];
       render(ce(Sidebar, { ...defaultProps, projects }));
       // Initially expanded
       expect(screen.getByText("Work Project")).toBeTruthy();

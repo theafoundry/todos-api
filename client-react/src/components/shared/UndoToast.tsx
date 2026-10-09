@@ -5,6 +5,7 @@ export type ToastVariant = "default" | "success" | "error" | "warning";
 interface UndoAction {
   message: string;
   onUndo?: () => void;
+  actionLabel?: string;
   variant?: ToastVariant;
 }
 
@@ -59,7 +60,7 @@ export function UndoToast({ action, onDismiss }: Props) {
             onDismiss();
           }}
         >
-          Undo
+          {action.actionLabel || "Undo"}
         </button>
       )}
       {visible && !exiting && <div className="undo-toast__progress" />}

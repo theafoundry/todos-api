@@ -7,8 +7,8 @@ import { TabBar } from "./TabBar";
 const { createElement } = React;
 
 const defaultProps = {
-  activeTab: "focus" as const,
-  customView: "horizon",
+  activeTab: "inbox" as const,
+  customView: "all",
   onTabChange: vi.fn(),
   onFabPress: vi.fn(),
 };
@@ -17,18 +17,18 @@ describe("TabBar", () => {
   it("renders all tabs with correct labels", () => {
     render(createElement(TabBar, defaultProps));
 
-    expect(screen.getByText("Focus")).toBeTruthy();
+    expect(screen.getByText("Inbox")).toBeTruthy();
     expect(screen.getByText("Today")).toBeTruthy();
     expect(screen.getByText("Projects")).toBeTruthy();
-    expect(screen.getByText("Upcoming")).toBeTruthy(); // horizon custom view label
+    expect(screen.getByText("Tasks")).toBeTruthy();
   });
 
   it("marks the active tab as selected", () => {
     render(createElement(TabBar, defaultProps));
 
-    const focusTab = screen.getByText("Focus").closest("button");
-    expect(focusTab).toHaveClass("m-tab-bar__tab--active");
-    expect(focusTab).toHaveAttribute("aria-selected", "true");
+    const inboxTab = screen.getByText("Inbox").closest("button");
+    expect(inboxTab).toHaveClass("m-tab-bar__tab--active");
+    expect(inboxTab).toHaveAttribute("aria-selected", "true");
 
     const todayTab = screen.getByText("Today").closest("button");
     expect(todayTab).not.toHaveClass("m-tab-bar__tab--active");
@@ -43,6 +43,9 @@ describe("TabBar", () => {
 
     fireEvent.click(screen.getByText("Projects"));
     expect(onTabChange).toHaveBeenCalledWith("projects");
+
+    fireEvent.click(screen.getByText("Inbox"));
+    expect(onTabChange).toHaveBeenCalledWith("inbox");
   });
 
   it("calls onFabPress when FAB is clicked", () => {
@@ -73,6 +76,6 @@ describe("TabBar", () => {
     expect(nav).toBeTruthy();
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(4); // Focus, Today, Projects, Custom
+    expect(tabs).toHaveLength(4); // Inbox, Today, Projects, Custom
   });
 });

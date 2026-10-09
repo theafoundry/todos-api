@@ -71,15 +71,21 @@ export function groupProjectsByArea(projects: Project[]): ProjectGroup[] {
 }
 
 export function getVisibleViews(isSimple: boolean): string[] {
-  const ALL_VIEWS = ["home", "all", "today", "horizon", "completed"] as const;
-  return isSimple
-    ? ALL_VIEWS.filter((v) => v !== "home")
-    : [...ALL_VIEWS];
+  const ALL_VIEWS = [
+    "inbox",
+    "today",
+    "all",
+    "home",
+    "horizon",
+    "completed",
+  ] as const;
+  return isSimple ? ALL_VIEWS.filter((v) => v !== "home") : [...ALL_VIEWS];
 }
 
 export const VIEW_LABELS: Record<string, string> = {
+  inbox: "Inbox",
   home: "Focus",
-  all: "Everything",
+  all: "Tasks",
   today: "Today",
   horizon: "Horizon",
   completed: "Completed",

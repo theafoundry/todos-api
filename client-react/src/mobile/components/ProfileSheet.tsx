@@ -143,6 +143,24 @@ export function ProfileSheet({
           <button
             className="m-profile__nav-link"
             onClick={() => {
+              onNavigate("tasks");
+              onClose();
+            }}
+          >
+            Tasks
+          </button>
+          <button
+            className="m-profile__nav-link"
+            onClick={() => {
+              onNavigate("focus");
+              onClose();
+            }}
+          >
+            Focus
+          </button>
+          <button
+            className="m-profile__nav-link"
+            onClick={() => {
               onNavigate("ai");
               onClose();
             }}

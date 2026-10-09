@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  suggestCaptureRoute,
-  type CaptureRouteSuggestion,
-} from "../api/inbox";
+import { suggestCaptureRoute, type CaptureRouteSuggestion } from "../api/inbox";
 
 const CAPTURE_ROUTE_DEBOUNCE_MS = 260;
 const CAPTURE_ROUTE_CONFIDENCE_THRESHOLD = 0.7;
@@ -68,7 +65,7 @@ export function useCaptureRoute({
         ? suggestion.route
         : project
           ? "task"
-          : workspaceView === "triage"
+          : workspaceView === "triage" || workspaceView === "inbox"
             ? "triage"
             : "task";
     const alternateRoute: "task" | "triage" =

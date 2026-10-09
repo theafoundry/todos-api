@@ -56,4 +56,15 @@ describe("ProfileSheet", () => {
     expect(callbacks.onLogout).toHaveBeenCalledOnce();
     expect(callbacks.onClose).toHaveBeenCalledOnce();
   });
+
+  it("keeps Tasks and Focus accessible without changing the custom tab", () => {
+    const callbacks = props();
+    render(<ProfileSheet {...callbacks} />);
+    fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
+    expect(callbacks.onNavigate).toHaveBeenCalledWith("tasks");
+    fireEvent.click(screen.getByRole("button", { name: "Focus" }));
+    expect(callbacks.onNavigate).toHaveBeenCalledWith("focus");
+    expect(callbacks.onChangeCustomView).not.toHaveBeenCalled();
+    expect(callbacks.onClose).toHaveBeenCalledTimes(2);
+  });
 });
