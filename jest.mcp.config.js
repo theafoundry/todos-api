@@ -3,6 +3,7 @@ const base = require("./jest.config");
 module.exports = {
   ...base,
   testMatch: [
+    "**/src/authTokenBoundary.test.ts",
     "**/src/api.contract.test.ts",
     "**/src/agentRouter.test.ts",
     "**/src/mcpRouter.test.ts",

@@ -5,6 +5,7 @@ module.exports = {
   testMatch: [
     "**/src/ai.api.integration.test.ts",
     "**/src/auth.api.test.ts",
+    "**/src/authBoundary.integration.test.ts",
     "**/src/authService.test.ts",
     "**/src/prismaTodoService.test.ts",
     "**/src/adaptation.api.integration.test.ts",
