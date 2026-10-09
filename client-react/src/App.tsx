@@ -37,7 +37,7 @@ function AuthGate() {
     return (
       <div id="todosView" className="active">
         <div id="todosContent">
-          <MobileShell />
+          <MobileShell key={user.id} />
         </div>
       </div>
     );
@@ -46,7 +46,7 @@ function AuthGate() {
   return (
     <div id="todosView" className="active">
       <div id="todosContent">
-        <AppShell />
+        <AppShell key={user.id} />
       </div>
     </div>
   );

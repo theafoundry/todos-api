@@ -19,6 +19,7 @@ import "./inbox-review.css";
 
 export interface InboxReviewProps {
   onAccepted: (task: Todo) => void | Promise<void>;
+  onReconcileTasks?: () => void | Promise<void>;
   onOpenTask?: (taskId: string) => void;
   refreshKey?: string | number;
   onCaptureAdded?: () => void;
@@ -157,6 +158,7 @@ function CaptureRow({
 
 export function InboxReview({
   onAccepted,
+  onReconcileTasks,
   onOpenTask,
   refreshKey,
   onCaptureAdded,
@@ -166,6 +168,8 @@ export function InboxReview({
   const [items, setItems] = useState<CaptureItemDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [tasksRefreshError, setTasksRefreshError] = useState("");
+  const [refreshingTasks, setRefreshingTasks] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
@@ -181,11 +185,59 @@ export function InboxReview({
   const mounted = useRef(false);
   const loadSequence = useRef(0);
   const acceptedCallback = useRef(onAccepted);
+  const reconciliationCallback = useRef(onReconcileTasks);
+  const tasksRefresh = useRef<Promise<string | null> | null>(null);
   const captureAttempt = useRef<{ text: string; key: string } | null>(null);
 
   useEffect(() => {
     acceptedCallback.current = onAccepted;
   }, [onAccepted]);
+  useEffect(() => {
+    reconciliationCallback.current = onReconcileTasks;
+  }, [onReconcileTasks]);
+
+  const queueTasksRefresh = useCallback(
+    async (
+      callback: () => void | Promise<void>,
+      isCurrent = () => mounted.current,
+    ) => {
+      // A prior read can predate a committed acceptance. Serialize it, then make
+      // a fresh read for this refresh rather than treating its snapshot as current.
+      const previous = tasksRefresh.current;
+      const attempt = Promise.resolve(previous).then(async () => {
+        if (!isCurrent()) return null;
+        try {
+          await callback();
+          return null;
+        } catch (error) {
+          return errorMessage(error);
+        }
+      });
+      tasksRefresh.current = attempt;
+      if (mounted.current) setRefreshingTasks(true);
+      void attempt.then(() => {
+        if (tasksRefresh.current === attempt) {
+          tasksRefresh.current = null;
+          if (mounted.current) setRefreshingTasks(false);
+        }
+      });
+      return attempt;
+    },
+    [],
+  );
+
+  const reconcileTasks = useCallback(
+    async (isCurrent = () => mounted.current) => {
+      if (!reconciliationCallback.current) return true;
+      const error = await queueTasksRefresh(
+        () => reconciliationCallback.current?.(),
+        isCurrent,
+      );
+      if (isCurrent()) setTasksRefreshError(error ?? "");
+      return error === null;
+    },
+    [queueTasksRefresh],
+  );
 
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current;
@@ -204,7 +256,13 @@ export function InboxReview({
         if (reviewedAt <= reviewedBeforeLoad) removedIds.current.delete(id);
       }
       setItems(visible);
-      return visible;
+      // An acceptance can commit despite an unreadable response, or another
+      // surface can review a capture. Refresh Tasks without inferring an outcome.
+      const tasksRefreshed = await reconcileTasks(
+        () => mounted.current && sequence === loadSequence.current,
+      );
+      if (!mounted.current || sequence !== loadSequence.current) return null;
+      return { items: visible, tasksRefreshed };
     } catch (error) {
       if (mounted.current && sequence === loadSequence.current)
         setLoadError(errorMessage(error));
@@ -213,7 +271,7 @@ export function InboxReview({
       if (mounted.current && sequence === loadSequence.current)
         setLoading(false);
     }
-  }, []);
+  }, [reconcileTasks]);
 
   useEffect(() => {
     mounted.current = true;
@@ -229,7 +287,7 @@ export function InboxReview({
 
   useEffect(() => {
     if (!refreshRef) return;
-    const refresh = async () => (await load()) !== null;
+    const refresh = async () => (await load())?.tasksRefreshed ?? false;
     refreshRef.current = refresh;
     return () => {
       if (refreshRef.current === refresh) refreshRef.current = null;
@@ -258,13 +316,21 @@ export function InboxReview({
         setAcceptedTask(accepted?.task ?? null);
       }
       if (accepted) {
-        try {
-          await acceptedCallback.current(accepted.task);
-        } catch {
-          if (mounted.current)
+        // Confirmed acceptance needs its own fresh read in the same queue.
+        // Navigation may unmount this review while the owning shell still lives.
+        const error = await queueTasksRefresh(
+          () => acceptedCallback.current(accepted.task),
+          () => true,
+        );
+        if (mounted.current) {
+          if (error) {
+            setTasksRefreshError(error);
             setNotice(
               "Accepted to Tasks. Refresh Tasks to see the saved task.",
             );
+          } else {
+            setTasksRefreshError("");
+          }
         }
       }
     } catch (error) {
@@ -273,6 +339,12 @@ export function InboxReview({
           ...current,
           [item.id]: errorMessage(error),
         }));
+      if (
+        title !== undefined &&
+        error instanceof MutationApiError &&
+        error.requiresReconciliation
+      )
+        void reconcileTasks();
     } finally {
       pending.current.delete(item.id);
       if (mounted.current) setPendingIds(new Set(pending.current));
@@ -325,7 +397,7 @@ export function InboxReview({
   const checkCapture = async () => {
     const refreshed = await load();
     if (!refreshed || !mounted.current) return;
-    if (refreshed.some((item) => item.text.trim() === draft.trim())) {
+    if (refreshed.items.some((item) => item.text.trim() === draft.trim())) {
       setCaptureError(
         "A matching capture is in Inbox. It may be your earlier save. Review it before saving this draft again.",
       );
@@ -433,6 +505,24 @@ export function InboxReview({
           <button type="button" className="btn" onClick={() => void load()}>
             Retry loading Inbox
           </button>
+        </div>
+      )}
+      {tasksRefreshError && (
+        <div role="alert" className="inbox-review__error">
+          <p>
+            Tasks could not be refreshed. Try again to check any saved changes.
+          </p>
+          <p>{tasksRefreshError}</p>
+          {onReconcileTasks && (
+            <button
+              type="button"
+              className="btn"
+              disabled={refreshingTasks}
+              onClick={() => void reconcileTasks()}
+            >
+              Retry refreshing Tasks
+            </button>
+          )}
         </div>
       )}
       {!loading && !loadError && !items.length && (

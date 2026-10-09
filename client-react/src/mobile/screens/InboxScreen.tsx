@@ -9,6 +9,7 @@ interface Props {
   onAvatarClick: () => void;
   onSearch: () => void;
   onAccepted: (task: Todo) => void | Promise<void>;
+  onReconcileTasks: () => void | Promise<void>;
   onOpenTask: (taskId: string) => void;
 }
 
@@ -18,6 +19,7 @@ export function InboxScreen({
   onAvatarClick,
   onSearch,
   onAccepted,
+  onReconcileTasks,
   onOpenTask,
 }: Props) {
   return (
@@ -32,6 +34,7 @@ export function InboxScreen({
         <InboxReview
           refreshRef={refreshRef}
           onAccepted={onAccepted}
+          onReconcileTasks={onReconcileTasks}
           onOpenTask={onOpenTask}
         />
       </div>

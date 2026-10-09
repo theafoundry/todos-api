@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   setCustomView: vi.fn(),
   inboxProps: null as {
     onAccepted: (task: Todo) => Promise<void>;
+    onReconcileTasks: () => Promise<void>;
     onOpenTask: (id: string) => Promise<void>;
     refreshRef: RefObject<(() => Promise<boolean>) | null>;
   } | null,
@@ -308,6 +309,20 @@ describe("MobileShell", () => {
     ).rejects.toThrow("The task was added, but Tasks could not be refreshed");
   });
 
+  it("reconciles Tasks without claiming a capture was accepted", async () => {
+    mocks.activeTab = "inbox";
+    render(createElement(MobileShell));
+    mocks.loadTodos.mockClear();
+    await mocks.inboxProps!.onReconcileTasks();
+    expect(mocks.loadTodos).toHaveBeenCalledOnce();
+    expect(mocks.loadTodos).toHaveBeenCalledWith({});
+    expect(mocks.revalidate).toHaveBeenCalled();
+    mocks.loadTodos.mockResolvedValue(false);
+    await expect(mocks.inboxProps!.onReconcileTasks()).rejects.toThrow(
+      "Tasks could not be refreshed. Try again.",
+    );
+  });
+
   it("keeps the Inbox visible and reports an accepted task that cannot be opened", async () => {
     mocks.activeTab = "inbox";
     mocks.loadTodos.mockResolvedValue(false);
@@ -335,6 +350,8 @@ describe("MobileShell", () => {
         }),
     );
     render(createElement(MobileShell));
+    mocks.loadTodos.mockClear();
+    mocks.revalidate.mockClear();
     let completed = false;
     const refresh = mocks.refresh!().then((result) => {
       completed = true;
@@ -342,6 +359,8 @@ describe("MobileShell", () => {
     });
     await act(async () => {});
     expect(mocks.refreshInbox).toHaveBeenCalledOnce();
+    expect(mocks.loadTodos).not.toHaveBeenCalled();
+    expect(mocks.revalidate).not.toHaveBeenCalled();
     expect(completed).toBe(false);
     finishInbox(true);
     await expect(refresh).resolves.toBe(true);

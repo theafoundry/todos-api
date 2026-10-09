@@ -232,13 +232,181 @@ describe("Inbox review", () => {
     expect(onAccepted).toHaveBeenCalledWith(task);
   });
 
+  it("recovers an uncertain acceptance with a fresh Tasks read after an older snapshot", async () => {
+    const staleTasks = deferred<void>();
+    let cachedTasks: Todo[] = [];
+    const onReconcileTasks = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Tasks temporarily unavailable"))
+      .mockImplementationOnce(async () => {
+        await staleTasks.promise;
+        cachedTasks = [];
+      })
+      .mockImplementation(async () => {
+        cachedTasks = [task];
+      });
+    const onAccepted = vi.fn();
+    vi.mocked(fetchInboxItems)
+      .mockResolvedValueOnce([capture])
+      .mockResolvedValueOnce([]);
+    vi.mocked(acceptCapture).mockRejectedValue(
+      new MutationApiError("Acceptance result uncertain", "uncertain"),
+    );
+    render(
+      <InboxReview
+        onAccepted={onAccepted}
+        onReconcileTasks={onReconcileTasks}
+      />,
+    );
+    await screen.findByText("Tasks temporarily unavailable");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry refreshing Tasks" }),
+    );
+    await waitFor(() => expect(onReconcileTasks).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByRole("button", { name: "Accept to Tasks" }));
+    await screen.findByText("Acceptance result uncertain");
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Inbox" }));
+    await waitFor(() => expect(fetchInboxItems).toHaveBeenCalledTimes(2));
+    expect(onReconcileTasks).toHaveBeenCalledTimes(2);
+    await act(async () => staleTasks.resolve());
+    await screen.findByText("Inbox is clear");
+    expect(onReconcileTasks).toHaveBeenCalledTimes(4);
+    expect(cachedTasks).toEqual([task]);
+    expect(onAccepted).not.toHaveBeenCalled();
+    expect(acceptCapture).toHaveBeenCalledOnce();
+    expect(discardCapture).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps Inbox usable when Tasks refresh fails and awaits a truthful refresh result", async () => {
+    const refreshRef = { current: null as (() => Promise<boolean>) | null };
+    const tasksRead = deferred<void>();
+    const onReconcileTasks = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockImplementationOnce(async () => {
+        await tasksRead.promise;
+        throw new Error("Task read failed");
+      })
+      .mockResolvedValueOnce(undefined);
+    render(
+      <InboxReview
+        onAccepted={vi.fn()}
+        onReconcileTasks={onReconcileTasks}
+        refreshRef={refreshRef}
+      />,
+    );
+    await screen.findByText(capture.text);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Refresh Inbox" }),
+      ).toBeEnabled(),
+    );
+    let finished = false;
+    let refresh!: Promise<boolean>;
+    await act(async () => {
+      refresh = refreshRef.current!().then((result) => {
+        finished = true;
+        return result;
+      });
+    });
+    expect(finished).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "Accept to Tasks" }),
+    ).toBeEnabled();
+    await act(async () => tasksRead.resolve());
+    await expect(refresh).resolves.toBe(false);
+    expect(screen.getByRole("alert")).toHaveTextContent("Task read failed");
+    expect(screen.getByText(capture.text)).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry refreshing Tasks" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+    expect(onReconcileTasks).toHaveBeenCalledTimes(3);
+    expect(acceptCapture).not.toHaveBeenCalled();
+    expect(discardCapture).not.toHaveBeenCalled();
+  });
+
+  it("does not let an earlier task reconciliation overwrite a newer Inbox load error", async () => {
+    const staleTasks = deferred<void>();
+    const onReconcileTasks = vi.fn(async () => {
+      await staleTasks.promise;
+      throw new Error("Older Tasks error");
+    });
+    vi.mocked(fetchInboxItems)
+      .mockResolvedValueOnce([capture])
+      .mockRejectedValueOnce(new Error("Latest Inbox error"));
+    const refreshRef = { current: null as (() => Promise<boolean>) | null };
+    render(
+      <InboxReview
+        onAccepted={vi.fn()}
+        onReconcileTasks={onReconcileTasks}
+        refreshRef={refreshRef}
+      />,
+    );
+    await screen.findByText(capture.text);
+    await act(async () => {
+      await refreshRef.current!();
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("Latest Inbox error");
+    await act(async () => staleTasks.resolve());
+    expect(screen.getByRole("alert")).toHaveTextContent("Latest Inbox error");
+    expect(screen.queryByText("Older Tasks error")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loading Inbox…")).not.toBeInTheDocument();
+  });
+
+  it("serializes confirmed acceptance with a newer Inbox refresh", async () => {
+    const acceptedTasksRead = deferred<void>();
+    let acceptedReadPending = false;
+    const onAccepted = vi.fn(async () => {
+      acceptedReadPending = true;
+      await acceptedTasksRead.promise;
+      acceptedReadPending = false;
+    });
+    const onReconcileTasks = vi.fn(async () => {
+      expect(acceptedReadPending).toBe(false);
+    });
+    const refreshRef = { current: null as (() => Promise<boolean>) | null };
+    vi.mocked(acceptCapture).mockResolvedValue({ task, created: true });
+    vi.mocked(fetchInboxItems)
+      .mockResolvedValueOnce([capture])
+      .mockResolvedValueOnce([]);
+    render(
+      <InboxReview
+        onAccepted={onAccepted}
+        onReconcileTasks={onReconcileTasks}
+        refreshRef={refreshRef}
+      />,
+    );
+    await screen.findByText(capture.text);
+    fireEvent.click(screen.getByRole("button", { name: "Accept to Tasks" }));
+    await waitFor(() => expect(onAccepted).toHaveBeenCalledWith(task));
+    let refresh!: Promise<boolean>;
+    await act(async () => {
+      refresh = refreshRef.current!();
+    });
+    expect(onReconcileTasks).toHaveBeenCalledOnce();
+    await act(async () => acceptedTasksRead.resolve());
+    await expect(refresh).resolves.toBe(true);
+    expect(onReconcileTasks).toHaveBeenCalledTimes(2);
+    expect(
+      screen.queryByText(
+        "Accepted to Tasks. Refresh Tasks to see the saved task.",
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it("acknowledges acceptance even when Tasks could not refresh", async () => {
+    const onReconcileTasks = vi.fn();
     vi.mocked(acceptCapture).mockResolvedValue({ task, created: true });
     render(
       <InboxReview
         onAccepted={async () => {
           throw new Error("refresh failed");
         }}
+        onReconcileTasks={onReconcileTasks}
       />,
     );
     await screen.findByText(capture.text);
@@ -246,7 +414,15 @@ describe("Inbox review", () => {
     await screen.findByText(
       "Accepted to Tasks. Refresh Tasks to see the saved task.",
     );
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("refresh failed");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retry refreshing Tasks" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+    expect(onReconcileTasks).toHaveBeenCalledTimes(2);
+    expect(acceptCapture).toHaveBeenCalledOnce();
   });
 
   it("checks ambiguous saves before retry and keeps the original draft key", async () => {

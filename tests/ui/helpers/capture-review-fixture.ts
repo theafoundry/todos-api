@@ -1,5 +1,7 @@
 import { expect, type BrowserContext } from "@playwright/test";
 import type { CaptureItemDto } from "../../../client-react/src/api/inbox";
+import type { Project } from "../../../client-react/src/types";
+import { MOCK_USER } from "./todos-view";
 import {
   installMobileFixture,
   mobileTask,
@@ -24,6 +26,19 @@ export function captureItem(
   };
 }
 
+export function captureProject(patch: Partial<Project> = {}): Project {
+  return {
+    id: "review-project",
+    name: "Review project",
+    status: "active",
+    archived: false,
+    userId: MOCK_USER.id,
+    createdAt: MOBILE_NOW.toISOString(),
+    updatedAt: MOBILE_NOW.toISOString(),
+    ...patch,
+  };
+}
+
 /** Capture review is stateful, local-only, and never contacts a real API. */
 export async function installCaptureReviewFixture(
   context: BrowserContext,
@@ -40,6 +55,9 @@ export async function installCaptureReviewFixture(
   const gates: WriteGate[] = [];
   const captureKeys: string[] = [];
   const capturedByKey = new Map<string, CaptureItemDto>();
+  const droppedAcceptResponses = new Set<string>();
+  let fixtureProjects: Project[] | undefined;
+  const scopedTodoReads: string[] = [];
   let readStatus = 200;
 
   await context.route("**/*", async (route) => {
@@ -48,6 +66,45 @@ export async function installCaptureReviewFixture(
     if (url.origin !== origin) return route.fallback();
     const method = request.method();
     const path = url.pathname;
+    if (method === "GET" && fixtureProjects && path === "/projects") {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(fixtureProjects),
+      });
+    }
+    if (
+      method === "GET" &&
+      fixtureProjects &&
+      /^\/projects\/[^/]+\/headings$/.test(path)
+    ) {
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "[]",
+      });
+    }
+    if (method === "GET" && fixtureProjects && path === "/todos") {
+      scopedTodoReads.push(`${path}${url.search}`);
+      const projectId = url.searchParams.get("projectId");
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          api
+            .todos()
+            .filter((todo) => !projectId || todo.projectId === projectId),
+        ),
+      });
+    }
+    if (method === "GET" && path === "/agent-activity") {
+      reads.push(path);
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ entries: [] }),
+      });
+    }
     if (
       method === "GET" &&
       (path === "/activity-events" || /^\/todos\/[^/]+\/subtasks$/.test(path))
@@ -188,6 +245,9 @@ export async function installCaptureReviewFixture(
         item.lifecycle = "triaged";
         item.triageResult = { promotedAs: "task", promotedId: taskId };
       }
+      if (droppedAcceptResponses.delete(item.id)) {
+        return route.abort("connectionclosed");
+      }
       return json(
         response.body ??
           ((response.status ?? 200) >= 400
@@ -205,6 +265,10 @@ export async function installCaptureReviewFixture(
     writes,
     reads,
     captureKeys,
+    scopedTodoReads,
+    replaceProjects(next: Project[]) {
+      fixtureProjects = structuredClone(next);
+    },
     setReadStatus(status: number) {
       readStatus = status;
     },
@@ -212,6 +276,9 @@ export async function installCaptureReviewFixture(
       captures = structuredClone(next);
     },
     captures: () => structuredClone(captures),
+    dropNextCommittedAcceptResponse(captureId = "capture-conversation") {
+      droppedAcceptResponses.add(captureId);
+    },
     holdNext(method = "POST", path = "/capture/capture-conversation/accept") {
       const gate = new WriteGate(method, path);
       gates.push(gate);

@@ -2,9 +2,10 @@ import { test as base, expect, type Page } from "@playwright/test";
 import {
   installCaptureReviewFixture,
   captureItem,
+  captureProject,
   type CaptureReviewFixture,
 } from "./helpers/capture-review-fixture";
-import { MOBILE_NOW } from "./helpers/mobile-fixture";
+import { mobileTask, MOBILE_NOW } from "./helpers/mobile-fixture";
 
 const test = base.extend<{ captures: CaptureReviewFixture }>({
   captures: async ({ context, baseURL }, use) => {
@@ -358,6 +359,186 @@ test("title and capture drafts survive navigation and pending acceptance updates
       exact: true,
     }),
   ).toHaveValue(draft);
+});
+
+test("desktop Inbox capture and title drafts survive Today, Tasks, Horizon, Settings and Activity navigation", async ({
+  page,
+  captures,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Desktop navigation uses a bounded view cache");
+  const inbox = await openInbox(page);
+  const draft = "An unsaved intention beyond the navigation cache";
+  const input = inbox.getByRole("textbox", {
+    name: "Save an intention for review",
+    exact: true,
+  });
+  const row = inbox.locator(".inbox-review__item");
+  await input.fill(draft);
+  await row.getByRole("button", { name: "Edit title", exact: true }).click();
+  await row.getByLabel("Task title", { exact: true }).fill(edited);
+  for (const view of ["today", "all", "horizon"]) {
+    const navigation = page.locator(`button[data-workspace-view="${view}"]`);
+    await navigation.click();
+    await expect(navigation).toHaveClass(/projects-rail-item--active/);
+    await expect(inbox).toBeHidden();
+  }
+  await showInbox(page, false);
+  await screenshot(page, "desktop-inbox-drafts-after-navigation");
+  await expect.soft(input).toHaveValue(draft);
+  await expect
+    .soft(row.getByLabel("Task title", { exact: true }))
+    .toHaveValue(edited);
+  await page.locator(".profile-launcher__trigger").click();
+  await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Settings", exact: true }),
+  ).toBeVisible();
+  await expect(inbox).toBeHidden();
+  expect(
+    await page.evaluate(() =>
+      Boolean(
+        document
+          .querySelector('[aria-label="Inbox review"]')
+          ?.contains(document.activeElement),
+      ),
+    ),
+  ).toBe(false);
+  await showInbox(page, false);
+  await expect(input).toHaveValue(draft);
+  await expect(row.getByLabel("Task title", { exact: true })).toHaveValue(
+    edited,
+  );
+  await page.getByRole("button", { name: "Activity", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Agent Activity", exact: true }),
+  ).toBeVisible();
+  await expect(inbox).toBeHidden();
+  expect(
+    await page.evaluate(() =>
+      Boolean(
+        document
+          .querySelector('[aria-label="Inbox review"]')
+          ?.contains(document.activeElement),
+      ),
+    ),
+  ).toBe(false);
+  await showInbox(page, false);
+  await inbox
+    .getByRole("button", { name: "Refresh Inbox", exact: true })
+    .click();
+  await expect(input).toHaveValue(draft);
+  await expect(row.getByLabel("Task title", { exact: true })).toHaveValue(
+    edited,
+  );
+  expect(captures.writes).toEqual([]);
+  expect(captures.captures()[0].text).toBe(original);
+});
+
+test("refreshing Inbox after a committed acceptance response is lost restores Tasks without retrying acceptance", async ({
+  page,
+  captures,
+  isMobile,
+}) => {
+  const inbox = await openInbox(page);
+  const row = inbox.locator(".inbox-review__item");
+  await row.getByRole("button", { name: "Edit title", exact: true }).click();
+  await row.getByLabel("Task title", { exact: true }).fill(edited);
+  captures.dropNextCommittedAcceptResponse();
+  await row
+    .getByRole("button", { name: "Accept to Tasks", exact: true })
+    .click();
+  await expect(row.getByRole("alert")).toBeVisible();
+  expect(captures.api.todos()).toHaveLength(1);
+  const saved = captures.api.todos()[0];
+  expect(saved.title).toBe(edited);
+  expect(saved.notes).toContain(original);
+  expect(captures.writes).toHaveLength(1);
+  await inbox
+    .getByRole("button", { name: "Refresh Inbox", exact: true })
+    .click();
+  await expect(row).toHaveCount(0);
+  await expect(
+    inbox.getByRole("heading", { name: "Inbox is clear", exact: true }),
+  ).toBeVisible();
+  await showTasks(page, isMobile);
+  await screenshot(page, "task-after-lost-acceptance-and-inbox-refresh");
+  const task = isMobile
+    ? page.getByRole("button", { name: new RegExp(`^${edited}`) }).first()
+    : page.locator(`[data-todo-id="${saved.id}"]`);
+  await expect(task).toBeVisible();
+  expect(captures.writes).toHaveLength(1);
+  expect(captures.api.todos()).toHaveLength(1);
+  expect(captures.api.todos()[0].id).toBe(saved.id);
+});
+
+test("a delayed Inbox refresh cannot replace the selected project's tasks with other projects", async ({
+  page,
+  captures,
+  isMobile,
+}) => {
+  test.skip(
+    isMobile,
+    "Desktop project navigation shares the filtered Tasks store",
+  );
+  const pine = captureProject({ id: "project-pine", name: "Project Pine" });
+  const oak = captureProject({ id: "project-oak", name: "Project Oak" });
+  const pineTask = mobileTask({
+    id: "task-pine",
+    title: "Keep the Pine task scoped",
+    projectId: pine.id,
+  });
+  const oakTask = mobileTask({
+    id: "task-oak",
+    title: "Keep the Oak task out of Pine",
+    projectId: oak.id,
+  });
+  captures.replaceProjects([pine, oak]);
+  captures.api.replaceTodos([pineTask, oakTask]);
+  const inbox = await openInbox(page);
+  await expect(inbox.locator(".inbox-review__item")).toHaveCount(1);
+  const refresh = captures.holdNext("GET", "/capture");
+  await inbox
+    .getByRole("button", { name: "Refresh Inbox", exact: true })
+    .click();
+  await refresh.request();
+  const projectNavigation = page.locator(
+    'button[data-project-key="Project Pine"]',
+  );
+  await projectNavigation.click();
+  await expect(projectNavigation).toHaveClass(/projects-rail-item--active/);
+  const visiblePine = page.getByRole("button", {
+    name: pineTask.title,
+    exact: true,
+  });
+  const visibleOak = page.getByRole("button", {
+    name: oakTask.title,
+    exact: true,
+  });
+  await expect(visiblePine).toBeVisible();
+  await expect(visibleOak).toHaveCount(0);
+  const readsBeforeRelease = captures.scopedTodoReads.length;
+  const refreshed = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === "/capture" &&
+      response.request().method() === "GET",
+  );
+  refresh.respond();
+  await refreshed;
+  await page.waitForLoadState("networkidle");
+  expect(captures.scopedTodoReads.length).toBeGreaterThan(readsBeforeRelease);
+  expect(
+    new URL(
+      captures.scopedTodoReads.at(-1)!,
+      "http://127.0.0.1",
+    ).searchParams.get("projectId"),
+  ).toBe(pine.id);
+  await expect(projectNavigation).toHaveClass(/projects-rail-item--active/);
+  await expect(visiblePine).toBeVisible();
+  await expect(visibleOak).toHaveCount(0);
+  expect(captures.writes).toEqual([]);
+  expect(captures.api.todos()).toHaveLength(2);
+  await screenshot(page, "project-task-scope-after-delayed-inbox-refresh");
 });
 
 test("an ambiguous manual save with no confirmed match reuses its opaque key when retried", async ({

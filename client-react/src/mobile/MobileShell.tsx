@@ -184,11 +184,19 @@ export function MobileShell() {
     [openSurface],
   );
   const handleRefresh = useCallback(async () => {
+    if (activeTab === "inbox" && inboxRefreshRef.current) {
+      // Inbox refresh already reconciles Tasks and Focus. A second parallel
+      // Tasks read could supersede it and falsely report a failed refresh.
+      const results = await Promise.all([
+        inboxRefreshRef.current(),
+        loadProjects(),
+      ]);
+      return results.every(Boolean);
+    }
     const results = await Promise.all([
       loadTodos({}),
       loadProjects(),
       focusBrief.revalidate(),
-      activeTab === "inbox" ? (inboxRefreshRef.current?.() ?? true) : true,
     ]);
     return results.every(Boolean);
   }, [loadTodos, loadProjects, focusBrief.revalidate, activeTab]);
@@ -334,6 +342,10 @@ export function MobileShell() {
     },
     [reconcileTasks, getTodo],
   );
+  const handleReconcileCaptureTasks = useCallback(async () => {
+    if (!(await reconcileTasks()))
+      throw new Error("Tasks could not be refreshed. Try again.");
+  }, [reconcileTasks]);
   const handleOpenAcceptedTask = useCallback(
     async (id: string) => {
       if (openingAcceptedTask.current) return;
@@ -440,6 +452,7 @@ export function MobileShell() {
                 onAvatarClick={handleAvatarClick}
                 onSearch={() => openSurface({ mode: "search" })}
                 onAccepted={handleAcceptedCapture}
+                onReconcileTasks={handleReconcileCaptureTasks}
                 onOpenTask={handleOpenAcceptedTask}
               />
             </ViewActivityProvider>

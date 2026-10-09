@@ -34,8 +34,7 @@ import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { HomeDashboard } from "./HomeDashboard";
-import { InboxReview } from "../inbox/InboxReview";
-import { ViewHeader } from "./ViewHeader";
+import { DesktopInbox } from "../inbox/DesktopInbox";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import {
   ProjectEditorView,
@@ -983,6 +982,41 @@ export function AppShell() {
           </div>
         )}
         <ErrorBoundary>
+          <DesktopInbox
+            userId={user?.id}
+            isActive={page === "todos" && activeViewKey === "inbox"}
+            refreshKey={inboxRefreshKey}
+            onReconcileTasks={async () => {
+              if (!(await loadTodos(queryParams)))
+                throw new Error("Tasks could not be refreshed. Try again.");
+            }}
+            onAccepted={async () => {
+              if (!(await loadTodos(queryParams))) {
+                throw new Error("Tasks could not be refreshed");
+              }
+            }}
+            onOpenTask={async (id) => {
+              const refreshed = await loadTodos(
+                buildQueryParams({
+                  activeView: "all",
+                  selectedProjectId: null,
+                  sortBy,
+                  sortOrder,
+                }),
+              );
+              if (!refreshed || !getTodo(id)) {
+                setUndoAction({
+                  message:
+                    "Task was accepted. It could not be loaded; refresh Tasks and try again.",
+                  variant: "error",
+                });
+                return;
+              }
+              setSelectedProjectId(null);
+              setActiveView("all");
+              taskNav.openDrawer(id);
+            }}
+          />
           {page === "settings" && showTuneUp ? (
             <TuneUpView
               onOpenTask={(taskId) => {
@@ -1061,43 +1095,6 @@ export function AppShell() {
             />
           ) : (
             <ViewRouter activeViewKey={activeViewKey} capacity={3}>
-              <ViewRoute viewKey="inbox">
-                <ViewHeader
-                  title="Inbox"
-                  subtitle="Capture now. Review when you’re ready."
-                />
-                <div className="app-content">
-                  <InboxReview
-                    refreshKey={inboxRefreshKey}
-                    onAccepted={async () => {
-                      if (!(await loadTodos(queryParams))) {
-                        throw new Error("Tasks could not be refreshed");
-                      }
-                    }}
-                    onOpenTask={async (id) => {
-                      const refreshed = await loadTodos(
-                        buildQueryParams({
-                          activeView: "all",
-                          selectedProjectId: null,
-                          sortBy,
-                          sortOrder,
-                        }),
-                      );
-                      if (!refreshed || !getTodo(id)) {
-                        setUndoAction({
-                          message:
-                            "Task was accepted. It could not be loaded; refresh Tasks and try again.",
-                          variant: "error",
-                        });
-                        return;
-                      }
-                      setSelectedProjectId(null);
-                      setActiveView("all");
-                      taskNav.openDrawer(id);
-                    }}
-                  />
-                </div>
-              </ViewRoute>
               <ViewRoute viewKey="home">
                 {!isMobile && (
                   <header className="app-header">

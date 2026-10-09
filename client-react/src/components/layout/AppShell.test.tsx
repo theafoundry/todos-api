@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { ce } from "../../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from "@testing-library/react";
 import React from "react";
 
 // ─── Mock all heavy dependencies before importing AppShell ──────────
@@ -64,6 +70,9 @@ vi.mock("../shared/useOverlayFocusTrap", () => ({
 
 vi.mock("../../api/inbox", () => ({
   captureInboxItem: vi.fn().mockResolvedValue(undefined),
+  fetchInboxItems: vi.fn().mockResolvedValue([]),
+  acceptCapture: vi.fn(),
+  discardCapture: vi.fn(),
 }));
 
 vi.mock("../../api/client", () => ({
@@ -83,6 +92,7 @@ vi.mock("../projects/Sidebar", () => ({
     onToggleTheme,
     onOpenShortcuts,
     onLogout,
+    onSelectProject,
     onSearchChange,
     searchQuery,
     isCollapsed,
@@ -93,6 +103,14 @@ vi.mock("../projects/Sidebar", () => ({
         "data-testid": "sidebar",
         "data-collapsed": isCollapsed ? "true" : "false",
       },
+      React.createElement(
+        "button",
+        {
+          "data-testid": "sidebar-project",
+          onClick: () => onSelectProject("p1"),
+        },
+        "Project P",
+      ),
       React.createElement(
         "button",
         { "data-testid": "sidebar-new-task", onClick: onNewTask },
@@ -311,6 +329,7 @@ import { useProjectsStore } from "../../store/useProjectsStore";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useTaskNavigation } from "../../hooks/useTaskNavigation";
+import { fetchInboxItems } from "../../api/inbox";
 import { AppShell } from "./AppShell";
 
 const mockUseAuth = vi.mocked(useAuth);
@@ -790,6 +809,30 @@ describe("AppShell", () => {
   });
 
   describe("project selection", () => {
+    it("reconciles a delayed Inbox response using the currently selected project", async () => {
+      let finishInbox!: (items: []) => void;
+      vi.mocked(fetchInboxItems).mockReturnValueOnce(
+        new Promise<[]>((resolve) => {
+          finishInbox = resolve;
+        }),
+      );
+      setupOverrides({
+        projects: [{ id: "p1", name: "Project P", slug: "p" }],
+      });
+      const loadTodos = vi.mocked(mockUseTodosStore().loadTodos);
+      loadTodos.mockResolvedValue(true);
+      render(ce(AppShell));
+      await waitFor(() => expect(fetchInboxItems).toHaveBeenCalled());
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-project"));
+      });
+      expect(loadTodos).toHaveBeenLastCalledWith({ projectId: "p1" });
+      loadTodos.mockClear();
+      await act(async () => finishInbox([]));
+      await waitFor(() => expect(loadTodos).toHaveBeenCalledOnce());
+      expect(loadTodos).toHaveBeenLastCalledWith({ projectId: "p1" });
+    });
+
     it("renders project crud when project is selected", async () => {
       setupOverrides({
         projects: [{ id: "p1", name: "Test Project", slug: "test" }],
