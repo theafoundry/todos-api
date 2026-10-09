@@ -250,6 +250,15 @@ function normalizeOAuthResource(value: unknown): string | undefined {
   return canonical;
 }
 
+/** Local token shortcuts support the legacy unbound mode only. */
+export function validateLegacyMcpResourceMode(body: unknown): void {
+  if (Object.prototype.hasOwnProperty.call(body ?? {}, "resource")) {
+    throw new ValidationError(
+      "Resource-bound MCP credentials use /oauth/authorize and /oauth/token",
+    );
+  }
+}
+
 function normalizeGrantTypes(value: unknown): string[] {
   if (value === undefined) {
     return [OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE];

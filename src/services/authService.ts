@@ -238,13 +238,34 @@ export class AuthService {
   }
 
   /**
-   * Verify JWT token and return payload
+   * Verify an application access token. Delegated MCP credentials are verified
+   * separately and never establish application or account-management authority.
    * @throws Error if token is invalid or expired
    */
   verifyToken(token: string): JwtPayload {
     try {
-      const payload = jwt.verify(token, this.ACCESS_JWT_SECRET) as JwtPayload;
-      return payload;
+      const payload = jwt.verify(token, this.ACCESS_JWT_SECRET, {
+        algorithms: ["HS256"],
+      });
+      // This is the complete access-token contract used by login, refresh,
+      // social/phone login and runner enrollment. Enrollment can have no email.
+      const accessClaims = new Set(["userId", "email", "iat", "exp"]);
+      if (
+        typeof payload !== "object" ||
+        payload === null ||
+        Object.keys(payload).some((claim) => !accessClaims.has(claim)) ||
+        typeof payload.userId !== "string" ||
+        !payload.userId.trim() ||
+        (typeof payload.email !== "string" && payload.email !== null) ||
+        typeof payload.iat !== "number" ||
+        typeof payload.exp !== "number" ||
+        !Number.isInteger(payload.iat) ||
+        !Number.isInteger(payload.exp) ||
+        payload.exp <= payload.iat
+      ) {
+        throw new jwt.JsonWebTokenError("Invalid application access token");
+      }
+      return { ...payload, email: payload.email ?? "" } as JwtPayload;
     } catch (error: any) {
       if (error.name === "TokenExpiredError") {
         throw new Error("Token expired");
@@ -319,12 +340,21 @@ export class AuthService {
   } {
     try {
       const payload = jwt.verify(token, this.ACCESS_JWT_SECRET, {
-        ...(options?.resource
-          ? { issuer: config.baseUrl, audience: options.resource }
-          : {}),
-      }) as Partial<McpTokenPayload> & { iat?: unknown; sub?: unknown };
+        algorithms: ["HS256"],
+      }) as Partial<McpTokenPayload> & {
+        iat?: unknown;
+        exp?: unknown;
+        sub?: unknown;
+        aud?: unknown;
+        iss?: unknown;
+        jti?: unknown;
+      };
 
       if (payload.tokenType !== "mcp") {
+        throw new Error("Invalid MCP token");
+      }
+
+      if (!Array.isArray(payload.scopes)) {
         throw new Error("Invalid MCP token");
       }
 
@@ -339,19 +369,55 @@ export class AuthService {
 
       if (
         typeof payload.userId !== "string" ||
-        typeof payload.email !== "string"
+        !payload.userId.trim() ||
+        typeof payload.email !== "string" ||
+        (Object.prototype.hasOwnProperty.call(payload, "sessionId") &&
+          (typeof payload.sessionId !== "string" || !payload.sessionId.trim()))
       ) {
         throw new Error("Invalid MCP token");
       }
 
-      if (typeof payload.iat !== "number") {
+      if (
+        typeof payload.iat !== "number" ||
+        !Number.isInteger(payload.iat) ||
+        typeof payload.exp !== "number" ||
+        !Number.isInteger(payload.exp) ||
+        payload.exp <= payload.iat
+      ) {
         throw new Error("Invalid MCP token");
       }
-      if (
-        options?.requireResource &&
-        (payload.resource !== options.resource ||
-          payload.sub !== payload.userId)
-      ) {
+
+      // Legacy local tokens have no resource-binding claims. A partially bound
+      // token must never fall back to that compatibility mode.
+      const bound = ["resource", "aud", "iss", "sub", "jti"].some((claim) =>
+        Object.prototype.hasOwnProperty.call(payload, claim),
+      );
+      if (bound) {
+        const supportedResources = new Set([
+          new URL("/mcp", config.baseUrl).toString(),
+          new URL("/mcp/app", config.baseUrl).toString(),
+        ]);
+        if (
+          typeof payload.resource !== "string" ||
+          !supportedResources.has(payload.resource) ||
+          (options?.resource !== undefined &&
+            payload.resource !== options.resource) ||
+          payload.aud !== payload.resource ||
+          payload.iss !== config.baseUrl ||
+          payload.sub !== payload.userId ||
+          typeof payload.jti !== "string" ||
+          !payload.jti.trim() ||
+          typeof payload.sessionId !== "string" ||
+          !payload.sessionId.trim()
+        ) {
+          throw new Error("Invalid MCP token");
+        }
+        jwt.verify(token, this.ACCESS_JWT_SECRET, {
+          algorithms: ["HS256"],
+          issuer: config.baseUrl,
+          audience: payload.resource,
+        });
+      } else if (options?.requireResource) {
         throw new Error("Invalid MCP token");
       }
 
@@ -403,8 +469,9 @@ export class AuthService {
     });
 
     if (
-      userRevocation?.mcpRevokedAfter &&
-      issuedAt <= userRevocation.mcpRevokedAfter.getTime()
+      !userRevocation ||
+      (userRevocation?.mcpRevokedAfter &&
+        issuedAt <= userRevocation.mcpRevokedAfter.getTime())
     ) {
       throw new Error("MCP token revoked");
     }
@@ -422,7 +489,7 @@ export class AuthService {
         !session ||
         session.userId !== decoded.userId ||
         session.revokedAt !== null ||
-        (options?.requireResource && session.resource !== decoded.resource)
+        (session.resource ?? undefined) !== decoded.resource
       ) {
         throw new Error("MCP token revoked");
       }

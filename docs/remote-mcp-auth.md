@@ -204,6 +204,30 @@ The server then:
 
 No MCP tool trusts a client-provided user ID.
 
+### Application and connector token boundaries
+
+Application REST routes, `/agent` actions, account management and account-linking
+sessions require an application access token. Login, refresh, social/phone login
+and runner enrollment issue these tokens. Existing enrollment tokens with a
+nullable email remain supported. MCP credentials never establish an application
+session, even when they have write scopes.
+
+The local `/auth/mcp/token` and `/auth/mcp/oauth/*` shortcuts support only the
+legacy resource-less mode. A supplied `resource` field is rejected; use the
+public `/oauth/authorize` and `/oauth/token` endpoints for resource-bound grants.
+
+Legacy resource-less MCP tokens remain supported on `/mcp`. Resource-bound OAuth
+tokens are accepted only by their intended transport: `/mcp` tokens on `/mcp`,
+and `/mcp/app` tokens on `/mcp/app`. Bound tokens require their exact issuer,
+audience, subject, resource and owned live assistant session. Partial bindings
+are rejected rather than treated as legacy tokens. Both modes retain scope,
+expiry and revocation checks.
+
+UserInfo continues to accept `/mcp/app` credentials with the required identity
+scopes. OAuth token exchange and revocation retain their protocol-specific
+credential handling; an MCP bearer cannot authorize application token minting
+or assistant-session management.
+
 ## Supported Scopes
 
 Todos application-authorization scopes:

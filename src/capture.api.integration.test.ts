@@ -5,19 +5,42 @@ import { AuthService } from "./services/authService";
 import { prisma } from "./prismaClient";
 import { PrismaProjectService } from "./services/projectService";
 import { AgentIdempotencyService } from "./services/agentIdempotencyService";
+import { McpOAuthService } from "./services/mcpOAuthService";
 import { config } from "./config";
 import { getMcpAppResource } from "./mcp/appContract";
+import type { McpOAuthScope } from "./mcp/mcpScopes";
+
+const FIXTURE_EMAILS = [
+  "capture-test@example.com",
+  "other-receipt@example.com",
+  "other-capture@example.com",
+  "foreign-project@example.com",
+];
 
 describe("Capture API Integration", () => {
   let app: ReturnType<typeof createApp>;
   let authToken: string;
   let userId: string;
   let authService: AuthService;
+  let oauthService: McpOAuthService;
+  let fixtureDatabaseApproved = false;
+  const originalJwtSecret = process.env.JWT_SECRET;
 
   beforeAll(() => {
+    const database = new URL(config.databaseUrl || "");
+    if (
+      !["localhost", "127.0.0.1", "[::1]"].includes(database.hostname) ||
+      !database.pathname.includes("test")
+    ) {
+      throw new Error(
+        "Capture fixtures require an isolated local test database",
+      );
+    }
+    fixtureDatabaseApproved = true;
     process.env.JWT_SECRET = "test-secret-for-capture-api-tests";
     const todoService = new PrismaTodoService(prisma);
     authService = new AuthService(prisma);
+    oauthService = new McpOAuthService(prisma);
     app = createApp({
       todoService,
       authService,
@@ -29,16 +52,65 @@ describe("Capture API Integration", () => {
     await prisma.captureItem.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
+    jest
+      .spyOn(authService, "dispatchVerificationEmail")
+      .mockImplementation(() => {});
 
-    const registerResponse = await request(app).post("/auth/register").send({
-      email: "capture-test@example.com",
-      password: "password123",
-      name: "Capture Tester",
-    });
+    const registerResponse = await request(app)
+      .post("/auth/register")
+      .send({
+        email: "capture-test@example.com",
+        password: "password123",
+        name: "Capture Tester",
+      })
+      .expect(201);
 
     authToken = registerResponse.body.token;
     userId = registerResponse.body.user.id;
   });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  afterAll(async () => {
+    try {
+      if (fixtureDatabaseApproved) {
+        await prisma.user.deleteMany({
+          where: { email: { in: FIXTURE_EMAILS } },
+        });
+      }
+    } finally {
+      await prisma.$disconnect();
+      if (originalJwtSecret === undefined) delete process.env.JWT_SECRET;
+      else process.env.JWT_SECRET = originalJwtSecret;
+    }
+  });
+
+  async function nativeMcpToken(scopes: McpOAuthScope[]) {
+    const resource = getMcpAppResource(config.baseUrl);
+    const session = await oauthService.createAssistantSession({
+      userId,
+      scopes,
+      source: "oauth",
+      clientId: "synthetic-capture-review",
+      resource,
+    });
+    return authService.createMcpToken({
+      userId,
+      email: "capture-test@example.com",
+      scopes,
+      sessionId: session.id,
+      resource,
+    }).token;
+  }
+
+  async function reviewSnapshot() {
+    return Promise.all([
+      prisma.captureItem.findMany({ orderBy: { id: "asc" } }),
+      prisma.todo.findMany({ orderBy: { id: "asc" } }),
+      prisma.agentIdempotencyRecord.findMany({ orderBy: { id: "asc" } }),
+      prisma.mcpAssistantSession.findMany({ orderBy: { id: "asc" } }),
+    ]);
+  }
 
   it("POST /capture creates an item and returns 201", async () => {
     const response = await request(app)
@@ -339,21 +411,16 @@ describe("Capture API Integration", () => {
     "rejects %s MCP tokens on web-only review writes without changing records",
     async (scope) => {
       const item = await capture();
-      const token = authService.createMcpToken({
-        userId,
-        email: "capture-test@example.com",
-        scopes: [scope],
-        resource: getMcpAppResource(config.baseUrl),
-      }).token;
+      const token = await nativeMcpToken([scope]);
+      const before = await reviewSnapshot();
       for (const action of ["accept", "discard"]) {
         const response = await request(app)
           .post(`/capture/${item.id}/${action}`)
           .set("Authorization", `Bearer ${token}`)
-          .send({})
-          .expect(403);
-        expect(response.body.error).toBe(
-          "Review captures using a signed-in web session",
-        );
+          .send(action === "accept" ? { title: "Unapproved task" } : {})
+          .expect(401);
+        expect(response.body.error).toBe("Invalid token");
+        expect(await reviewSnapshot()).toEqual(before);
       }
       expect(
         (await prisma.captureItem.findUniqueOrThrow({ where: { id: item.id } }))
@@ -376,12 +443,7 @@ describe("Capture API Integration", () => {
   }
 
   it("atomically saves one raw capture across concurrent public MCP and agent retries", async () => {
-    const token = authService.createMcpToken({
-      userId,
-      email: "capture-test@example.com",
-      scopes: ["tasks.write"],
-      resource: getMcpAppResource(config.baseUrl),
-    }).token;
+    const token = await nativeMcpToken(["tasks.write"]);
     const key = "concurrent-shared-capture";
     const text = "Call the dentist tomorrow";
     const [first, second, third, fourth] = await Promise.all([
@@ -416,6 +478,30 @@ describe("Capture API Integration", () => {
       created: false,
       capture: { id: ids[0], text, lifecycle: "new" },
     });
+    const accepted = await accept(ids[0], "Call the dentist").expect(201);
+    expect(accepted.body.task).toMatchObject({
+      title: "Call the dentist",
+      sourceText: text,
+      status: "next",
+    });
+    const afterReview = await publicCapture(key, text, token, 104).expect(200);
+    expect(mcpBody(afterReview).result.isError).not.toBe(true);
+    expect(mcpBody(afterReview).result.structuredContent.created).toBe(false);
+    expect(
+      await prisma.captureItem.findUniqueOrThrow({ where: { id: ids[0] } }),
+    ).toMatchObject({
+      lifecycle: "triaged",
+      triageResult: {
+        promotedAs: "task",
+        promotedId: accepted.body.task.id,
+      },
+    });
+    const pending = await request(app)
+      .get("/capture?review=pending")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+    expect(pending.body).toEqual([]);
+    expect(await prisma.todo.count({ where: { userId } })).toBe(1);
   });
 
   it("conflicts concurrent reuse of a raw capture key with different input", async () => {

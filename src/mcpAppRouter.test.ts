@@ -785,16 +785,25 @@ describe("ChatGPT-native MCP app profile", () => {
   });
 
   test("accepts only short-lived access tokens with the exact native audience", async () => {
+    const resource = "http://localhost:3000/mcp/app";
+    const userId = "00000000-0000-4000-8000-000000000001";
     const authService = new AuthService({
       user: {
         findUnique: jest.fn().mockResolvedValue({ mcpRevokedAfter: null }),
       },
+      mcpAssistantSession: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId,
+          revokedAt: null,
+          resource,
+        }),
+      },
     } as any);
-    const resource = "http://localhost:3000/mcp/app";
     const issued = authService.createMcpToken({
-      userId: "00000000-0000-4000-8000-000000000001",
+      userId,
       email: "user@example.com",
       scopes: ["tasks.read", "projects.read"],
+      sessionId: "session-1",
       resource,
     });
 
@@ -814,16 +823,25 @@ describe("ChatGPT-native MCP app profile", () => {
   });
 
   test("keeps OIDC identity scopes out of native tool authorization", async () => {
+    const resource = "http://localhost:3000/mcp/app";
+    const userId = "00000000-0000-4000-8000-000000000001";
     const authService = new AuthService({
       user: {
         findUnique: jest.fn().mockResolvedValue({ mcpRevokedAfter: null }),
       },
+      mcpAssistantSession: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId,
+          revokedAt: null,
+          resource,
+        }),
+      },
     } as any);
-    const resource = "http://localhost:3000/mcp/app";
     const issued = authService.createMcpToken({
-      userId: "00000000-0000-4000-8000-000000000001",
+      userId,
       email: "user@example.com",
       scopes: ["openid", "email"],
+      sessionId: "session-1",
       resource,
     });
 
