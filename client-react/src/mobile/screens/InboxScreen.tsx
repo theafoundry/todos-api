@@ -32,6 +32,7 @@ export function InboxScreen({
       />
       <div className="m-custom__content">
         <InboxReview
+          draftOwnerId={user?.id}
           refreshRef={refreshRef}
           onAccepted={onAccepted}
           onReconcileTasks={onReconcileTasks}

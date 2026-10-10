@@ -130,6 +130,82 @@ describe("Inbox review", () => {
     expect(acceptCapture).not.toHaveBeenCalled();
   });
 
+  it("keeps line breaks out of a multi-line capture's editable title and preserves the original", async () => {
+    const multiline = {
+      ...capture,
+      text: "Ask Maya for the checklist\nKeep the pilot  short",
+    };
+    vi.mocked(fetchInboxItems).mockResolvedValue([multiline]);
+    vi.mocked(acceptCapture).mockResolvedValue({ task, created: true });
+    render(<InboxReview onAccepted={vi.fn()} />);
+    const title = "Ask Maya for the checklist Keep the pilot short";
+    expect(
+      await screen.findByRole("heading", { name: title }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Original capture").parentElement,
+    ).toHaveTextContent(multiline.text, { normalizeWhitespace: false });
+    fireEvent.click(screen.getByRole("button", { name: "Edit title" }));
+    expect(screen.getByLabelText("Task title")).toHaveValue(title);
+    fireEvent.click(screen.getByRole("button", { name: "Accept to Tasks" }));
+    await screen.findByText("Inbox is clear");
+    expect(acceptCapture).toHaveBeenCalledWith(multiline.id, title);
+  });
+
+  it("caps a long CRLF/tab capture's unedited title after collapsing whitespace and keeps the raw original", async () => {
+    const words = Array.from({ length: 60 }, (_, i) => `word${i}`);
+    const raw = `  \r\n${words.slice(0, 3).join("\r\n\r\n")}\t\t${words.slice(3).join("   ")}  `;
+    vi.mocked(fetchInboxItems).mockResolvedValue([{ ...capture, text: raw }]);
+    vi.mocked(acceptCapture).mockResolvedValue({ task, created: true });
+    render(<InboxReview onAccepted={vi.fn()} />);
+    // The 200-character cap lands just after a space; acceptance trims it.
+    const expected = words.join(" ").slice(0, 200);
+    expect(expected).toMatch(/ $/);
+    expect(
+      await screen.findByRole("heading", { name: expected.trim() }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Original capture").parentElement!.textContent,
+    ).toBe(`Original capture${raw}`);
+    fireEvent.click(screen.getByRole("button", { name: "Accept to Tasks" }));
+    await screen.findByText("Inbox is clear");
+    const [, title] = vi.mocked(acceptCapture).mock.calls[0];
+    expect(title).toBe(expected.trim());
+    expect(title!.length).toBeLessThanOrEqual(200);
+    expect(title).not.toMatch(/[\r\n\t]|\s{2}/);
+  });
+
+  it("restores the normalized multi-line title on cancel across a failed and retried accept", async () => {
+    const multiline = { ...capture, text: "First line\nSecond line" };
+    vi.mocked(fetchInboxItems).mockResolvedValue([multiline]);
+    vi.mocked(acceptCapture)
+      .mockRejectedValueOnce(new Error("Try again"))
+      .mockResolvedValueOnce({ task, created: false });
+    render(<InboxReview onAccepted={vi.fn()} />);
+    await screen.findByRole("heading", { name: "First line Second line" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit title" }));
+    fireEvent.change(screen.getByLabelText("Task title"), {
+      target: { value: "Edited first line" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Accept to Tasks" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Try again");
+    expect(acceptCapture).toHaveBeenLastCalledWith(
+      multiline.id,
+      "Edited first line",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel title edit" }));
+    expect(
+      screen.getByRole("heading", { name: "First line Second line" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Accept to Tasks" }));
+    await screen.findByText("Inbox is clear");
+    expect(acceptCapture).toHaveBeenCalledTimes(2);
+    expect(acceptCapture).toHaveBeenLastCalledWith(
+      multiline.id,
+      "First line Second line",
+    );
+  });
+
   it("does not remove a capture after failed discard", async () => {
     vi.mocked(discardCapture)
       .mockRejectedValueOnce(new Error("Discard failed"))

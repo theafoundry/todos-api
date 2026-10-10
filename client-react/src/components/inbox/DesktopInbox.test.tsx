@@ -18,6 +18,7 @@ import {
 import type { Todo } from "../../types";
 import { ViewRoute, ViewRouter } from "../layout/ViewRouter";
 import { DesktopInbox } from "./DesktopInbox";
+import { keepInboxDraftsFor } from "./inboxDrafts";
 
 vi.mock("../../api/inbox", () => ({
   acceptCapture: vi.fn(),
@@ -119,6 +120,8 @@ function editTitle(value = task.title) {
 }
 
 beforeEach(() => {
+  // Account drafts deliberately outlive an unmount; isolate each test's account.
+  keepInboxDraftsFor(null);
   vi.resetAllMocks();
   vi.mocked(fetchInboxItems).mockResolvedValue([capture]);
 });
