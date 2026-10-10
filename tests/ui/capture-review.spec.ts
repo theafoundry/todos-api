@@ -703,3 +703,167 @@ test("accepting a short task title preserves the full long capture and provenanc
   }
   await screenshot(page, "accepted-task-source-context");
 });
+
+test("editing a multi-line capture title keeps words separated and the original context intact", async ({
+  page,
+  captures,
+}) => {
+  const inbox = await openInbox(page);
+  const row = inbox.locator(".inbox-review__item");
+  const flattened = original.replace("\n", " ");
+  await row.getByRole("button", { name: "Edit title", exact: true }).click();
+  const input = row.getByLabel("Task title", { exact: true });
+  await expect(input).toHaveValue(flattened);
+  // Emulated mobile keyboards ignore End, so place the caret explicitly.
+  await input.focus();
+  await input.evaluate((el: HTMLInputElement) =>
+    el.setSelectionRange(el.value.length, el.value.length),
+  );
+  await input.pressSequentially(" today");
+  await expect(row.locator(".inbox-review__context")).toContainText(original, {
+    useInnerText: true,
+  });
+  const accept = captures.holdNext();
+  await row
+    .getByRole("button", { name: "Accept to Tasks", exact: true })
+    .click();
+  expect((await accept.request()).body).toEqual({
+    title: `${flattened} today`,
+  });
+  accept.respond();
+  await expect(row).toHaveCount(0);
+  expect(captures.api.todos()[0].notes).toContain(original);
+});
+
+// Crossing 700px swaps AppShell and MobileShell, remounting the Inbox. The
+// desktop project drives both directions with explicit viewport sizes.
+const WIDE = { width: 1280, height: 900 };
+const NARROW = { width: 600, height: 900 };
+
+async function crossBreakpoint(page: Page, size: typeof WIDE) {
+  await page.setViewportSize(size);
+  await showInbox(page, size === NARROW);
+  return page.getByRole("region", { name: "Inbox review", exact: true });
+}
+
+// A controlled textarea mirrors its value into the label's text, so match by role.
+const captureBox = (inbox: ReturnType<Page["getByRole"]>) =>
+  inbox.getByRole("textbox", {
+    name: "Save an intention for review",
+    exact: true,
+  });
+
+test("unsaved Inbox capture and title drafts survive crossing the mobile breakpoint both ways", async ({
+  page,
+  captures,
+  isMobile,
+}) => {
+  test.skip(isMobile, "The desktop project resizes across 700px explicitly");
+  await page.setViewportSize(WIDE);
+  let inbox = await openInbox(page);
+  await captureBox(inbox).fill("Unsaved breakpoint draft");
+  let row = inbox.locator(".inbox-review__item");
+  await row.getByRole("button", { name: "Edit title", exact: true }).click();
+  await row.getByLabel("Task title", { exact: true }).fill(edited);
+
+  inbox = await crossBreakpoint(page, NARROW);
+  await expect(page.locator(".m-shell")).toBeVisible();
+  row = inbox.locator(".inbox-review__item");
+  await expect(captureBox(inbox)).toHaveValue("Unsaved breakpoint draft");
+  await expect(row.getByLabel("Task title", { exact: true })).toHaveValue(
+    edited,
+  );
+  await captureBox(inbox).fill("Unsaved mobile draft");
+
+  inbox = await crossBreakpoint(page, WIDE);
+  await expect(page.locator(".m-shell")).toHaveCount(0);
+  row = inbox.locator(".inbox-review__item");
+  await expect(captureBox(inbox)).toHaveValue("Unsaved mobile draft");
+  await expect(row.getByLabel("Task title", { exact: true })).toHaveValue(
+    edited,
+  );
+  expect(captures.writes).toEqual([]);
+  expect(
+    await page.evaluate(() =>
+      [localStorage, sessionStorage].some((storage) =>
+        Object.values({ ...storage }).some((value) =>
+          String(value).includes("Unsaved"),
+        ),
+      ),
+    ),
+  ).toBe(false);
+});
+
+test("a pending accept stays blocked across the breakpoint and settles without another click", async ({
+  page,
+  captures,
+  isMobile,
+}) => {
+  test.skip(isMobile, "The desktop project resizes across 700px explicitly");
+  await page.setViewportSize(WIDE);
+  let inbox = await openInbox(page);
+  let row = inbox.locator(".inbox-review__item");
+  await row.getByRole("button", { name: "Edit title", exact: true }).click();
+  await row.getByLabel("Task title", { exact: true }).fill(edited);
+  const accept = captures.holdNext();
+  await row
+    .getByRole("button", { name: "Accept to Tasks", exact: true })
+    .click();
+  expect((await accept.request()).body).toEqual({ title: edited });
+
+  inbox = await crossBreakpoint(page, NARROW);
+  row = inbox.locator(".inbox-review__item");
+  await expect(
+    row.getByRole("button", { name: "Saving…", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    row.getByRole("button", { name: "Discard", exact: true }),
+  ).toBeDisabled();
+  expect(captures.writes).toHaveLength(1);
+  accept.respond();
+  await expect(row).toHaveCount(0);
+  await expect(inbox.getByText("Inbox is clear")).toBeVisible();
+  expect(captures.writes).toHaveLength(1);
+  expect(captures.api.todos().map((todo) => todo.title)).toEqual([edited]);
+
+  inbox = await crossBreakpoint(page, WIDE);
+  await expect(inbox.getByText("Inbox is clear")).toBeVisible();
+  await expect(inbox.getByLabel("Task title", { exact: true })).toHaveCount(0);
+});
+
+test("a capture save confirmed after crossing the breakpoint clears the draft without resurrecting it", async ({
+  page,
+  captures,
+  isMobile,
+}) => {
+  test.skip(isMobile, "The desktop project resizes across 700px explicitly");
+  await page.setViewportSize(NARROW);
+  await page.clock.setFixedTime(MOBILE_NOW);
+  await page.goto("/app/");
+  let inbox = await crossBreakpoint(page, NARROW);
+  await captureBox(inbox).fill("Breakpoint intention");
+  const save = captures.holdNext("POST", "/agent/write/capture_inbox_item");
+  await inbox
+    .getByRole("button", { name: "Save to Inbox", exact: true })
+    .click();
+  await save.request();
+
+  inbox = await crossBreakpoint(page, WIDE);
+  await expect(captureBox(inbox)).toHaveValue("Breakpoint intention");
+  await expect(captureBox(inbox)).toBeDisabled();
+  await expect(
+    inbox.getByRole("button", { name: "Saving…", exact: true }),
+  ).toBeDisabled();
+  save.respond();
+  await expect(captureBox(inbox)).toHaveValue("");
+  await expect(
+    inbox.getByRole("heading", { name: "Breakpoint intention", exact: true }),
+  ).toBeVisible();
+
+  inbox = await crossBreakpoint(page, NARROW);
+  await expect(captureBox(inbox)).toHaveValue("");
+  await expect(
+    inbox.getByRole("heading", { name: "Breakpoint intention", exact: true }),
+  ).toBeVisible();
+  expect(captures.captureKeys).toHaveLength(1);
+});

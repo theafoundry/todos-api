@@ -27,7 +27,7 @@ export function DesktopInbox({
           subtitle="Capture now. Review when you’re ready."
         />
         <div className="app-content">
-          <InboxReview key={userId} {...reviewProps} />
+          <InboxReview key={userId} draftOwnerId={userId} {...reviewProps} />
         </div>
       </ViewActivityProvider>
     </div>

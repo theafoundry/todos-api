@@ -6,12 +6,17 @@ import { AppShell } from "./components/layout/AppShell";
 import { MobileShell } from "./mobile/MobileShell";
 import { ToastProvider } from "./components/ui/ToastProvider";
 import { useIsMobile } from "./hooks/useIsMobile";
+import { keepInboxDraftsFor } from "./components/inbox/inboxDrafts";
 import "./styles/app.css";
 import { navigateWithFade } from "./utils/pageTransitions";
 
 function AuthGate() {
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
+  const ownerId = user?.id ?? null;
+
+  // Unsaved Inbox drafts outlive shell swaps, never their account's session.
+  useEffect(() => keepInboxDraftsFor(ownerId), [ownerId]);
 
   useEffect(() => {
     if (!loading && !user) {

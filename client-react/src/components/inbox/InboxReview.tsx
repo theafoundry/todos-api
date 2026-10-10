@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type RefObject,
 } from "react";
 import type { Todo } from "../../types";
@@ -15,6 +16,12 @@ import {
 } from "../../api/inbox";
 import { MutationApiError } from "../../api/mutations";
 import { useViewActivity } from "../layout/ViewActivityContext";
+import {
+  InboxDrafts,
+  inboxDraftsFor,
+  ownsInboxDrafts,
+  type TitleDraft,
+} from "./inboxDrafts";
 import "./inbox-review.css";
 
 export interface InboxReviewProps {
@@ -24,6 +31,8 @@ export interface InboxReviewProps {
   refreshKey?: string | number;
   onCaptureAdded?: () => void;
   refreshRef?: RefObject<(() => Promise<boolean>) | null>;
+  /** Account whose unsaved drafts survive a desktop/mobile shell swap. */
+  draftOwnerId?: string;
 }
 
 function errorMessage(error: unknown): string {
@@ -34,20 +43,32 @@ function errorMessage(error: unknown): string {
 
 function CaptureRow({
   item,
+  titles,
   pending,
   error,
   onAccept,
   onDiscard,
 }: {
   item: CaptureItemDto;
+  titles: Map<string, TitleDraft>;
   pending: boolean;
   error?: string;
   onAccept: (title: string) => void;
   onDiscard: () => void;
 }) {
-  const originalTitle = item.text.trim().slice(0, 200);
-  const [title, setTitle] = useState(originalTitle);
-  const [editing, setEditing] = useState(false);
+  // A single-line input strips line breaks without spacing, joining words.
+  // The full capture stays visible here and in the accepted task's notes.
+  const originalTitle = item.text.trim().replace(/\s+/g, " ").slice(0, 200);
+  const [title, setTitle] = useState(
+    () => titles.get(item.id)?.title ?? originalTitle,
+  );
+  const [editing, setEditing] = useState(
+    () => titles.get(item.id)?.editing ?? false,
+  );
+  useEffect(() => {
+    if (title === originalTitle && !editing) titles.delete(item.id);
+    else titles.set(item.id, { title, editing });
+  }, [titles, item.id, originalTitle, title, editing]);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const capturedAt = new Date(item.capturedAt);
   const source =
@@ -163,31 +184,40 @@ export function InboxReview({
   refreshKey,
   onCaptureAdded,
   refreshRef,
+  draftOwnerId,
 }: InboxReviewProps) {
   const { isActive } = useViewActivity();
+  const [drafts] = useState(() =>
+    draftOwnerId ? inboxDraftsFor(draftOwnerId) : new InboxDrafts(),
+  );
+  // Late work may outlive this shell, but never the account that started it.
+  const ownerCurrent = useCallback(
+    () => !draftOwnerId || ownsInboxDrafts(drafts),
+    [draftOwnerId, drafts],
+  );
+  const {
+    capture: {
+      text: draft,
+      saving: savingCapture,
+      error: captureError,
+      needsCheck: needsCaptureCheck,
+    },
+    pendingIds,
+    errors,
+    settledElsewhere,
+  } = useSyncExternalStore(drafts.subscribe, drafts.getState);
   const [items, setItems] = useState<CaptureItemDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [tasksRefreshError, setTasksRefreshError] = useState("");
   const [refreshingTasks, setRefreshingTasks] = useState(false);
-  const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const [acceptedTask, setAcceptedTask] = useState<Todo | null>(null);
-  const [draft, setDraft] = useState("");
-  const [savingCapture, setSavingCapture] = useState(false);
-  const [captureError, setCaptureError] = useState("");
-  const [needsCaptureCheck, setNeedsCaptureCheck] = useState(false);
-  const pending = useRef(new Set<string>());
-  const removedIds = useRef(new Map<string, number>());
-  const reviewSequence = useRef(0);
-  const saving = useRef(false);
   const mounted = useRef(false);
   const loadSequence = useRef(0);
   const acceptedCallback = useRef(onAccepted);
   const reconciliationCallback = useRef(onReconcileTasks);
   const tasksRefresh = useRef<Promise<string | null> | null>(null);
-  const captureAttempt = useRef<{ text: string; key: string } | null>(null);
 
   useEffect(() => {
     acceptedCallback.current = onAccepted;
@@ -241,7 +271,7 @@ export function InboxReview({
 
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current;
-    const reviewedBeforeLoad = reviewSequence.current;
+    const reviewedBeforeLoad = drafts.reviewSequence;
     setLoading(true);
     setLoadError("");
     try {
@@ -250,12 +280,14 @@ export function InboxReview({
       // Reads started before a confirmed review must not resurrect that capture.
       // A later read is authoritative, including an explicitly restored capture.
       const visible = next.filter(
-        (item) => (removedIds.current.get(item.id) ?? 0) <= reviewedBeforeLoad,
+        (item) => (drafts.removedIds.get(item.id) ?? 0) <= reviewedBeforeLoad,
       );
-      for (const [id, reviewedAt] of removedIds.current) {
-        if (reviewedAt <= reviewedBeforeLoad) removedIds.current.delete(id);
+      for (const [id, reviewedAt] of drafts.removedIds) {
+        if (reviewedAt <= reviewedBeforeLoad) drafts.removedIds.delete(id);
       }
       setItems(visible);
+      for (const id of drafts.titles.keys())
+        if (!visible.some((item) => item.id === id)) drafts.titles.delete(id);
       // An acceptance can commit despite an unreadable response, or another
       // surface can review a capture. Refresh Tasks without inferring an outcome.
       const tasksRefreshed = await reconcileTasks(
@@ -271,7 +303,7 @@ export function InboxReview({
       if (mounted.current && sequence === loadSequence.current)
         setLoading(false);
     }
-  }, [reconcileTasks]);
+  }, [reconcileTasks, drafts]);
 
   useEffect(() => {
     mounted.current = true;
@@ -282,8 +314,16 @@ export function InboxReview({
   }, []);
 
   useEffect(() => {
+    // Reviews confirmed by a replaced shell leave this list without a click.
+    if (settledElsewhere)
+      setItems((current) =>
+        current.filter((item) => !drafts.removedIds.has(item.id)),
+      );
+  }, [settledElsewhere, drafts]);
+
+  useEffect(() => {
     if (isActive) void load();
-  }, [isActive, refreshKey, load]);
+  }, [isActive, refreshKey, load, settledElsewhere]);
 
   useEffect(() => {
     if (!refreshRef) return;
@@ -295,16 +335,17 @@ export function InboxReview({
   }, [refreshRef, load]);
 
   const review = async (item: CaptureItemDto, title?: string) => {
-    if (pending.current.has(item.id)) return;
-    pending.current.add(item.id);
-    setPendingIds(new Set(pending.current));
-    setErrors((current) => ({ ...current, [item.id]: "" }));
+    // Shared with a replacement shell, so a swap cannot unblock a second review.
+    if (drafts.getState().pendingIds.has(item.id)) return;
+    drafts.setPending(item.id, true);
+    drafts.setError(item.id, "");
     try {
       const accepted =
         title !== undefined ? await acceptCapture(item.id, title) : null;
       if (!accepted) await discardCapture(item.id);
+      drafts.titles.delete(item.id);
+      drafts.removedIds.set(item.id, ++drafts.reviewSequence);
       if (mounted.current) {
-        removedIds.current.set(item.id, ++reviewSequence.current);
         setItems((current) =>
           current.filter((capture) => capture.id !== item.id),
         );
@@ -320,7 +361,7 @@ export function InboxReview({
         // Navigation may unmount this review while the owning shell still lives.
         const error = await queueTasksRefresh(
           () => acceptedCallback.current(accepted.task),
-          () => true,
+          ownerCurrent,
         );
         if (mounted.current) {
           if (error) {
@@ -334,11 +375,7 @@ export function InboxReview({
         }
       }
     } catch (error) {
-      if (mounted.current)
-        setErrors((current) => ({
-          ...current,
-          [item.id]: errorMessage(error),
-        }));
+      drafts.setError(item.id, errorMessage(error));
       if (
         title !== undefined &&
         error instanceof MutationApiError &&
@@ -346,25 +383,31 @@ export function InboxReview({
       )
         void reconcileTasks();
     } finally {
-      pending.current.delete(item.id);
-      if (mounted.current) setPendingIds(new Set(pending.current));
+      drafts.setPending(item.id, false);
+      // A replacement shell drops a confirmed row now; it rereads Inbox (and so
+      // reconciles Tasks) once its Inbox is active.
+      if (!mounted.current) drafts.markSettledElsewhere();
     }
   };
 
   const saveCapture = async () => {
-    if (saving.current || needsCaptureCheck || !draft.trim()) return;
-    saving.current = true;
-    setSavingCapture(true);
-    setCaptureError("");
+    const current = drafts.getState().capture;
+    if (current.saving || current.needsCheck || !current.text.trim()) return;
+    const text = current.text.trim();
+    const attempt =
+      current.attempt?.text === text
+        ? current.attempt
+        : { text, key: crypto.randomUUID() };
+    drafts.updateCapture({ saving: true, error: "", attempt });
     try {
-      const text = draft.trim();
-      if (captureAttempt.current?.text !== text)
-        captureAttempt.current = { text, key: crypto.randomUUID() };
-      const item = await captureInboxItem(
-        text,
-        "manual",
-        captureAttempt.current.key,
-      );
+      const item = await captureInboxItem(text, "manual", attempt.key);
+      // A confirmed save clears the draft even if this shell has unmounted, so
+      // the replacement shell neither shows nor resaves it.
+      const latest = drafts.getState().capture.text;
+      drafts.updateCapture({
+        text: latest.trim() === text ? "" : latest,
+        attempt: null,
+      });
       if (!mounted.current) return;
       ++loadSequence.current;
       setLoading(false);
@@ -372,8 +415,6 @@ export function InboxReview({
         item,
         ...current.filter((capture) => capture.id !== item.id),
       ]);
-      setDraft("");
-      captureAttempt.current = null;
       setNotice("Saved to Inbox for review.");
       setAcceptedTask(null);
       try {
@@ -382,15 +423,14 @@ export function InboxReview({
         setNotice("Saved to Inbox for review. Refresh Inbox to check it.");
       }
     } catch (error) {
-      if (mounted.current) {
-        setCaptureError(errorMessage(error));
-        setNeedsCaptureCheck(
+      drafts.updateCapture({
+        error: errorMessage(error),
+        needsCheck:
           error instanceof MutationApiError && error.requiresReconciliation,
-        );
-      }
+      });
     } finally {
-      saving.current = false;
-      if (mounted.current) setSavingCapture(false);
+      drafts.updateCapture({ saving: false });
+      if (!mounted.current) drafts.markSettledElsewhere();
     }
   };
 
@@ -398,14 +438,16 @@ export function InboxReview({
     const refreshed = await load();
     if (!refreshed || !mounted.current) return;
     if (refreshed.items.some((item) => item.text.trim() === draft.trim())) {
-      setCaptureError(
-        "A matching capture is in Inbox. It may be your earlier save. Review it before saving this draft again.",
-      );
+      drafts.updateCapture({
+        error:
+          "A matching capture is in Inbox. It may be your earlier save. Review it before saving this draft again.",
+      });
     } else {
-      setNeedsCaptureCheck(false);
-      setCaptureError(
-        "No matching capture is in the refreshed Inbox. You can retry saving this draft.",
-      );
+      drafts.updateCapture({
+        needsCheck: false,
+        error:
+          "No matching capture is in the refreshed Inbox. You can retry saving this draft.",
+      });
     }
   };
 
@@ -429,7 +471,9 @@ export function InboxReview({
             maxLength={2000}
             disabled={savingCapture}
             rows={2}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) =>
+              drafts.updateCapture({ text: event.target.value })
+            }
             placeholder="What would you like to come back to?"
           />
         </label>
@@ -461,12 +505,14 @@ export function InboxReview({
               type="button"
               className="btn"
               disabled={savingCapture}
-              onClick={() => {
-                setDraft("");
-                captureAttempt.current = null;
-                setCaptureError("");
-                setNeedsCaptureCheck(false);
-              }}
+              onClick={() =>
+                drafts.updateCapture({
+                  text: "",
+                  attempt: null,
+                  error: "",
+                  needsCheck: false,
+                })
+              }
             >
               Clear draft
             </button>
@@ -539,6 +585,7 @@ export function InboxReview({
           <CaptureRow
             key={item.id}
             item={item}
+            titles={drafts.titles}
             pending={pendingIds.has(item.id)}
             error={errors[item.id]}
             onAccept={(title) => void review(item, title)}
