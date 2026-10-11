@@ -58,6 +58,11 @@ shared by another. Backoff is used only when central admission supplies `retryAt
 `.env.example` keeps `AI_PROVIDER_ENABLED=false` and leaves all financial settings
 empty. No approved monetary values or provider rates are supplied by this change.
 
+The public `/healthz` response reports only the non-secret `aiProviderEnabled`
+boolean from the same runtime configuration checked by provider admission.
+For a provider-OFF release, verify the exact deployed SHA and literal `false`;
+health checks do not dispatch provider calls or expose credentials or pricing.
+
 | Setting                                         | Required decision or verification                                                                                              |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `AI_PROVIDER_DAILY_BUDGET_USD`                  | Owner-approved global daily ceiling; positive USD decimal with at most six fractional digits                                   |
