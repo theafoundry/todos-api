@@ -12,7 +12,7 @@ export function AgentsPanel() {
     <section className="settings-section">
       <SectionHeader title="Your Agents" />
       <p className="settings-section__subtitle">
-        Six specialists working behind the scenes
+        Assistant styles used when hosted AI is available
       </p>
       <div className="agents-grid">
         {agents.map((agent) => (

@@ -53,7 +53,11 @@ function sendAgentAuthError(
 }
 
 export function agentAuthMiddleware(authService: AuthService) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -84,7 +88,7 @@ export function agentAuthMiddleware(authService: AuthService) {
     const token = parts[1];
 
     try {
-      const payload = authService.verifyToken(token);
+      const payload = await authService.verifyActiveToken(token);
       req.user = {
         userId: payload.userId,
         email: payload.email,

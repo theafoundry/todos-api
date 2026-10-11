@@ -1,0 +1,480 @@
+{
+  "executedAtUTC": "2026-10-11T12:25:02.679Z",
+  "scope": "Local server-protocol and web-router assertions only; not ChatGPT model selection, host UI, real authentication or database concurrency acceptance",
+  "source": {
+    "head": "36af6024789e58feb9799e14d702084861259566",
+    "loadedSourceSha256": "17d71af75c12b5a71142dd0b286bb59397f1a12c96f1de8216ad5094935997f9",
+    "loadedSourceFileCount": 65,
+    "loadedSourceFiles": [
+      {
+        "path": "src/agent/agent-manifest.json",
+        "sha256": "aa31ebb1ac5799d4e5e5f4491cfe5250c4986295e6bb65713532dc6c7a947cc2"
+      },
+      {
+        "path": "src/agent/agentExecutor.ts",
+        "sha256": "ff30a078720988f6a2d721af934c69420773e9562b189783f0017bfd876c1fbf"
+      },
+      {
+        "path": "src/ai/duplicateDetector.ts",
+        "sha256": "7386141e8761197cc56f4a6ce31967521426119281d03e4423a6f6c0e29a280e"
+      },
+      {
+        "path": "src/ai/taskQualityAnalyzer.ts",
+        "sha256": "f330cff5bf4d6173f33d18cb82582f5cbb5d7ca50c298db6fc28269ed2575215"
+      },
+      {
+        "path": "src/config.ts",
+        "sha256": "f8c1639395b3fca584edbd17cac76b825d700ae848b3701156d0d9ec2e1172d7"
+      },
+      {
+        "path": "src/domains/agent/actions/actionRegistry.ts",
+        "sha256": "62c4013a8a08f20ccd789e394d4e31195b00a5c68707175592818de7489ae0db"
+      },
+      {
+        "path": "src/domains/agent/actions/agentControlActions.ts",
+        "sha256": "1d96979cdf64b75a17962284c8eb1b49cdb804fb026dfef3f7c6850270e76349"
+      },
+      {
+        "path": "src/domains/agent/actions/agentExecutionError.ts",
+        "sha256": "30695ad968134075ad11107df5666cf50211d6f65239a03fd2b27c3f14a0abb6"
+      },
+      {
+        "path": "src/domains/agent/actions/agentTypes.ts",
+        "sha256": "a15752bfa90b68b1f07f0b449b73582e7a698acbd91ce72af3e3a1734fad8479"
+      },
+      {
+        "path": "src/domains/agent/actions/analyticActions.ts",
+        "sha256": "7156364250cbc95b02f76dc013887e7743943dc7b56bf472b2f2ea02ee894c34"
+      },
+      {
+        "path": "src/domains/agent/actions/captureActions.ts",
+        "sha256": "a394a1ac2d05dba8eec28ed3685fd861faadd9afa295b9013db7c82e4b6b792e"
+      },
+      {
+        "path": "src/domains/agent/actions/goalAreaActions.ts",
+        "sha256": "d361827f71f222bfcb72db656b2896deaf619c2cde5c6ac461d0286c228b4abc"
+      },
+      {
+        "path": "src/domains/agent/actions/projectWriteActions.ts",
+        "sha256": "9a2f0b1ea0d232f6af27b8ed288ecbe119d325efd9befa1905f5bb7829c1a4bf"
+      },
+      {
+        "path": "src/domains/agent/actions/projectsReadActions.ts",
+        "sha256": "036131f27313143dcc19874b4adeb2b7999f41f9104b5fcd985e51f8441fb337"
+      },
+      {
+        "path": "src/domains/agent/actions/registerCoreActions.ts",
+        "sha256": "7bd67c48c0d838196fded4ab19f73956d79e3450c0f0d40903292ab334f007f9"
+      },
+      {
+        "path": "src/domains/agent/actions/systemReadActions.ts",
+        "sha256": "bb905fed172a241ff68b9dda6063fed366089d2e3629d8c609a2c99f2da2b8b9"
+      },
+      {
+        "path": "src/domains/agent/actions/taskWriteActions.ts",
+        "sha256": "b6b5ccf4712f2c9806dd415124d27af00aeb51ffea0b9da99e9625a2bc30b475"
+      },
+      {
+        "path": "src/domains/agent/actions/tasksReadActions.ts",
+        "sha256": "5af7b9dcb24f5eab668068d1ab3b0dfa66fb0f88e29f6ca58a12a6ec681c6a1c"
+      },
+      {
+        "path": "src/domains/agent/actions/viewListActions.ts",
+        "sha256": "9145ef30fe749c7c3be10dff94b1d57531fea297da68cc8bbabbe5560af52ba5"
+      },
+      {
+        "path": "src/domains/agent/jobs/activityPolicy.ts",
+        "sha256": "ae0ba550f01f1962c344a8797ff1147f9931f1c3cab8ed6c7dbbf3f8504284c1"
+      },
+      {
+        "path": "src/domains/agent/services/planScorer.ts",
+        "sha256": "f3695446b487b51a60cff88e8306a6bd2138ed9ccb1ada6b6fe129fa6f8043a3"
+      },
+      {
+        "path": "src/domains/tasks/domainErrors.ts",
+        "sha256": "08acac422acefd399e4140f974f24b0157cb797aa6d1cc8177e7bc519692e9fc"
+      },
+      {
+        "path": "src/domains/tasks/taskLifecycle.ts",
+        "sha256": "6e4974be2e075f6c4f66780e4ea5f57e1807c0b24989035523cdf61ede191528"
+      },
+      {
+        "path": "src/errorHandling.ts",
+        "sha256": "cbd5029c9526263f911c3d51ec652b4f7c90257da9056233778686346daefb01"
+      },
+      {
+        "path": "src/mcp/appContract.ts",
+        "sha256": "4998628ce704fe513c50755614493b136105dfa4527ff065b40f62baf4be6d2e"
+      },
+      {
+        "path": "src/mcp/appTools.ts",
+        "sha256": "44bc48e9143efa53b4ae1c8c5638cc2298cce3769dac17d4c27fe497a407749c"
+      },
+      {
+        "path": "src/mcp/mcpAuth.ts",
+        "sha256": "689876c3c870ca5a5aa416e94fff3989ff76430f162ea9a4c0ed1b6c42573050"
+      },
+      {
+        "path": "src/mcp/mcpErrors.ts",
+        "sha256": "d1c40e8f7817cfa6f2290cb6d7495d8b07dcbd5e3d3154c1d246b6557818f891"
+      },
+      {
+        "path": "src/mcp/mcpScopes.ts",
+        "sha256": "118a9a1259b9e7d3211ef59bb0582559d45027ac487aea6dce99db0382529769"
+      },
+      {
+        "path": "src/mcp/todayPlanResource.ts",
+        "sha256": "879abcb31460ecf480369cb425edb0e9b5be61152050427d61e360cb1265ea93"
+      },
+      {
+        "path": "src/routes/captureRouter.ts",
+        "sha256": "66ed171ae5750de3d5b4bbdb9fe0f6729ec1a22eb40ae8d236810d6bf190229c"
+      },
+      {
+        "path": "src/routes/mcpAppRouter.ts",
+        "sha256": "4c52090ac468caa6a636b0b46da15a27665adf11650d289e39e6a6dfa0d88fb9"
+      },
+      {
+        "path": "src/services/actionPolicyService.ts",
+        "sha256": "ac2d603d04f10157f07ddf578ab60c3746fa9c57990ce5b67c6ebdd35135ae49"
+      },
+      {
+        "path": "src/services/agentAuditService.ts",
+        "sha256": "13de2de79e011b53db3a1f1218b243e4b074dae27fc56008f4b6243c9c911d47"
+      },
+      {
+        "path": "src/services/agentConfigService.ts",
+        "sha256": "9fdc6b887b58f269360e42aa33af93f95fc5a362e7ccd1ebb38785e8f7f53195"
+      },
+      {
+        "path": "src/services/agentIdempotencyService.ts",
+        "sha256": "254dd77d01097623846d3f28c3e29123e95634d9b7b8d94e4790c16494a856a9"
+      },
+      {
+        "path": "src/services/agentJobRunService.ts",
+        "sha256": "bfd4199df7939585c213d75b15eaeddfa7fbea65f35c8a47bfa1bcf007165b08"
+      },
+      {
+        "path": "src/services/agentMetricsService.ts",
+        "sha256": "4d74796cd12fc5409038056080035ad9020f0966e4eb7fd1d908130aa0b717f5"
+      },
+      {
+        "path": "src/services/agentService.ts",
+        "sha256": "0e5c893e5d7af85b397139235ddc5996b24b2bf5b72b0cc297106b820f3871f7"
+      },
+      {
+        "path": "src/services/aiNormalizationService.ts",
+        "sha256": "93f07264f1aeafbd7102073c7f75b7b0d04a27972e7a9c32fee60bb9375b82a3"
+      },
+      {
+        "path": "src/services/captureService.ts",
+        "sha256": "55f90a7b9f423b02f27a07a495fb9bb2cc9e2c7756b76802320685919fbe5969"
+      },
+      {
+        "path": "src/services/dayContextService.ts",
+        "sha256": "ab44adc53b6e18f3fcec1c111807943f3ea0e2a01467a24c002ccfa4243a32be"
+      },
+      {
+        "path": "src/services/dayPlanService.ts",
+        "sha256": "d9a1c9fc6421ea13ff0ebf141f488c83d237f56c9f644114cf8e5ee9d3574e06"
+      },
+      {
+        "path": "src/services/evaluationService.ts",
+        "sha256": "67026d9c63e501d290dfcf129a763923ced267d49d233f9518b0c746e4a9695c"
+      },
+      {
+        "path": "src/services/failedAutomationActionService.ts",
+        "sha256": "ee47f08c416d64c37e58cf2cc58fb075eea7c716c167015e7829b3d825070068"
+      },
+      {
+        "path": "src/services/frictionService.ts",
+        "sha256": "eae09953b4edb904a281031b3d3d458c190ecd021b5a2511d7e1fa21d8c962fc"
+      },
+      {
+        "path": "src/services/homeFocusPrewarmService.ts",
+        "sha256": "e1c977993bb0ec1160a0d643e942cc811756b98c1bb194c15ad81803736e8623"
+      },
+      {
+        "path": "src/services/learningRecommendationService.ts",
+        "sha256": "486309746d10d911c1c8f36dcb02bb5c816590ab6568255a580b1c2a625ef3fe"
+      },
+      {
+        "path": "src/services/metricRegistry.ts",
+        "sha256": "6d4b8dcb96eb2fdd6b0eeb24d28552a4fb96d475c868a003bd65520ee2f67bda"
+      },
+      {
+        "path": "src/services/planner/decisionEngine.ts",
+        "sha256": "5bb1ebf1ba612be67b73a2d10bcde9b42e3fd9f62cc4cf9c6ed8680c1751171f"
+      },
+      {
+        "path": "src/services/planner/plannerHeuristics.ts",
+        "sha256": "f5082569931521b74b975a1a6cf5d5fefdbd239210cace2535f28f8ef4b51637"
+      },
+      {
+        "path": "src/services/planner/projectPlanningEngine.ts",
+        "sha256": "92035ff46557aa9d44783c057fd852663990b88b7be68ee6957f6beb02dbe53b"
+      },
+      {
+        "path": "src/services/planner/reviewEngine.ts",
+        "sha256": "e636948ca7bda49ba72431819b004d988f5c93b9be81c543ab241c99a466268e"
+      },
+      {
+        "path": "src/services/planner/workGraphEngine.ts",
+        "sha256": "7f3a90bc80b5380717948fcf4e57ac4d59e326f902e801bc3ae2690bfd882889"
+      },
+      {
+        "path": "src/services/plannerService.ts",
+        "sha256": "b13ecae9255ca7d0cebc774f9831cdc9612b04fc8970c7cca6a8671d103dd863"
+      },
+      {
+        "path": "src/services/prismaTodoService.ts",
+        "sha256": "5d53e6cea4fe7a5b773a737c61798539153e9693d4fb3724857925a2e940f593"
+      },
+      {
+        "path": "src/services/projectService.ts",
+        "sha256": "1cf329346fd2507e3cc1516cde8ffc1b894eba9b9747385de3147351e00dd0f8"
+      },
+      {
+        "path": "src/services/projectWriteCompatibility.ts",
+        "sha256": "ce85f2abd39ac217a71630eae2d31b022fec2f3524983a35f583ab2b892d6860"
+      },
+      {
+        "path": "src/services/recommendationFeedbackService.ts",
+        "sha256": "51847856951fd7e3e2d7cef8b8ba9e00a16cf3dd086dcb1f5dafdb213bfdaafa"
+      },
+      {
+        "path": "src/services/todoService.ts",
+        "sha256": "45117437ec2c00f2136a69445e5a2ac046f53bde71141ea50ee8027baac4d270"
+      },
+      {
+        "path": "src/services/weeklyExecutiveSummaryService.ts",
+        "sha256": "df8ad62b21f1e3f26320c931c38bca4d6a3deca688983c68754238a0e07f6df4"
+      },
+      {
+        "path": "src/validation/agentValidation.ts",
+        "sha256": "0e30cd800bb6f5524e7e9522b9eeb99042fa9e6e6ab21d5199fc16e68bef1bae"
+      },
+      {
+        "path": "src/validation/aiContracts.ts",
+        "sha256": "0f6b464874f255b94ee674ea3e0d570ef53d7907e6bd980290124354bb253cf4"
+      },
+      {
+        "path": "src/validation/constants.ts",
+        "sha256": "c43e2f943de0c82a58e8dd78c94830645a03d2695e151b8e912e799a78d242d7"
+      },
+      {
+        "path": "src/validation/validation.ts",
+        "sha256": "bb73efceb9716511d034eb12a1a83b472771652fb35f6b5e4f1c6553d6f8a936"
+      }
+    ],
+    "harnessSha256": "f0c62c6769b1773aed183812a18148cd84bc21ac0e377760af5c87f20e29e024",
+    "treeIdentity": "Loaded source and harness hashes identify the current worktree; HEAD alone does not identify uncommitted edits",
+    "stableDuringRun": true
+  },
+  "package": {
+    "name": "planwren",
+    "version": "0.3.0",
+    "manifestSha256": "e64914a6610373f661172ff4a33b90e518dca2e036a75423a69603a41f0fe01c",
+    "mcpDeclarationSha256": "1a6c2b68cda6b0aee9c41f7d93001fb1885a44a15932734196cfe059dc1d0121",
+    "publicEndpoint": "https://todos.theafoundry.com/mcp/app"
+  },
+  "fixture": {
+    "storage": "In-process synthetic adapter and canonical TodoService; no Prisma database client",
+    "clock": "2026-10-11T12:00:00.000Z",
+    "timezone": "UTC",
+    "lowEnergyTaskEstimates": [15, 15, 10],
+    "plannerEffortScores": [15, 15, 10],
+    "completedDailyTask": "Completed and due on fixture date",
+    "undatedCompletedNegativeControl": true,
+    "credentialsCreated": false
+  },
+  "safety": {
+    "actualListener": "127.0.0.1 (ephemeral port)",
+    "environmentAllowlisted": true,
+    "repositoryDotenvNotLoaded": true,
+    "defaultDatabaseClientForbidden": true,
+    "externalNetworkProbeBlocked": true,
+    "unexpectedNetworkAttempts": 0,
+    "rawServiceLogsWithheld": 15
+  },
+  "cases": [
+    {
+      "id": "N1",
+      "kind": "negative protocol probe",
+      "prompt": "Delete all my overdue tasks.",
+      "descriptionSha256": "aecb08a71c6a44d09170ff152e79676c22a2c404aa5dada231bc5ec952775124",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": ["delete_task"],
+      "evidence": {
+        "protocolError": "TOOL_NOT_FOUND",
+        "mutationCount": 0,
+        "capabilityAbsent": true,
+        "hostNoToolSelectionNotExercised": true
+      }
+    },
+    {
+      "id": "N2",
+      "kind": "negative protocol probe",
+      "prompt": "Plan Alex’s day using Alex’s private tasks.",
+      "descriptionSha256": "c7acad2a2be33d13412f0c07ebc017138fb8fa3cd372c02b81ebc67a25e181f8",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": [
+        "list_today (invalid user selector)",
+        "reschedule_task (foreign synthetic ID)"
+      ],
+      "evidence": {
+        "userSelectorRejected": true,
+        "foreignTaskError": "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+        "mutationCount": 0,
+        "hostNoToolSelectionNotExercised": true
+      }
+    },
+    {
+      "id": "N3",
+      "kind": "negative protocol probe",
+      "prompt": "Email the first task in the latest plan to my colleague.",
+      "descriptionSha256": "a86804f13f0b55dfef987e621ee210b658001b61ea537b3ab3f52075c1942298",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": ["send_email"],
+      "evidence": {
+        "protocolError": "TOOL_NOT_FOUND",
+        "mutationCount": 0,
+        "capabilityAbsent": true,
+        "hostNoToolSelectionNotExercised": true
+      }
+    },
+    {
+      "id": "P1",
+      "kind": "positive",
+      "prompt": "Capture: call the dentist tomorrow.",
+      "descriptionSha256": "022d1061d29192344c3ac3441b74faedaabaf02daf3392647953ef746112ad77",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": ["capture_task", "capture_task (retry)"],
+      "evidence": {
+        "captureId": "00000000-0000-4000-8000-000000000007",
+        "created": true,
+        "replayCreated": false,
+        "captureCount": 1,
+        "taskCountUnchanged": true
+      }
+    },
+    {
+      "id": "P2",
+      "kind": "positive",
+      "prompt": "What is due or overdue today? Include completed tasks in that list.",
+      "descriptionSha256": "2db6c08dd244da68ab33734e7a47353faad19aabdcb0e630283734481c21b9bb",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": ["list_today"],
+      "evidence": {
+        "date": "2026-10-11",
+        "timezone": "UTC",
+        "returnedIds": [
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002",
+          "00000000-0000-4000-8000-000000000003",
+          "00000000-0000-4000-8000-000000000004"
+        ],
+        "completedDailyItemIncluded": true,
+        "undatedCompletedItemExcluded": true,
+        "foreignTaskExcluded": true
+      }
+    },
+    {
+      "id": "P3",
+      "kind": "positive",
+      "prompt": "I have 45 minutes and low energy today. Make a realistic plan and show it.",
+      "descriptionSha256": "388340d2f9227d2782e25202dd714dc71a6b247b96d035edac4abd3e5482a21a",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": [
+        "list_today",
+        "plan_today",
+        "render_today_plan"
+      ],
+      "evidence": {
+        "date": "2026-10-11",
+        "availableMinutes": 45,
+        "energy": "low",
+        "timezone": "UTC",
+        "returnedIds": [
+          "00000000-0000-4000-8000-000000000003",
+          "00000000-0000-4000-8000-000000000001",
+          "00000000-0000-4000-8000-000000000002"
+        ],
+        "totalMinutes": 40,
+        "remainingMinutes": 5,
+        "renderMatchesPlan": true
+      }
+    },
+    {
+      "id": "P4",
+      "kind": "positive",
+      "prompt": "I finished the first task in the latest plan. Then undo that completion.",
+      "descriptionSha256": "f000998f689b5ca90baa884515cf370b50c4d8cc66b04be71dac1b6dc171280c",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": ["complete_task", "complete_task"],
+      "evidence": {
+        "taskIdFromLatestPlan": "00000000-0000-4000-8000-000000000003",
+        "completed": true,
+        "reopened": true,
+        "status": "next",
+        "changedFlags": [true, true]
+      }
+    },
+    {
+      "id": "P5",
+      "kind": "positive",
+      "prompt": "Schedule the second task in the latest plan for tomorrow at 9 AM. Keep its due date.",
+      "descriptionSha256": "37c8d01ba300eb23ae654914895cb2322f94ccfb07fbdceaff48797ebc2b072e",
+      "status": "Passed local server assertions",
+      "hostStatus": "Not run",
+      "requestedToolsByHarness": [
+        "reschedule_task",
+        "reschedule_task (equivalent retry)"
+      ],
+      "evidence": {
+        "taskIdFromLatestPlan": "00000000-0000-4000-8000-000000000001",
+        "scheduledDate": "2026-10-12T09:00:00.000Z",
+        "dueDate": "2026-10-11T09:00:00.000Z",
+        "dueDatePreserved": true,
+        "equivalentRetryChanged": false
+      }
+    }
+  ],
+  "webCaptureReview": {
+    "status": "Passed local router/service assertions",
+    "captureId": "00000000-0000-4000-8000-000000000007",
+    "returnedTaskId": "00000000-0000-4000-8000-000000000008",
+    "editedTitleAccepted": true,
+    "rawCaptureTextPreserved": true,
+    "noInferredDates": true,
+    "acceptRetryCreated": false,
+    "captureReplayAfterAcceptCreated": false,
+    "pendingInboxCount": 0,
+    "mcpContextAcceptStatus": 403,
+    "foreignCaptureReadStatus": 404
+  },
+  "additionalScopeCheck": {
+    "readOnlyCaptureError": "MCP_INSUFFICIENT_SCOPE",
+    "mutationCount": 0
+  },
+  "fixtureLockRequests": 6,
+  "hostReview": {
+    "positive": "Not run (5 cases)",
+    "negative": "Not run (3 cases)",
+    "demo": "Not recorded, viewed or hosted",
+    "reviewerAccess": "Not provisioned or verified"
+  },
+  "limitations": [
+    "Harness selects tools/arguments explicitly; natural-language routing/refusal and no-tool host behavior are untested",
+    "MCP auth verifier and web user context are injected synthetic fixtures; OAuth, JWT, revocation and real login are not exercised",
+    "Fixture transactions do not prove SQL locking, rollback, concurrent writes or provider/database isolation",
+    "Today Plan structured data is checked; no actual ChatGPT rendering or accessibility is claimed"
+  ]
+}

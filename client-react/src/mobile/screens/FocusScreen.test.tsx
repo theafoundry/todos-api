@@ -78,6 +78,23 @@ const props = () => ({
 afterEach(() => vi.useRealTimers());
 
 describe("FocusScreen", () => {
+  it("keeps core navigation available with hosted AI off and uses no stale brief", () => {
+    const onNavigate = vi.fn();
+    render(
+      <FocusScreen
+        {...props()}
+        briefError="HTTP 503"
+        briefUnavailable
+        onNavigate={onNavigate}
+      />,
+    );
+    expect(screen.getByText("Your tasks are ready")).toBeInTheDocument();
+    expect(screen.queryByText("Failed to load focus brief.")).toBeNull();
+    expect(screen.queryByText("Priorities")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open Today" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Tasks" }));
+    expect(onNavigate.mock.calls).toEqual([["today"], ["tasks"]]);
+  });
   it("counts local planned tasks and whole-day deadlines consistently, excluding closed tasks", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 9, 7, 12));

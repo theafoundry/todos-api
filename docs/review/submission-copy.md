@@ -15,9 +15,11 @@ domain verification in the target portal remain unverified. Existing public
 pages use the Thea Foundry brand; the owner must confirm its relationship to the
 selected legal publisher when resolving policy coverage.
 
-Commerce is an owner decision still pending. The focused tool set has no payment
-or purchase operation, but that does not establish the service's commercial model.
-The manifest therefore omits `review.commerce` and `commerce_description`.
+The owner selected free core capture, review and planning at launch, with paid
+tiers deferred until post-launch measurement. The manifest declares
+`review.commerce:false` and describes the absence of purchase, payment or checkout
+flows. Hosted backend AI is to remain disabled until hard cost budgets exist;
+this draft does not claim production settings were changed.
 No rights or policy attestation has been inferred from source access.
 
 ## Listing fields
@@ -25,10 +27,10 @@ No rights or policy attestation has been inferred from source access.
 - Display name: **Planwren** (8 characters).
 - Category: **Productivity**.
 - Subtitle: **Capture now, plan a calmer day** (30 characters, including spaces and punctuation).
-- Detailed description: 1177 characters; the maximum is 4000.
+- Detailed description: 1234 characters; the maximum is 4000.
 - Publisher name: **Thea Foundry LLC** (16 characters).
 
-Planwren helps you save actions while chatting in ChatGPT, then come back to a calm, simple workspace to review and plan. Capture an idea or action into Inbox without deciding its full organization on the spot. In the Planwren web app, review saved captures, edit their titles, and accept the ones you want into Tasks. Use Inbox, Today, and Tasks to keep capture, daily work, and your task list easy to find.
+Planwren offers free core capture, review, and daily planning. It helps you save actions while chatting in ChatGPT, then come back to a calm, simple workspace to review and plan. Capture an idea or action into Inbox without deciding its full organization on the spot. In the Planwren web app, review saved captures, edit their titles, and accept the ones you want into Tasks. Use Inbox, Today, and Tasks to keep capture, daily work, and your task list easy to find.
 
 Back in ChatGPT, list your own due, scheduled, and overdue tasks, then build a realistic day plan from your available time and energy. View the returned plan in the interactive Today Plan, complete or reopen a task already shown, and reschedule a known task using your account date and timezone. A capture stays an Inbox item until you review it; words such as tomorrow in captured text do not automatically schedule a task.
 
@@ -60,7 +62,7 @@ unchanged.
 
 ## Release notes draft
 
-Initial public Planwren package draft: capture actions from ChatGPT into Inbox, review them in the web workspace, and plan a realistic day using time and energy. Includes the focused remote MCP connection, six existing conversational tools, Today Planning skill, and approved Fold icons as PNGs. Intended publisher: Thea Foundry LLC. Country availability: all available countries. Commerce declaration, authenticated review access and a verified demo recording remain pending.
+Initial public Planwren package draft: capture actions from ChatGPT into Inbox, review them in the web workspace, and plan a realistic day using time and energy. Includes the focused remote MCP connection, six existing conversational tools, Today Planning skill, and approved Fold icons as PNGs. Intended publisher: Thea Foundry LLC. Country availability: all available countries. Core capture, review, and planning are free, with no purchase or checkout flow. Authenticated review access and a verified demo recording remain pending.
 
 Candidate service/client improvements: single-use authorization codes and transactional refresh rotation prevent duplicate exchanges; detected reuse of a rotated refresh token requires reconnecting that assistant session. Clients must serialize refreshes and retain the latest token. Capture retries retain their safe, repeatable behavior. Mobile users can revoke assistants through Profile and settings → Connected assistants; desktop users use Settings → Integrations. Onboarding and public pages now describe the capture, Inbox review and planning flow accurately, with visible privacy, terms and support links.
 

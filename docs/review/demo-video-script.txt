@@ -40,8 +40,7 @@ set captures and plans but does not accept or edit Inbox items. Demonstrate only
 authorized synthetic data and truthful current behavior.
 
 Scene 3 — Read daily work (about 25 seconds; P2)
-Back in ChatGPT, ask: “What is due or overdue today? Include anything completed
-today.” Show the factual result, including the synthetic completed item. Check
+Back in ChatGPT, ask: “What is due or overdue today? Include completed tasks in that list.” Show the factual result, including the synthetic completed item. Check
 that it uses the returned account date/timezone and does not turn the read into
 an unsolicited plan or write.
 
@@ -91,3 +90,9 @@ extensions.com.openai.review.demo_recording_url and rebuild/inspect the ZIP.
 The historical todos-chatgpt-demo-v1.mp4/SRT/SVG assets are illustrated synthetic
 walkthrough material for an earlier implementation. They were not viewed or
 validated for this package and cannot replace this real recording.
+
+Local preparation evidence
+The source-based synthetic runner has exercised server protocol and web capture
+review only. See synthetic-review-2026-10-11.md. It is not a recording and does
+not demonstrate ChatGPT routing, actual component display, sign-in or consent.
+Do not use its local fixture report as a passed host case or narrated demo.

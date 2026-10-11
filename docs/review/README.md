@@ -3,14 +3,14 @@
 Current preparation: October 11, 2026, package `0.3.0`, baseline source
 `59158d060dc038bfd18e9a1991a5727ae5299e3d` from the isolated
 `codex/planwren-public-readiness` worktree. The owner selected **Thea Foundry LLC**
-and **all available countries**. This work prepares source and materials; it has
+and **all available countries**, with free core capture, review and planning at launch. This work prepares source and materials; it has
 not uploaded, submitted, published, created reviewer credentials or recorded a
 current signed-in demo.
 
 The current outcome and owner-dependent gates are in
 [public-readiness-2026-10-11.md](public-readiness-2026-10-11.md) and
 [owner-decisions-2026-10-11.md](owner-decisions-2026-10-11.md). Publisher verification,
-policy coverage, reviewer access, commerce and a real accessible recording are
+policy coverage, reviewer access and a real accessible recording are
 not completed merely by local package validation.
 
 ## Current materials
@@ -24,6 +24,11 @@ not completed merely by local package validation.
 | [demo-video-script.txt](demo-video-script.txt)                                         | Actual host/web walkthrough to rehearse and record once authorized access exists.   |
 | [public-package.md](public-package.md)                                                 | Separate upload copy, archive reproduction, asset provenance and local results.     |
 | [public-package-validation-2026-10-11.json](public-package-validation-2026-10-11.json) | Current offline package, archive hashes and extracted-copy verification.            |
+
+[synthetic-review-2026-10-11.md](synthetic-review-2026-10-11.md) and its sanitized
+JSON report cover passing local server-protocol/web-router assertions; all eight
+host cases remain Not run. The guarded reviewer reset is local-only and requires
+a proven disposable database and existing reserved UTC fixture account.
 
 ## Package boundary
 
@@ -59,7 +64,7 @@ authorized owner. Publication is a separate action after review approval.
 The chosen publisher name in source expresses the owner's intention; it cannot
 prove portal identity verification or override the selected verified identity.
 Country availability is an explicit empty allowlist, which removes restrictions.
-Commerce stays absent until decided. No translation or optional screenshot is
+The owner selected free core capture, review and planning; `review.commerce:false` records no purchase or checkout flow. No translation or optional screenshot is
 invented. A script or historical synthetic MP4 does not fulfill the recording URL.
 
 ## Offline checks

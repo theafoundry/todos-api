@@ -7,7 +7,10 @@ created or reset and no authenticated production write was made.
 
 Use the proposed fixture in [reviewer-guide.md](reviewer-guide.md). These are
 expectations to verify, not claims of execution. Exact host results belong in
-the current readiness report after authorized testing.
+the current readiness report after authorized testing. Local server-protocol
+assertions pass as documented in [synthetic-review-2026-10-11.md](synthetic-review-2026-10-11.md);
+the three negative checks there force unsupported/cross-account requests and do
+not exercise host no-tool selection or refusal.
 
 ## Positive cases
 
@@ -25,13 +28,13 @@ P1 — Capture an action without scheduling it. Setup: use only a dedicated synt
 
 ### P2
 
-P2 — Read daily work including completed tasks. Setup: a dedicated synthetic account has one due-today task, one overdue task, and one task completed today, all in its configured timezone; use a fresh conversation.
+P2 — Read due, scheduled, or overdue daily work including completed items in that set. Setup: a dedicated synthetic account has one due-today task, one scheduled-today task, one overdue task, and one completed task due today, all in its configured timezone; use a fresh conversation.
 
-**Prompt:** What is due or overdue today? Include anything completed today.
+**Prompt:** What is due or overdue today? Include completed tasks in that list.
 
 **Expected tools:** `list_today`.
 
-**Pass condition:** Call list_today with includeOverdue:true and includeCompleted:true. Show only returned tasks owned by the connected account, preserve their actual completion state, and use the returned account date and timezone. Do not rank a plan or make any write call. No task outside the returned daily set may be invented.
+**Pass condition:** Call list_today with includeOverdue:true and includeCompleted:true. Show only returned tasks owned by the connected account in the due, scheduled, or overdue daily set, preserving their actual completion state and the returned account date and timezone. Do not rank a plan or make any write call. Do not claim this retrieves every task completed today; an undated completed task is outside this daily set. No task outside the returned set may be invented.
 
 **Result:** Not run in signed-in ChatGPT.
 

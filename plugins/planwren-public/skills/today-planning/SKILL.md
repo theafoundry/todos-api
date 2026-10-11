@@ -13,7 +13,7 @@ Follow the user’s explicit instructions and privacy constraints. This skill do
 
 Use only these six tools:
 
-- `list_today` for factual lists of due, scheduled, overdue, or completed-today work.
+- `list_today` for factual lists of due, scheduled, or overdue work, including completed items in that daily set when requested.
 - `plan_today` for prioritization, sequencing, timeboxing, or recommendations.
 - `capture_task` once for a capture request.
 - `complete_task` to complete or reopen a task already present in conversation or component context.

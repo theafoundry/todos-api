@@ -12,6 +12,7 @@ import {
 import { randomUUID } from "crypto";
 import { PlannerService } from "./plannerService";
 import { sanitizeText } from "./contentSanitizer";
+import { assertLlmProviderConfigured } from "./llmService";
 
 export interface CritiqueTaskInput {
   title: string;
@@ -354,6 +355,7 @@ export function breakdownTodoDeterministic(
 
 class OpenAiCompatibleProvider implements AiProvider {
   async generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
+    assertLlmProviderConfigured();
     const response = await fetch(
       `${config.aiProviderBaseUrl}/chat/completions`,
       {

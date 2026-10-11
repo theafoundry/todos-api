@@ -1,240 +1,166 @@
-const CACHE_NAME = "todos-react-fold-v1";
-const DB_NAME = "todos-offline";
-const STORE_NAME = "mutations";
-const MUTATION_TTL = 24 * 60 * 60 * 1000; // 24 hours
-let replayPromise;
+const CACHE_NAME = "todos-react-fold-v2";
+const CACHE_PREFIX = "todos-react-";
+const SHELL_PATH = "/app/";
+const LEGACY_DB_NAME = "todos-offline";
+const LEGACY_STORE_NAME = "mutations";
 
-// Static assets to pre-cache
-const PRE_CACHE = ["/app-react/"];
+// Only shipped, public files may enter this cache. API paths are network-only,
+// including future routes that are not known to this worker.
+const PUBLIC_ASSETS = new Set([
+  "/app/manifest.json",
+  "/app/favicon.ico",
+  "/app/favicon.svg",
+  "/app/favicon-16x16.png",
+  "/app/favicon-32x32.png",
+  "/app/apple-touch-icon.png",
+  "/app/icon-192.png",
+  "/app/icon-512.png",
+  "/app/icon-maskable-192.png",
+  "/app/icon-maskable-512.png",
+  "/app/brand/fold-ink.svg",
+  "/app/brand/fold-coral.svg",
+  "/app/brand/fold-cream.svg",
+  "/app/brand/app-icon.svg",
+  "/app/brand/app-icon-dark.svg",
+  "/app/brand/app-icon-1024.png",
+  "/app/brand/app-icon-dark-1024.png",
+  "/app/brand/assets.json",
+  "/app/images/landing/hero-desktop.png",
+  "/app/images/landing/hero-mobile-light.png",
+  "/app/images/landing/hero-mobile-dark.png",
+  "/app/images/landing/dark-mode.png",
+]);
+const BUILD_ASSET_PATH =
+  /^\/app\/assets\/[A-Za-z0-9._-]+\.(?:js|css|png|jpe?g|svg|webp|woff2?|ico)$/;
 
-// API paths that should never be cached
-const API_PREFIXES = [
-  "/auth",
-  "/todos",
-  "/users",
-  "/admin",
-  "/ai",
-  "/projects",
-  "/agent",
-  "/mcp",
-  "/api",
-];
-
-// Install: pre-cache shell
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRE_CACHE)),
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll([SHELL_PATH]))
+      .catch(() => undefined),
   );
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)),
-        ),
-      ),
+    Promise.all([clearOldCaches(), clearLegacyMutations()]).then(() =>
+      self.clients.claim(),
+    ),
   );
-  self.clients.claim();
 });
 
-// Fetch handler
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-
-  // Skip non-same-origin
-  if (url.origin !== self.location.origin) return;
-
-  // API requests: network-only, queue mutations on failure
-  const isApi = API_PREFIXES.some((p) => url.pathname.startsWith(p));
-  if (isApi) {
-    if (event.request.method === "GET") return; // Let browser handle
-
-    // Manual retry callers must receive failures, not an automatic queue receipt.
-    if (event.request.headers.get("X-Planwren-Offline-Mode") === "manual") {
-      event.respondWith(fetch(event.request.clone()));
-      return;
-    }
-
-    // Mutable API requests: try network, queue on failure
-    event.respondWith(
-      fetch(event.request.clone()).catch(async () => {
-        if (event.request.method === "POST" || event.request.method === "PUT") {
-          await queueMutation(event.request);
-        }
-        return new Response(JSON.stringify({ queued: true }), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        });
-      }),
-    );
+  const request = event.request;
+  const url = new URL(request.url);
+  if (
+    url.origin !== self.location.origin ||
+    request.method !== "GET" ||
+    request.headers.has("Authorization")
+  ) {
     return;
   }
 
-  // Static assets: network-first for HTML/JS/CSS, cache-first for images/fonts
-  const ext = url.pathname.split(".").pop() || "";
-  const cacheFirst = [
-    "png",
-    "jpg",
-    "jpeg",
-    "svg",
-    "woff",
-    "woff2",
-    "ico",
-  ].includes(ext);
-
-  if (cacheFirst) {
-    event.respondWith(
-      caches.match(event.request).then(
-        (cached) =>
-          cached ||
-          fetch(event.request).then((res) => {
-            const clone = res.clone();
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, clone));
-            return res;
-          }),
-      ),
-    );
-  } else {
-    // Network-first for JS/CSS/HTML
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          const clone = res.clone();
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.put(event.request, clone));
-          return res;
-        })
-        .catch(() =>
-          caches
-            .match(event.request)
-            .then((cached) => cached || caches.match("/app-react/")),
-        ),
-    );
+  const isShell = url.pathname === SHELL_PATH && !url.search;
+  if (
+    !isShell &&
+    !PUBLIC_ASSETS.has(url.pathname) &&
+    !BUILD_ASSET_PATH.test(url.pathname)
+  ) {
+    return;
   }
+
+  // Public asset version queries need not be retained in browser storage.
+  const cacheKey = url.origin + url.pathname;
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME).catch(() => undefined);
+      try {
+        const response = await fetch(request);
+        const cacheControl = response.headers.get("Cache-Control") || "";
+        if (
+          response.ok &&
+          !response.redirected &&
+          !/\b(?:private|no-store)\b/i.test(cacheControl) &&
+          !/(?:^|,)\s*(?:authorization|cookie|\*)\s*(?:,|$)/i.test(
+            response.headers.get("Vary") || "",
+          )
+        ) {
+          try {
+            await cache?.put(cacheKey, response.clone());
+          } catch {
+            // An unavailable static cache must not turn a successful fetch into a failure.
+          }
+        }
+        return response;
+      } catch (error) {
+        const cached = await cache?.match(cacheKey);
+        if (cached) return cached;
+        throw error;
+      }
+    })(),
+  );
 });
 
-// Background sync: replay queued mutations
+// Older workers stored task bodies and bearer credentials for automatic replay.
+// Discard those records; retries now require a current, explicit user action.
 self.addEventListener("sync", (event) => {
   if (event.tag === "offline-mutations") {
-    event.waitUntil(replayMutations());
+    event.waitUntil(clearLegacyMutations());
   }
 });
 
-// Listen for manual replay trigger from client
 self.addEventListener("message", (event) => {
-  if (event.data === "replay-mutations") {
-    event.waitUntil(replayMutations());
+  if (
+    event.data === "clear-private-data" ||
+    event.data === "replay-mutations"
+  ) {
+    event.waitUntil(Promise.all([clearOldCaches(), clearLegacyMutations()]));
   }
 });
 
-// --- IndexedDB helpers ---
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE_NAME, {
-        keyPath: "id",
-        autoIncrement: true,
-      });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+function clearOldCaches() {
+  return caches
+    .keys()
+    .then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+          .map((key) => caches.delete(key)),
+      ),
+    )
+    .catch(() => undefined);
 }
 
-async function queueMutation(request) {
-  const db = await openDB();
-  const body = await request.text();
-  const mutation = {
-    url: request.url,
-    method: request.method,
-    body,
-    authHeader: request.headers.get("Authorization"),
-    timestamp: Date.now(),
-  };
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).add(mutation);
-    tx.oncomplete = resolve;
-    tx.onerror = reject;
-  });
-}
-
-function replayMutations() {
-  if (!replayPromise) {
-    replayPromise = performReplay().finally(() => {
-      replayPromise = undefined;
-    });
-  }
-  return replayPromise;
-}
-
-async function performReplay() {
-  const db = await openDB();
-  const tx = db.transaction(STORE_NAME, "readonly");
-  const store = tx.objectStore(STORE_NAME);
-
-  const mutations = await new Promise((resolve) => {
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => resolve([]);
-  });
-
-  let replayed = 0;
-  let failed = 0;
-
-  for (const m of mutations) {
-    // Skip expired mutations
-    if (Date.now() - m.timestamp > MUTATION_TTL) {
-      await deleteMutation(db, m.id);
-      continue;
-    }
-
-    try {
-      const res = await fetch(m.url, {
-        method: m.method,
-        body: m.body,
-        headers: {
-          "Content-Type": "application/json",
-          ...(m.authHeader ? { Authorization: m.authHeader } : {}),
-        },
-      });
-      if (res.ok || res.status === 409) {
-        await deleteMutation(db, m.id);
-        replayed++;
-      } else {
-        failed++;
-      }
-    } catch {
-      failed++;
-    }
-  }
-
-  // Notify clients
-  const clients = await self.clients.matchAll();
-  for (const client of clients) {
-    client.postMessage({
-      type: "offline-sync-complete",
-      replayed,
-      failed,
-    });
-  }
-}
-
-function deleteMutation(db, id) {
+function clearLegacyMutations() {
   return new Promise((resolve) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).delete(id);
-    tx.oncomplete = resolve;
-    tx.onerror = resolve;
+    let request;
+    try {
+      request = indexedDB.open(LEGACY_DB_NAME, 1);
+    } catch {
+      resolve();
+      return;
+    }
+    // Do not create a database for clients that never used the old queue.
+    request.onupgradeneeded = () => request.transaction.abort();
+    request.onerror = () => resolve();
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(LEGACY_STORE_NAME)) {
+        db.close();
+        resolve();
+        return;
+      }
+      const transaction = db.transaction(LEGACY_STORE_NAME, "readwrite");
+      transaction.objectStore(LEGACY_STORE_NAME).clear();
+      transaction.oncomplete =
+        transaction.onerror =
+        transaction.onabort =
+          () => {
+            db.close();
+            resolve();
+          };
+    };
   });
 }

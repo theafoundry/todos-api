@@ -11,7 +11,7 @@
       "interface": {
         "displayName": "Planwren",
         "shortDescription": "Capture now, plan a calmer day",
-        "longDescription": "Planwren helps you save actions while chatting in ChatGPT, then come back to a calm, simple workspace to review and plan. Capture an idea or action into Inbox without deciding its full organization on the spot. In the Planwren web app, review saved captures, edit their titles, and accept the ones you want into Tasks. Use Inbox, Today, and Tasks to keep capture, daily work, and your task list easy to find.\n\nBack in ChatGPT, list your own due, scheduled, and overdue tasks, then build a realistic day plan from your available time and energy. View the returned plan in the interactive Today Plan, complete or reopen a task already shown, and reschedule a known task using your account date and timezone. A capture stays an Inbox item until you review it; words such as tomorrow in captured text do not automatically schedule a task.\n\nThe connection accesses your own Planwren account. Its six conversational tools do not delete tasks, send messages, make purchases, manage projects, or access another person’s account. Task changes use exact identifiers from prior results and report the state confirmed by the service. Review and full editing happen in the Planwren web app.",
+        "longDescription": "Planwren offers free core capture, review, and daily planning. It helps you save actions while chatting in ChatGPT, then come back to a calm, simple workspace to review and plan. Capture an idea or action into Inbox without deciding its full organization on the spot. In the Planwren web app, review saved captures, edit their titles, and accept the ones you want into Tasks. Use Inbox, Today, and Tasks to keep capture, daily work, and your task list easy to find.\n\nBack in ChatGPT, list your own due, scheduled, and overdue tasks, then build a realistic day plan from your available time and energy. View the returned plan in the interactive Today Plan, complete or reopen a task already shown, and reschedule a known task using your account date and timezone. A capture stays an Inbox item until you review it; words such as tomorrow in captured text do not automatically schedule a task.\n\nThe connection accesses your own Planwren account. Its six conversational tools do not delete tasks, send messages, make purchases, manage projects, or access another person’s account. Task changes use exact identifiers from prior results and report the state confirmed by the service. Review and full editing happen in the Planwren web app.",
         "category": "Productivity",
         "capabilities": [
           "Capture actions into Inbox",
@@ -48,10 +48,10 @@
               "expected_behavior": "Call capture_task with text “call the dentist tomorrow.” (or the same action text without terminal punctuation) and one opaque idempotencyKey of 1–200 characters. The result must contain one capture with lifecycle:new and created:true. Report that it was saved for Inbox review, preserving tomorrow as capture text; do not call reschedule_task or claim a task or date was created. A transport retry of the same capture must reuse its key and return the same capture, not add a second Inbox item."
             },
             {
-              "description": "P2 — Read daily work including completed tasks. Setup: a dedicated synthetic account has one due-today task, one overdue task, and one task completed today, all in its configured timezone; use a fresh conversation.",
-              "prompt": "What is due or overdue today? Include anything completed today.",
+              "description": "P2 — Read due, scheduled, or overdue daily work including completed items in that set. Setup: a dedicated synthetic account has one due-today task, one scheduled-today task, one overdue task, and one completed task due today, all in its configured timezone; use a fresh conversation.",
+              "prompt": "What is due or overdue today? Include completed tasks in that list.",
               "tools_triggered": "list_today",
-              "expected_behavior": "Call list_today with includeOverdue:true and includeCompleted:true. Show only returned tasks owned by the connected account, preserve their actual completion state, and use the returned account date and timezone. Do not rank a plan or make any write call. No task outside the returned daily set may be invented."
+              "expected_behavior": "Call list_today with includeOverdue:true and includeCompleted:true. Show only returned tasks owned by the connected account in the due, scheduled, or overdue daily set, preserving their actual completion state and the returned account date and timezone. Do not rank a plan or make any write call. Do not claim this retrieves every task completed today; an undated completed task is outside this daily set. No task outside the returned set may be invented."
             },
             {
               "description": "P3 — Plan a limited day and show the matching component. Setup: a dedicated synthetic account has at least two open, estimated tasks and low-energy work available; begin without prior account date or timezone context.",
@@ -89,10 +89,12 @@
               "expected_behavior": "Make no Planwren tool call or mutation. Explain that sending email is unsupported by this connection; do not claim a message was sent or disclose the task to another service."
             }
           ]
-        }
+        },
+        "commerce": false,
+        "commerce_description": "Core capture, review, and daily planning are free. This connection does not sell products, process payments, or offer purchase or checkout flows."
       },
       "publication": {
-        "release_notes": "Initial public Planwren package draft: capture actions from ChatGPT into Inbox, review them in the web workspace, and plan a realistic day using time and energy. Includes the focused remote MCP connection, six existing conversational tools, Today Planning skill, and approved Fold icons as PNGs. Intended publisher: Thea Foundry LLC. Country availability: all available countries. Commerce declaration, authenticated review access and a verified demo recording remain pending.",
+        "release_notes": "Initial public Planwren package draft: capture actions from ChatGPT into Inbox, review them in the web workspace, and plan a realistic day using time and energy. Includes the focused remote MCP connection, six existing conversational tools, Today Planning skill, and approved Fold icons as PNGs. Intended publisher: Thea Foundry LLC. Country availability: all available countries. Core capture, review, and planning are free, with no purchase or checkout flow. Authenticated review access and a verified demo recording remain pending.",
         "countries": []
       }
     }

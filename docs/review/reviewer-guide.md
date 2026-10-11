@@ -60,8 +60,14 @@ conversation.
 | Review sample A         | Open, low energy, 15-minute estimate, due on D.                                                              |
 | Review sample B         | Open, low energy, 15-minute estimate, scheduled on D; preserve a distinct due date for the reschedule check. |
 | Review sample C         | Open, low energy, 10-minute estimate, overdue from D−1.                                                      |
-| Review completed sample | Completed on D; used only by the include-completed read case.                                                |
+| Review completed sample | Completed and due on D; used only by the include-completed daily read case.                                  |
 | Fresh capture text      | No initial Inbox capture with “call the dentist tomorrow.”; P1 creates it.                                   |
+
+For the local UTC fixture, set both `estimateMinutes` and `effortScore` to
+15/15/10 for A/B/C, and 5 for the completed sample. Current source budgeting
+uses `effortScore` (default 30), so a display estimate alone does not establish
+the plan budget. The guarded reset refuses a missing or non-UTC existing
+enrollment; it does not create credentials or enrollment.
 
 The 45-minute plan should have at least two returned tasks for P4/P5. Do not hard-code
 the rank: assert IDs against the actual returned order. If the fixture does not
@@ -91,3 +97,14 @@ security fixture and remain untrusted data.
 Capture failures as failures and fix them before submission. Do not replace an
 error with an optimistic success claim. The recording script is preparation
 material until real interactions are captured, played back, sanitized and hosted.
+
+## Local synthetic protocol evidence
+
+[synthetic-review-2026-10-11.md](synthetic-review-2026-10-11.md) describes the
+repeatable local harness and its sanitized source-bound report. The five positive
+server assertions and three forced negative protocol probes pass, plus web
+capture acceptance/retry and scope checks. These results leave all eight ChatGPT
+host cases **Not run**, including natural-language routing, no-tool refusal and
+actual component rendering. The harness injects fixture auth and storage; it does
+not create an account, mint credentials, use a database or prove OAuth or SQL
+concurrency behavior.

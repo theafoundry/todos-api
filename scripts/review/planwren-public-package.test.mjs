@@ -46,7 +46,6 @@ test("valid public draft reports missing metadata and validates repeatedly offli
   assert.equal(first.tools.length, 6);
   assert.equal(first.metadataComplete, false);
   assert.deepEqual(first.preparationGaps, [
-    "owner-confirmed commerce declaration",
     "verified authenticated demo recording URL",
   ]);
   assert.deepEqual(validatePackage(source), first);
@@ -58,6 +57,8 @@ test("permits unknown owner fields to remain absent and reports their gaps", () 
       delete value.author;
       delete value.extensions["com.openai"].interface.developerName;
       delete value.extensions["com.openai"].publication.countries;
+      delete value.extensions["com.openai"].review.commerce;
+      delete value.extensions["com.openai"].review.commerce_description;
     });
     assert.deepEqual(validatePackage(root).preparationGaps, [
       "confirmed publisher identity",
@@ -311,6 +312,7 @@ reject(
   (root) =>
     edit(root, "plugin.json", (value) => {
       value.extensions["com.openai"].review.commerce = true;
+      delete value.extensions["com.openai"].review.commerce_description;
     }),
   /commerce_description/,
 );

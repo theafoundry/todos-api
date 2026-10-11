@@ -277,6 +277,17 @@ export class AuthService {
     }
   }
 
+  /** Reject application sessions as soon as their account has been deleted. */
+  async verifyActiveToken(token: string): Promise<JwtPayload> {
+    const payload = this.verifyToken(token);
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true },
+    });
+    if (!user) throw new Error("Invalid token");
+    return payload;
+  }
+
   createMcpToken(input: {
     userId: string;
     email: string;
@@ -929,7 +940,30 @@ export class AuthService {
    * Delete user (admin only)
    */
   async deleteUser(userId: string): Promise<void> {
-    await this.prisma.user.delete({ where: { id: userId } });
+    if (typeof userId !== "string" || !userId.trim()) {
+      throw new Error("User ID is required for account deletion");
+    }
+    await this.prisma.$transaction(async (tx) => {
+      // User relations cascade, including auth credentials and capture receipts.
+      await tx.user.delete({ where: { id: userId } });
+      // The Python runner creates this optional table outside the Prisma schema.
+      const [runnerTables] = await tx.$queryRaw<
+        { jobsPresent: boolean; auditPresent: boolean }[]
+      >`
+        SELECT to_regclass('agent_runner_job_runs') IS NOT NULL AS "jobsPresent",
+               to_regclass('agent_runner_audit_log') IS NOT NULL AS "auditPresent"
+      `;
+      if (runnerTables.jobsPresent) {
+        await tx.$executeRaw`
+          DELETE FROM agent_runner_job_runs WHERE user_id = ${userId}
+        `;
+      }
+      if (runnerTables.auditPresent) {
+        await tx.$executeRaw`
+          DELETE FROM agent_runner_audit_log WHERE user_id = ${userId}
+        `;
+      }
+    });
   }
 
   /**

@@ -3,15 +3,15 @@
 Prepared October 11, 2026 from baseline source `59158d060dc038bfd18e9a1991a5727ae5299e3d`.
 The separate package is `plugins/planwren-public`, name `planwren`, version
 `0.3.0`. The current archive is a **validated draft**, not ready to submit while
-reviewer access, host review, policy coverage, commerce and a verified recording
+reviewer access, host review, policy coverage and a verified recording
 remain incomplete. It has not been uploaded, submitted or published.
 
 ## Current deliverable
 
 Local ZIP: [.local/publication/planwren-public-0.3.0-draft.zip](../../.local/publication/planwren-public-0.3.0-draft.zip).
 The ignored `.local` folder holds the generated deliverable, not public source or
-credentials. The ZIP is 114633 bytes and its SHA-256 is
-`7a624df9a1c58bf61d2d9ca639f1f397ff5c9d95743cb3418eeb7eafad7a00ff`.
+credentials. The ZIP is 114790 bytes and its SHA-256 is
+`acabb31fec0b1b3da34625636e42e5eb7415219c9c7e4b83cc50a46570d1639c`.
 
 The eight entries are root `plugin.json`, `mcp.json`, four approved PNG icons,
 `skills/today-planning/SKILL.md` and its `agents/openai.yaml`. The archive contains
@@ -28,7 +28,7 @@ is discovered from the existing service, not supplied as secrets in the ZIP.
 ## Metadata
 
 The capture-first subtitle is **Capture now, plan a calmer day**, exactly 30
-characters. The detailed description is 1177 characters. Three unique starter
+characters. The detailed description is 1234 characters. Three unique starter
 prompts contain 35, 48 and 29 characters. All fit current listing limits and have
 no mentions or unsupported controls. All four required listing HTTPS URL fields
 are present; their accessible content and policy gaps are reported in
@@ -37,7 +37,9 @@ are present; their accessible content and policy gaps are reported in
 The owner selected **Thea Foundry LLC** and **all available countries**.
 `author.name` and `developerName` agree. `publication.countries: []` deliberately
 removes availability restrictions. This records the intended publisher, not proof
-of portal business verification. Commerce and `demo_recording_url` remain absent;
+of portal business verification. The owner selected free core capture, review and planning at launch;
+`review.commerce:false` declares no purchase or checkout flow. `demo_recording_url`
+remains absent;
 no translations, screenshots, reviewer credentials or attestations are invented.
 
 Exactly five positive and three negative cases are embedded as reproducible
@@ -79,8 +81,7 @@ python3 scripts/build-planwren-public-package.py --output .local/publication/pla
 python3 scripts/build-planwren-public-package.py --verify .local/publication/planwren-public-0.3.0-draft.zip
 ```
 
-The Node validator passes, reporting `metadataComplete:false` with commerce and
-recording gaps. The 43 Node tests and 22 Python tests pass. The builder verifies
+The Node validator passes, reporting `metadataComplete:false` with the recording gap. The 43 Node tests and 22 Python tests pass. The builder verifies
 every member's safe path, type, size, exact source bytes and CRC, then extracts and
 validates the actual upload copy. It produces deterministic archives; the
 reproducibility test builds twice and compares exact bytes. A separate verify pass

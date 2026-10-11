@@ -583,6 +583,10 @@ describe("Todos API", () => {
         verifyToken: jest
           .fn()
           .mockReturnValue({ userId: "admin-1", email: "admin@example.com" }),
+        verifyActiveToken: jest.fn().mockResolvedValue({
+          userId: "admin-1",
+          email: "admin@example.com",
+        }),
         isAdmin: jest.fn().mockResolvedValue(true),
         getAllUsers: jest.fn().mockRejectedValue({ code: "P2023" }),
       } as any;

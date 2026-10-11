@@ -4,11 +4,18 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
 import type { User } from "../types";
 import { apiCall } from "../api/client";
 import { navigateWithFade } from "../utils/pageTransitions";
+import { clearPrivateBrowserData } from "../utils/privateBrowserData";
+import {
+  getAuthSession,
+  invalidateAuthSession,
+  isCurrentAuthSession,
+} from "../utils/authSession";
 
 interface AuthContextValue {
   user: User | null;
@@ -38,8 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   });
   const [loading, setLoading] = useState(true);
+  const authRevision = useRef(0);
 
   const persistUser = useCallback((nextUser: User | null) => {
+    authRevision.current += 1;
+    clearPrivateBrowserData();
     setUser(nextUser);
     if (nextUser) {
       localStorage.setItem("user", JSON.stringify(nextUser));
@@ -49,16 +59,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async (): Promise<User | null> => {
+    const revision = authRevision.current;
+    const session = getAuthSession();
     const res = await apiCall("/users/me");
     if (!res.ok) {
       throw new Error("Failed to fetch user");
     }
     const data = (await res.json()) as User;
+    if (revision !== authRevision.current || !isCurrentAuthSession(session)) {
+      throw new Error("Your session changed. Please try again.");
+    }
     persistUser(data);
     return data;
   }, [persistUser]);
 
   useEffect(() => {
+    clearPrivateBrowserData();
     const token = localStorage.getItem("authToken");
     if (!token) {
       setLoading(false);
@@ -73,21 +89,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshUser]);
 
   const logout = useCallback(() => {
+    invalidateAuthSession();
     localStorage.removeItem("authToken");
     localStorage.removeItem("refreshToken");
     persistUser(null);
     navigateWithFade("/", { replace: true });
   }, [persistUser]);
 
-  const setTokens = useCallback((token: string, refreshToken: string, authUser: User) => {
-    localStorage.setItem("authToken", token);
-    localStorage.setItem("refreshToken", refreshToken);
-    persistUser(authUser);
-  }, [persistUser]);
+  const setTokens = useCallback(
+    (token: string, refreshToken: string, authUser: User) => {
+      invalidateAuthSession();
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("refreshToken", refreshToken);
+      persistUser(authUser);
+    },
+    [persistUser],
+  );
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, logout, setUser: persistUser, setTokens, refreshUser }}
+      value={{
+        user,
+        loading,
+        logout,
+        setUser: persistUser,
+        setTokens,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

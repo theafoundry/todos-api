@@ -1,35 +1,53 @@
 import { navigateWithFade } from "../utils/pageTransitions";
+import { clearPrivateBrowserData } from "../utils/privateBrowserData";
+import {
+  getAuthSession,
+  invalidateAuthSession,
+  isCurrentAuthSession,
+  rotateAuthSession,
+  type AuthSession,
+} from "../utils/authSession";
 
 const API_URL = window.location.origin;
 
-let refreshInFlight: Promise<boolean> | null = null;
+type RefreshResult =
+  | { kind: "refreshed"; session: AuthSession }
+  | { kind: "failed" | "superseded" };
 
-function getToken(): string | null {
-  return localStorage.getItem("authToken");
+let refreshInFlight: {
+  session: AuthSession;
+  promise: Promise<RefreshResult>;
+} | null = null;
+
+function sameCredentials(left: AuthSession, right = getAuthSession()): boolean {
+  return left.token === right.token && left.refreshToken === right.refreshToken;
 }
 
-function getRefreshToken(): string | null {
-  return localStorage.getItem("refreshToken");
-}
-
-function setTokens(token: string, refresh: string) {
-  localStorage.setItem("authToken", token);
-  localStorage.setItem("refreshToken", refresh);
+function sessionChanged(): Error {
+  return new Error("Your session changed. Please try again.");
 }
 
 function clearAuth() {
+  invalidateAuthSession();
+  clearPrivateBrowserData();
   localStorage.removeItem("authToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
 }
 
-async function refreshAccessToken(manualRetry = false): Promise<boolean> {
-  const refresh = getRefreshToken();
-  if (!refresh) return false;
+async function refreshAccessToken(
+  session: AuthSession,
+  manualRetry = false,
+): Promise<RefreshResult> {
+  if (!session.refreshToken) return { kind: "failed" };
 
-  if (refreshInFlight) return refreshInFlight;
+  if (
+    refreshInFlight &&
+    session.generation === refreshInFlight.session.generation
+  )
+    return refreshInFlight.promise;
 
-  refreshInFlight = (async () => {
+  const promise = (async (): Promise<RefreshResult> => {
     try {
       const res = await fetch(`${API_URL}/auth/refresh`, {
         method: "POST",
@@ -37,13 +55,15 @@ async function refreshAccessToken(manualRetry = false): Promise<boolean> {
           "Content-Type": "application/json",
           ...(manualRetry && { "X-Planwren-Offline-Mode": "manual" }),
         },
-        body: JSON.stringify({ refreshToken: refresh }),
+        body: JSON.stringify({ refreshToken: session.refreshToken }),
       });
+      if (!isCurrentAuthSession(session)) return { kind: "superseded" };
       if (!res.ok || res.status === 202) {
         clearAuth();
-        return false;
+        return { kind: "failed" };
       }
       const data = await res.json();
+      if (!isCurrentAuthSession(session)) return { kind: "superseded" };
       if (
         typeof data.token !== "string" ||
         !data.token ||
@@ -51,46 +71,61 @@ async function refreshAccessToken(manualRetry = false): Promise<boolean> {
         !data.refreshToken
       ) {
         clearAuth();
-        return false;
+        return { kind: "failed" };
       }
-      setTokens(data.token, data.refreshToken);
-      return true;
+      return {
+        kind: "refreshed",
+        session: rotateAuthSession(session, data.token, data.refreshToken),
+      };
     } catch {
+      if (!isCurrentAuthSession(session)) return { kind: "superseded" };
       clearAuth();
-      return false;
+      return { kind: "failed" };
     } finally {
-      refreshInFlight = null;
+      if (refreshInFlight?.session === session) refreshInFlight = null;
     }
   })();
 
-  return refreshInFlight;
+  refreshInFlight = { session, promise };
+  return promise;
 }
 
 export async function apiCall(
   path: string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const token = getToken();
+  const session = getAuthSession();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (session.token) {
+    headers["Authorization"] = `Bearer ${session.token}`;
   }
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  if (!isCurrentAuthSession(session)) throw sessionChanged();
 
-  if (res.status === 401 && getRefreshToken()) {
-    const refreshed = await refreshAccessToken(
-      headers["X-Planwren-Offline-Mode"] === "manual",
-    );
-    if (refreshed) {
-      const newToken = getToken();
-      if (newToken) {
-        headers["Authorization"] = `Bearer ${newToken}`;
+  if (res.status === 401 && session.refreshToken) {
+    // A peer may have refreshed this same login while the original response was
+    // delayed. Reuse its current token instead of refreshing an old credential.
+    const current = getAuthSession();
+    const refreshed: RefreshResult = sameCredentials(session, current)
+      ? await refreshAccessToken(
+          current,
+          headers["X-Planwren-Offline-Mode"] === "manual",
+        )
+      : { kind: "refreshed", session: current };
+    if (refreshed.kind === "superseded") throw sessionChanged();
+    if (refreshed.kind === "refreshed") {
+      if (!isCurrentAuthSession(refreshed.session)) throw sessionChanged();
+      const retrySession = getAuthSession();
+      if (retrySession.token) {
+        headers["Authorization"] = `Bearer ${retrySession.token}`;
       }
-      return fetch(`${API_URL}${path}`, { ...options, headers });
+      const retried = await fetch(`${API_URL}${path}`, { ...options, headers });
+      if (!isCurrentAuthSession(retrySession)) throw sessionChanged();
+      return retried;
     }
     navigateWithFade("/auth?next=/app", { replace: true });
   }

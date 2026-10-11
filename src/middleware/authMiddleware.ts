@@ -19,7 +19,11 @@ declare global {
  * Expects Authorization header: "Bearer <token>"
  */
 export function authMiddleware(authService: AuthService) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
       // Get token from Authorization header
       const authHeader = req.headers.authorization;
@@ -41,7 +45,7 @@ export function authMiddleware(authService: AuthService) {
       const token = parts[1];
 
       // Verify token
-      const payload = authService.verifyToken(token);
+      const payload = await authService.verifyActiveToken(token);
 
       // Attach user to request
       req.user = {

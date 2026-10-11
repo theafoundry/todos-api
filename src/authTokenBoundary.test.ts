@@ -133,6 +133,24 @@ describe("AuthService access-token boundaries", () => {
   });
 
   describe("web access", () => {
+    test("requires a live account before accepting application access", async () => {
+      const token = jwt.sign(webClaims(), ACCESS_SECRET);
+      database.user.findUnique.mockResolvedValueOnce({ id: USER_ID });
+      await expect(auth.verifyActiveToken(token)).resolves.toEqual(
+        expect.objectContaining({ userId: USER_ID }),
+      );
+      database.user.findUnique.mockResolvedValueOnce(null);
+      await expect(auth.verifyActiveToken(token)).rejects.toThrow(
+        "Invalid token",
+      );
+    });
+
+    test("rejects assistant credentials before looking up an application account", async () => {
+      await expect(
+        auth.verifyActiveToken(signedClaims(mcpClaims())),
+      ).rejects.toThrow("Invalid token");
+      expect(database.user.findUnique).not.toHaveBeenCalled();
+    });
     test.each([
       ["email account", EMAIL, EMAIL],
       ["phone account", "", ""],

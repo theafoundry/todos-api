@@ -211,10 +211,10 @@ function setUserInfoChallenge(
   res.setHeader("WWW-Authenticate", parts.join(", "));
 }
 
-function resolveLinkSession(
+async function resolveLinkSession(
   req: Request,
   authService?: AuthService,
-): LinkSession | null {
+): Promise<LinkSession | null> {
   if (!authService) {
     return null;
   }
@@ -225,7 +225,7 @@ function resolveLinkSession(
   }
 
   try {
-    const payload = authService.verifyToken(cookieToken);
+    const payload = await authService.verifyActiveToken(cookieToken);
     return {
       token: cookieToken,
       userId: payload.userId,
@@ -772,7 +772,7 @@ export function createMcpPublicRouter({
         resource: authorize.resource,
       };
 
-      const linkSession = resolveLinkSession(req, authService);
+      const linkSession = await resolveLinkSession(req, authService);
       if (!linkSession) {
         logMcpOauthEvent({
           requestId,
@@ -1449,7 +1449,7 @@ export function createMcpPublicRouter({
         authorize.clientId,
         authorize.redirectUri,
       );
-      const linkSession = resolveLinkSession(req, authService);
+      const linkSession = await resolveLinkSession(req, authService);
       if (!linkSession) {
         throw new Error("Authorization session missing");
       }
