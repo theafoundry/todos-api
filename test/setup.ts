@@ -4,6 +4,13 @@ process.env.NODE_ENV = "test";
 import { execSync } from "child_process";
 import * as dotenv from "dotenv";
 import { shouldSetupDatabaseForArgs } from "./dbTestConfig";
+import {
+  assertTestDatabaseIdentity,
+  validateTestDatabaseUrl,
+  type TestDatabaseIdentity,
+} from "./testDatabaseSafety";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 
 // Load environment variables
 dotenv.config();
@@ -37,21 +44,28 @@ export default async function globalSetup() {
   const testDatabaseUrl =
     explicitTestDatabaseUrl || DEFAULT_LOCAL_TEST_DATABASE_URL;
 
-  // Defensive guard against destructive reset targeting non-test DBs.
-  const lowerUrl = testDatabaseUrl.toLowerCase();
-  if (!lowerUrl.includes("test")) {
-    throw new Error(
-      "Refusing to reset database because resolved integration test DB URL does not look like a test database",
-    );
-  }
-
   const allowRemoteTestDb =
     (process.env.ALLOW_REMOTE_TEST_DB || "false").toLowerCase() === "true";
-  const isLocalHostUrl = isLocalDatabaseUrl(testDatabaseUrl);
-  if (!allowRemoteTestDb && !isLocalHostUrl) {
-    throw new Error(
-      `Refusing to run integration tests against non-local database host. Resolved URL host is remote. Set ALLOW_REMOTE_TEST_DB=true to override intentionally.`,
-    );
+  const parsed = validateTestDatabaseUrl(testDatabaseUrl, {
+    allowRemote: allowRemoteTestDb,
+  });
+  const identityClient = new PrismaClient({
+    adapter: new PrismaPg({
+      connectionString: testDatabaseUrl,
+      connectionTimeoutMillis: 5_000,
+    }),
+  });
+  try {
+    const [identity] = await identityClient.$queryRaw<TestDatabaseIdentity[]>`
+      SELECT current_database() AS "databaseName",
+             host(inet_server_addr()) AS "serverAddress",
+             inet_server_port() AS "serverPort"
+    `;
+    assertTestDatabaseIdentity(parsed, identity, {
+      allowRemote: allowRemoteTestDb,
+    });
+  } finally {
+    await identityClient.$disconnect();
   }
 
   // Set database URL to test database
@@ -85,15 +99,5 @@ export default async function globalSetup() {
     );
     console.error(error);
     throw error;
-  }
-}
-
-function isLocalDatabaseUrl(rawUrl: string): boolean {
-  try {
-    const parsed = new URL(rawUrl);
-    const localHosts = new Set(["localhost", "127.0.0.1", "::1"]);
-    return localHosts.has(parsed.hostname.toLowerCase());
-  } catch {
-    return false;
   }
 }

@@ -120,6 +120,13 @@ enum AiSuggestionStatus {
   rejected
 }
 
+enum AiProviderReservationStatus {
+  reserved
+  completed
+  uncertain
+  reconciled
+}
+
 model User {
   id                    String    @id @default(uuid())
   email                 String?   @unique @db.VarChar(255)
@@ -155,6 +162,9 @@ model User {
   learningRecommendations  LearningRecommendation[]
   failedAutomationActions  FailedAutomationAction[]
   aiSuggestions            AiSuggestion[]
+  aiSuggestionReservations AiSuggestionReservation[]
+  aiProviderReservations   AiProviderReservation[]
+  aiProviderUserDays       AiProviderUserDay[]
   captureItems             CaptureItem[]
   feedbackRequests         FeedbackRequest[]
   reviewedFeedbackRequests FeedbackRequest[]            @relation("FeedbackReviewer")
@@ -473,6 +483,64 @@ model AiSuggestion {
   @@index([userId, createdAt])
   @@index([userId, status])
   @@map("ai_suggestions")
+}
+
+// Provider billing metadata contains no prompt, output, or provider credentials.
+// Deleting an account anonymizes its reservations without refunding aggregate spend.
+model AiProviderReservation {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  userId             String?                     @map("user_id")
+  requestKey         String                      @map("request_key") @db.VarChar(128)
+  fingerprint        String                      @db.VarChar(64)
+  dayStart           DateTime                    @map("day_start") @db.Date
+  status             AiProviderReservationStatus @default(reserved)
+  reservedCostMicros BigInt                      @map("reserved_cost_micros")
+  chargedCostMicros  BigInt?                     @map("charged_cost_micros")
+  settledAt          DateTime?                   @map("settled_at")
+  reconciledAt       DateTime?                   @map("reconciled_at")
+  createdAt          DateTime                    @default(now()) @map("created_at")
+  updatedAt          DateTime                    @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, requestKey])
+  @@index([userId, dayStart])
+  @@index([status])
+  @@map("ai_provider_reservations")
+}
+
+model AiProviderUserDay {
+  userId       String   @map("user_id")
+  dayStart     DateTime @map("day_start") @db.Date
+  requestCount Int      @default(0) @map("request_count")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, dayStart])
+  @@map("ai_provider_user_days")
+}
+
+model AiProviderBudgetDay {
+  dayStart           DateTime  @id @map("day_start") @db.Date
+  reservedCostMicros BigInt    @default(0) @map("reserved_cost_micros")
+  spentCostMicros    BigInt    @default(0) @map("spent_cost_micros")
+  breachedAt         DateTime? @map("breached_at")
+  breachReconciledAt DateTime? @map("breach_reconciled_at")
+
+  @@map("ai_provider_budget_days")
+}
+
+model AiSuggestionReservation {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id")
+  dayStart   DateTime @map("day_start") @db.Date
+  dailyLimit Int      @map("daily_limit")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dayStart])
+  @@map("ai_suggestion_reservations")
 }
 
 model AiSuggestionAppliedTodo {

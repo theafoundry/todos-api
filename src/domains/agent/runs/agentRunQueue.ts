@@ -13,6 +13,10 @@
 import type { AgentExecutor } from "../../../agent/agentExecutor";
 import type { AgentJobRunService } from "../../../services/agentJobRunService";
 import { createLogger } from "../../../infra/logging/logger";
+import {
+  bindAiProviderContext,
+  getAiProviderContext,
+} from "../../../services/aiProviderContext";
 
 const log = createLogger("agentRunQueue");
 
@@ -37,23 +41,29 @@ export function createAgentRunQueue(deps: {
    * HTTP handler to return 202 immediately.
    */
   function enqueue(run: EnqueuedRun): void {
-    setImmediate(async () => {
+    const providerContext = getAiProviderContext();
+    if (providerContext && providerContext.userId !== run.userId) {
+      throw new Error("Agent run account does not match authenticated context");
+    }
+    // Capture actor metadata before deferring, rather than retaining a mutable input.
+    const queuedRun = { ...run, params: { ...run.params } };
+    const executeRun = bindAiProviderContext(async () => {
       const startTime = Date.now();
       log.info("agent run started", {
-        runId: run.runId,
-        action: run.action,
-        userId: run.userId,
-        requestId: run.requestId,
+        runId: queuedRun.runId,
+        action: queuedRun.action,
+        userId: queuedRun.userId,
+        requestId: queuedRun.requestId,
       });
 
       try {
         const result = await agentExecutor.execute(
-          run.action as never,
-          run.params,
+          queuedRun.action as never,
+          queuedRun.params,
           {
-            userId: run.userId,
-            requestId: run.requestId,
-            actor: run.actor,
+            userId: queuedRun.userId,
+            requestId: queuedRun.requestId,
+            actor: queuedRun.actor,
             surface: "agent" as const,
           },
         );
@@ -61,13 +71,15 @@ export function createAgentRunQueue(deps: {
         const durationMs = Date.now() - startTime;
 
         if (result.status >= 200 && result.status < 300) {
-          await jobRunService.completeRun(run.userId, run.action, run.runId, {
-            result: result.body,
-            durationMs,
-          });
+          await jobRunService.completeRun(
+            queuedRun.userId,
+            queuedRun.action,
+            queuedRun.runId,
+            { result: result.body, durationMs },
+          );
           log.info("agent run completed", {
-            runId: run.runId,
-            action: run.action,
+            runId: queuedRun.runId,
+            action: queuedRun.action,
             durationMs,
           });
         } else {
@@ -78,14 +90,14 @@ export function createAgentRunQueue(deps: {
                 `HTTP ${result.status}`
               : `HTTP ${result.status}`;
           await jobRunService.failRun(
-            run.userId,
-            run.action,
-            run.runId,
+            queuedRun.userId,
+            queuedRun.action,
+            queuedRun.runId,
             String(errorMessage),
           );
           log.error("agent run failed", {
-            runId: run.runId,
-            action: run.action,
+            runId: queuedRun.runId,
+            action: queuedRun.action,
             status: result.status,
             durationMs,
           });
@@ -95,18 +107,24 @@ export function createAgentRunQueue(deps: {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
         await jobRunService
-          .failRun(run.userId, run.action, run.runId, errorMessage)
+          .failRun(
+            queuedRun.userId,
+            queuedRun.action,
+            queuedRun.runId,
+            errorMessage,
+          )
           .catch((e) =>
             log.error("failed to record run failure", { error: String(e) }),
           );
         log.error("agent run exception", {
-          runId: run.runId,
-          action: run.action,
+          runId: queuedRun.runId,
+          action: queuedRun.action,
           error: errorMessage,
           durationMs,
         });
       }
     });
+    setImmediate(executeRun);
   }
 
   return { enqueue };

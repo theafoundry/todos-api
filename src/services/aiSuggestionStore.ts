@@ -1,5 +1,12 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { HttpError } from "../errorHandling";
+import type { UserPlan } from "./aiQuotaService";
+import {
+  databaseUtcDayStart,
+  databaseUtcNow,
+  utcDayStart,
+} from "./aiDailyWindow";
 
 export type AiSuggestionType =
   | "task_critic"
@@ -28,13 +35,46 @@ export interface AiFeedbackSummary {
   rejectedReasons: Array<{ reason: string; count: number }>;
 }
 
+export interface AiSuggestionSlot {
+  id: string;
+  userId: string;
+  dayStart: Date;
+  dailyLimit: number;
+}
+
+export interface AiSuggestionSlotResult {
+  slot: AiSuggestionSlot | null;
+  plan: UserPlan;
+  used: number;
+  pending: number;
+  limit: number;
+  dayStart: Date;
+}
+
+export interface AiSuggestionSlotSettlement {
+  id: string;
+  limitsByPlan: Record<UserPlan, number>;
+  fallbackPlan: UserPlan;
+}
+
+export interface AiSuggestionCreateInput {
+  userId: string;
+  type: AiSuggestionType;
+  input: Record<string, unknown>;
+  output: Record<string, unknown>;
+}
+
 export interface IAiSuggestionStore {
-  create(record: {
+  create(
+    record: AiSuggestionCreateInput,
+    reservation?: AiSuggestionSlotSettlement,
+  ): Promise<AiSuggestionRecord>;
+  reserveSlot(params: {
     userId: string;
-    type: AiSuggestionType;
-    input: Record<string, unknown>;
-    output: Record<string, unknown>;
-  }): Promise<AiSuggestionRecord>;
+    limitsByPlan: Record<UserPlan, number>;
+    fallbackPlan: UserPlan;
+  }): Promise<AiSuggestionSlotResult>;
+  releaseSlot(userId: string, reservationId: string): Promise<void>;
   listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]>;
   getById(userId: string, id: string): Promise<AiSuggestionRecord | null>;
   countByUserSince(userId: string, since: Date): Promise<number>;
@@ -59,14 +99,25 @@ export interface IAiSuggestionStore {
 
 export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
   private records: AiSuggestionRecord[] = [];
+  private slots = new Map<string, AiSuggestionSlot>();
 
-  async create(record: {
-    userId: string;
-    type: AiSuggestionType;
-    input: Record<string, unknown>;
-    output: Record<string, unknown>;
-  }): Promise<AiSuggestionRecord> {
+  async create(
+    record: AiSuggestionCreateInput,
+    reservation?: AiSuggestionSlotSettlement,
+  ): Promise<AiSuggestionRecord> {
     const now = new Date();
+    if (reservation) {
+      const slot = this.slots.get(reservation.id);
+      if (!slot || slot.userId !== record.userId)
+        throw new HttpError(503, "AI suggestion reservation is unavailable");
+      const used = this.records.filter(
+        (item) =>
+          item.userId === record.userId && item.createdAt >= utcDayStart(now),
+      ).length;
+      if (used >= reservation.limitsByPlan[reservation.fallbackPlan]) {
+        throw new HttpError(429, "Daily AI suggestion limit reached");
+      }
+    }
     const created: AiSuggestionRecord = {
       id: randomUUID(),
       userId: record.userId,
@@ -81,7 +132,42 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
       updatedAt: now,
     };
     this.records.unshift(created);
+    if (reservation) this.slots.delete(reservation.id);
     return created;
+  }
+
+  async reserveSlot(params: {
+    userId: string;
+    limitsByPlan: Record<UserPlan, number>;
+    fallbackPlan: UserPlan;
+  }): Promise<AiSuggestionSlotResult> {
+    // No await separates this check from its mutation, so concurrent callers cannot overbook.
+    const dayStart = utcDayStart();
+    const limit = params.limitsByPlan[params.fallbackPlan];
+    const used = this.records.filter(
+      (item) => item.userId === params.userId && item.createdAt >= dayStart,
+    ).length;
+    const pending = [...this.slots.values()].filter(
+      (slot) =>
+        slot.userId === params.userId &&
+        slot.dayStart.getTime() === dayStart.getTime(),
+    ).length;
+    const slot =
+      used + pending >= limit
+        ? null
+        : {
+            id: randomUUID(),
+            userId: params.userId,
+            dayStart,
+            dailyLimit: limit,
+          };
+    if (slot) this.slots.set(slot.id, slot);
+    return { slot, plan: params.fallbackPlan, used, pending, limit, dayStart };
+  }
+
+  async releaseSlot(userId: string, reservationId: string): Promise<void> {
+    if (this.slots.get(reservationId)?.userId === userId)
+      this.slots.delete(reservationId);
   }
 
   async listByUser(
@@ -267,23 +353,95 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
     };
   }
 
-  async create(record: {
-    userId: string;
-    type: AiSuggestionType;
-    input: Record<string, unknown>;
-    output: Record<string, unknown>;
-  }): Promise<AiSuggestionRecord> {
+  async create(
+    record: AiSuggestionCreateInput,
+    reservation?: AiSuggestionSlotSettlement,
+  ): Promise<AiSuggestionRecord> {
+    const createData = {
+      userId: record.userId,
+      type: record.type,
+      input: record.input as Prisma.InputJsonValue,
+      output: record.output as Prisma.InputJsonValue,
+      status: "pending" as const,
+    };
+    if (reservation) {
+      return this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${record.userId} FOR UPDATE`;
+        const slot = await tx.aiSuggestionReservation.findUnique({
+          where: { id: reservation.id },
+        });
+        if (!slot || slot.userId !== record.userId)
+          throw new HttpError(503, "AI suggestion reservation is unavailable");
+        const user = await tx.user.findUnique({
+          where: { id: record.userId },
+          select: { plan: true },
+        });
+        if (!user)
+          throw new HttpError(401, "AI suggestion account is unavailable");
+        const createdAt = await databaseUtcNow(tx);
+        const dayStart = utcDayStart(createdAt);
+        const used = await tx.aiSuggestion.count({
+          where: { userId: record.userId, createdAt: { gte: dayStart } },
+        });
+        // Recheck on save for midnight rollover, a plan downgrade, or an unreserved background write.
+        if (used >= reservation.limitsByPlan[user.plan])
+          throw new HttpError(429, "Daily AI suggestion limit reached");
+        const created = await tx.aiSuggestion.create({
+          data: { ...createData, createdAt },
+        });
+        await tx.aiSuggestionReservation.delete({
+          where: { id: reservation.id },
+        });
+        return this.mapPrismaRecord(created);
+      });
+    }
     const created = await this.prisma.aiSuggestion.create({
       data: {
-        userId: record.userId,
-        type: record.type,
-        input: record.input as Prisma.InputJsonValue,
-        output: record.output as Prisma.InputJsonValue,
-        status: "pending",
+        ...createData,
       },
     });
 
     return this.mapPrismaRecord(created);
+  }
+
+  async reserveSlot(params: {
+    userId: string;
+    limitsByPlan: Record<UserPlan, number>;
+    fallbackPlan: UserPlan;
+  }): Promise<AiSuggestionSlotResult> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${params.userId} FOR UPDATE`;
+      const user = await tx.user.findUnique({
+        where: { id: params.userId },
+        select: { plan: true },
+      });
+      if (!user)
+        throw new HttpError(401, "AI suggestion account is unavailable");
+      const dayStart = await databaseUtcDayStart(tx);
+      const limit = params.limitsByPlan[user.plan];
+      const used = await tx.aiSuggestion.count({
+        where: { userId: params.userId, createdAt: { gte: dayStart } },
+      });
+      const pending = await tx.aiSuggestionReservation.count({
+        where: { userId: params.userId, dayStart },
+      });
+      const slot =
+        used + pending >= limit
+          ? null
+          : await tx.aiSuggestionReservation.create({
+              data: { userId: params.userId, dayStart, dailyLimit: limit },
+            });
+      return { slot, plan: user.plan, used, pending, limit, dayStart };
+    });
+  }
+
+  async releaseSlot(userId: string, reservationId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${userId} FOR UPDATE`;
+      await tx.aiSuggestionReservation.deleteMany({
+        where: { id: reservationId, userId },
+      });
+    });
   }
 
   async listByUser(

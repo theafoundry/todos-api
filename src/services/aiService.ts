@@ -12,7 +12,7 @@ import {
 import { randomUUID } from "crypto";
 import { PlannerService } from "./plannerService";
 import { sanitizeText } from "./contentSanitizer";
-import { assertLlmProviderConfigured } from "./llmService";
+import { callAiProvider } from "./aiProviderClient";
 
 export interface CritiqueTaskInput {
   title: string;
@@ -355,41 +355,13 @@ export function breakdownTodoDeterministic(
 
 class OpenAiCompatibleProvider implements AiProvider {
   async generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
-    assertLlmProviderConfigured();
-    const response = await fetch(
-      `${config.aiProviderBaseUrl}/chat/completions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.aiProviderApiKey}`,
-        },
-        body: JSON.stringify({
-          model: config.aiProviderModel,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: 0.2,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `AI provider request failed with status ${response.status}`,
-      );
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("AI provider returned empty content");
-    }
-
+    const content = await callAiProvider({
+      operation: "planner_json",
+      systemPrompt,
+      userPrompt,
+      json: true,
+      temperature: 0.2,
+    });
     return JSON.parse(content) as T;
   }
 }
@@ -1173,6 +1145,7 @@ export class AiPlannerService {
     };
     tone?: string;
     dayMode?: string;
+    allowProvider?: boolean;
   }): Promise<{ brief: string; deterministic: boolean }> {
     const taskSummary = input.tasks
       .slice(0, 5)
@@ -1198,7 +1171,7 @@ export class AiPlannerService {
         : "";
     const deterministicBrief = `${toneLabel} You have ${taskCount} task${taskCount === 1 ? "" : "s"} lined up: ${taskSummary}.${streakNote}${overcommitNote}`;
 
-    if (!this.provider) {
+    if (!this.provider || input.allowProvider === false) {
       return { brief: deterministicBrief, deterministic: true };
     }
 

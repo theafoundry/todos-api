@@ -19,6 +19,8 @@ import {
   supportsMcpIdempotencyKey,
 } from "../mcp/mcpToolCatalog";
 import { AuthService } from "../services/authService";
+import type { AiProviderAdmissionService } from "../services/aiProviderAdmissionService";
+import { runWithAiProviderContext } from "../services/aiProviderContext";
 import { McpOAuthService } from "../services/mcpOAuthService";
 import { McpScope } from "../types";
 
@@ -35,6 +37,7 @@ interface McpRouterDeps {
   agentExecutor: AgentExecutor;
   authService?: AuthService;
   mcpOAuthService?: McpOAuthService;
+  providerAdmissionService?: AiProviderAdmissionService;
 }
 
 function jsonRpcSuccess(id: JsonRpcId, result: Record<string, unknown>) {
@@ -205,6 +208,7 @@ export function createMcpRouter({
   agentExecutor,
   authService,
   mcpOAuthService,
+  providerAdmissionService,
 }: McpRouterDeps): Router {
   const router = Router();
 
@@ -613,16 +617,17 @@ export function createMcpRouter({
           delete toolArguments.idempotencyKey;
         }
 
-        const result = await agentExecutor.execute(
-          tool.name as AgentActionName,
-          toolArguments,
-          {
-            userId: user.id,
-            requestId,
-            actor,
-            surface: "mcp",
-            idempotencyKey,
-          },
+        const result = await runWithAiProviderContext(
+          { userId: user.id, source: "legacy-mcp" },
+          () =>
+            agentExecutor.execute(tool.name as AgentActionName, toolArguments, {
+              userId: user.id,
+              requestId,
+              actor,
+              surface: "mcp",
+              idempotencyKey,
+            }),
+          providerAdmissionService,
         );
 
         if (result.body.ok) {

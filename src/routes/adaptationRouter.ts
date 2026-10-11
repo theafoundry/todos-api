@@ -139,6 +139,7 @@ export function createAdaptationRouter({
         const result = await projectInferenceService.getSoftInference(
           userId,
           projectId,
+          activeFlags,
         );
         res.status(result.status).json(result.body);
       } catch (error) {

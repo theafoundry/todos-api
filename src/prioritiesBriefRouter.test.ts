@@ -97,7 +97,11 @@ describe("prioritiesBriefRouter", () => {
     await request(app).get("/ai/priorities-brief").expect(200);
 
     callLlmMock.mockImplementationOnce(() => refreshDeferred.promise);
-    await request(app).post("/ai/priorities-brief/refresh").expect(200);
+    const refreshRequest = request(app)
+      .post("/ai/priorities-brief/refresh")
+      .expect(200)
+      .then((response) => response);
+    await new Promise((resolve) => setImmediate(resolve));
 
     const stale = await request(app).get("/ai/priorities-brief").expect(200);
     expect(stale.body).toMatchObject({
@@ -109,7 +113,7 @@ describe("prioritiesBriefRouter", () => {
 
     refreshDeferred.resolve("<div>Fresh priorities</div>");
     await refreshDeferred.promise;
-    await new Promise((resolve) => setImmediate(resolve));
+    await refreshRequest;
 
     const fresh = await request(app).get("/ai/priorities-brief").expect(200);
     expect(fresh.body).toMatchObject({
@@ -127,15 +131,28 @@ describe("prioritiesBriefRouter", () => {
     await request(app).get("/ai/priorities-brief").expect(200);
 
     callLlmMock.mockRejectedValueOnce(new Error("llm down"));
-    await request(app).post("/ai/priorities-brief/refresh").expect(200);
+    await request(app).post("/ai/priorities-brief/refresh").expect(500);
     await new Promise((resolve) => setImmediate(resolve));
 
+    const retryDeferred = createDeferred<string>();
+    callLlmMock.mockImplementationOnce(() => retryDeferred.promise);
     const stale = await request(app).get("/ai/priorities-brief").expect(200);
     expect(stale.body).toMatchObject({
       html: "<div>Last good priorities</div>",
       cached: true,
       isStale: true,
       refreshInFlight: true,
+    });
+    retryDeferred.resolve("<div>Recovered priorities</div>");
+    await retryDeferred.promise;
+    await new Promise((resolve) => setImmediate(resolve));
+    const recovered = await request(app)
+      .get("/ai/priorities-brief")
+      .expect(200);
+    expect(recovered.body).toMatchObject({
+      html: "<div>Recovered priorities</div>",
+      isStale: false,
+      refreshInFlight: false,
     });
   });
 });

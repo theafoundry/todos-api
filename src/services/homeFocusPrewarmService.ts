@@ -1,5 +1,7 @@
 import { AiPlannerService } from "./aiService";
 import type { IAiSuggestionStore } from "./aiSuggestionStore";
+import { AiQuotaService, buildLimitsByPlan } from "./aiQuotaService";
+import { HttpError } from "../errorHandling";
 import {
   findLatestPendingHomeFocusSuggestion,
   normalizeHomeFocusEnvelope,
@@ -30,6 +32,10 @@ export class HomeFocusPrewarmService {
   constructor(
     private readonly aiPlannerService: AiPlannerService,
     private readonly suggestionStore: IAiSuggestionStore,
+    private readonly quotaService: AiQuotaService = new AiQuotaService({
+      suggestionStore,
+      limitsByPlan: buildLimitsByPlan({}),
+    }),
   ) {}
 
   async prewarmForUser(
@@ -52,36 +58,47 @@ export class HomeFocusPrewarmService {
       }
     }
 
-    const output = await this.aiPlannerService.generateDecisionAssistStub(
-      {
-        surface: "home_focus",
-        topN,
-      },
-      { userId },
-    );
+    const { slot } = await this.quotaService.reserveSuggestion(userId);
+    if (!slot) throw new HttpError(429, "Daily AI suggestion limit reached");
+    try {
+      const output = await this.aiPlannerService.generateDecisionAssistStub(
+        {
+          surface: "home_focus",
+          topN,
+        },
+        { userId },
+      );
 
-    const created = await this.suggestionStore.create({
-      userId,
-      type: "task_critic",
-      input: {
-        surface: "home_focus",
-        topN,
-        source: "automation_prewarm",
-        ...(typeof input.timezone === "string" && input.timezone
-          ? { timezone: input.timezone }
-          : {}),
-        ...(typeof input.periodKey === "string" && input.periodKey
-          ? { periodKey: input.periodKey }
-          : {}),
-      },
-      output: output as unknown as Record<string, unknown>,
-    });
+      const created = await this.quotaService.saveSuggestion(slot, {
+        userId,
+        type: "task_critic",
+        input: {
+          surface: "home_focus",
+          topN,
+          source: "automation_prewarm",
+          ...(typeof input.timezone === "string" && input.timezone
+            ? { timezone: input.timezone }
+            : {}),
+          ...(typeof input.periodKey === "string" && input.periodKey
+            ? { periodKey: input.periodKey }
+            : {}),
+        },
+        output: output as unknown as Record<string, unknown>,
+      });
 
-    const result = this.tryBuildResult(created, freshnessHours, now);
-    if (!result) {
-      throw new Error("Failed to normalize generated home focus snapshot");
+      const result = this.tryBuildResult(created, freshnessHours, now);
+      if (!result) {
+        throw new Error("Failed to normalize generated home focus snapshot");
+      }
+      return { ...result, status: "generated" };
+    } finally {
+      try {
+        await this.quotaService.releaseSuggestion(slot);
+      } catch {
+        // Release failure keeps the saved slot reserved until explicit cleanup.
+        console.error("AI suggestion reservation release failed");
+      }
     }
-    return { ...result, status: "generated" };
   }
 
   private tryBuildResult(

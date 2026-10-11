@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { ValidationError } from "./validation/validation";
 import { AppError } from "./domains/tasks/domainErrors";
+import { AiProviderAdmissionError } from "./services/aiProviderAdmissionService";
 
 type ErrorCodeCarrier = { code?: unknown };
 type DriverErrorCarrier = {
@@ -44,6 +45,9 @@ export function isPrismaInvalidUuidError(error: unknown): boolean {
 }
 
 export function mapError(error: unknown): HttpError {
+  if (error instanceof AiProviderAdmissionError) {
+    return new HttpError(error.statusCode, error.message);
+  }
   if (error instanceof HttpError) {
     return error;
   }
@@ -118,6 +122,20 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   const mapped = mapError(err);
+
+  if (err instanceof AiProviderAdmissionError) {
+    if (err.retryAt) {
+      const seconds = Math.ceil((Date.parse(err.retryAt) - Date.now()) / 1000);
+      if (Number.isFinite(seconds) && seconds > 0)
+        res.setHeader("Retry-After", String(seconds));
+    }
+    res.status(mapped.status).json({
+      error: mapped.message,
+      code: err.code,
+      ...(err.retryAt ? { retryAt: err.retryAt } : {}),
+    });
+    return;
+  }
 
   if (mapped.status >= 500) {
     console.error(err);

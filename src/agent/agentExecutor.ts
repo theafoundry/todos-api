@@ -38,7 +38,11 @@ import { ActionPolicyService } from "../services/actionPolicyService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
-import { AiPlannerService } from "../services/aiService";
+import {
+  AiPlannerService,
+  breakdownTodoDeterministic,
+  type BreakdownTodoInput,
+} from "../services/aiService";
 import type { IAiSuggestionStore } from "../services/aiSuggestionStore";
 import {
   validateAgentPlanTodayInput,
@@ -1424,14 +1428,20 @@ export class AgentExecutor {
             if (targetTask && writeCount < maxWrites) {
               // Break down the task into subtasks
               try {
-                const breakdown =
-                  await this.deps.aiPlannerService?.breakdownTodoIntoSubtasks({
-                    title: targetTask.title,
-                    description: targetTask.description ?? "",
-                    notes: targetTask.notes ?? "",
-                    priority: targetTask.priority ?? "medium",
-                    maxSubtasks: 4,
-                  });
+                const breakdownInput: BreakdownTodoInput = {
+                  title: targetTask.title,
+                  description: targetTask.description ?? "",
+                  notes: targetTask.notes ?? "",
+                  priority: targetTask.priority ?? "medium",
+                  maxSubtasks: 4,
+                };
+                const breakdown = this.deps.aiPlannerService
+                  ? phConfig.aiOptOut
+                    ? breakdownTodoDeterministic(breakdownInput)
+                    : await this.deps.aiPlannerService.breakdownTodoIntoSubtasks(
+                        breakdownInput,
+                      )
+                  : undefined;
 
                 if (breakdown?.subtasks?.length) {
                   for (const sub of breakdown.subtasks) {
@@ -1555,39 +1565,22 @@ export class AgentExecutor {
           const soul =
             (briefPrefs?.soulProfile as Record<string, unknown>) ?? {};
 
-          const { brief, deterministic } = briefConfig.aiOptOut
-            ? await this.deps.aiPlannerService.generateMorningBrief({
-                tasks: briefTasks.map((t) => ({
-                  title: t.title,
-                  priority: t.priority ?? undefined,
-                })),
-                insightSummary: {
-                  completionVelocity: briefInsightMap.get(
-                    "completion_velocity",
-                  ),
-                  streakDays: briefInsightMap.get("streak_days"),
-                  overcommitmentRatio: briefInsightMap.get(
-                    "overcommitment_ratio",
-                  ),
-                },
-                tone: String(soul.tone ?? "calm"),
-              })
-            : await this.deps.aiPlannerService.generateMorningBrief({
-                tasks: briefTasks.map((t) => ({
-                  title: t.title,
-                  priority: t.priority ?? undefined,
-                })),
-                insightSummary: {
-                  completionVelocity: briefInsightMap.get(
-                    "completion_velocity",
-                  ),
-                  streakDays: briefInsightMap.get("streak_days"),
-                  overcommitmentRatio: briefInsightMap.get(
-                    "overcommitment_ratio",
-                  ),
-                },
-                tone: String(soul.tone ?? "calm"),
-              });
+          const { brief, deterministic } =
+            await this.deps.aiPlannerService.generateMorningBrief({
+              tasks: briefTasks.map((t) => ({
+                title: t.title,
+                priority: t.priority ?? undefined,
+              })),
+              insightSummary: {
+                completionVelocity: briefInsightMap.get("completion_velocity"),
+                streakDays: briefInsightMap.get("streak_days"),
+                overcommitmentRatio: briefInsightMap.get(
+                  "overcommitment_ratio",
+                ),
+              },
+              tone: String(soul.tone ?? "calm"),
+              allowProvider: !briefConfig.aiOptOut,
+            });
 
           return this.success(action, readOnly, context, 200, {
             brief,

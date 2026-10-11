@@ -1,5 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/authService";
+import type { AiProviderAdmissionService } from "../services/aiProviderAdmissionService";
+import { runWithAiProviderContext } from "../services/aiProviderContext";
 import { getAgentRequestContext } from "../agent/agentContext";
 
 function getAgentRouteMetadata(req: Request): {
@@ -52,7 +54,10 @@ function sendAgentAuthError(
   });
 }
 
-export function agentAuthMiddleware(authService: AuthService) {
+export function agentAuthMiddleware(
+  authService: AuthService,
+  providerAdmissionService?: AiProviderAdmissionService,
+) {
   return async (
     req: Request,
     res: Response,
@@ -93,7 +98,11 @@ export function agentAuthMiddleware(authService: AuthService) {
         userId: payload.userId,
         email: payload.email,
       };
-      next();
+      runWithAiProviderContext(
+        { userId: payload.userId, source: "agent" },
+        next,
+        providerAdmissionService,
+      );
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "";
       if (message === "Token expired") {

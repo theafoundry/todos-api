@@ -48,6 +48,7 @@ app.get("/healthz", (_req, res) => {
     ok: true,
     service: "todos-api",
     sha: RELEASE_SHA,
+    aiProviderEnabled: config.aiProviderEnabled,
     now: new Date().toISOString(),
   });
 });

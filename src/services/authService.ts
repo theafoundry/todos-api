@@ -944,7 +944,14 @@ export class AuthService {
       throw new Error("User ID is required for account deletion");
     }
     await this.prisma.$transaction(async (tx) => {
-      // User relations cascade, including auth credentials and capture receipts.
+      // Match admission's owner lock so a concurrent reservation cannot retain
+      // a content fingerprint between scrubbing and its owner becoming null.
+      await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${userId} FOR UPDATE`;
+      await tx.aiProviderReservation.updateMany({
+        where: { userId },
+        data: { fingerprint: "0".repeat(64) },
+      });
+      // Auth/planning data cascade; admission accounting retains anonymous costs.
       await tx.user.delete({ where: { id: userId } });
       // The Python runner creates this optional table outside the Prisma schema.
       const [runnerTables] = await tx.$queryRaw<
