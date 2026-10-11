@@ -112,6 +112,15 @@ class AuditStore:
         try:
             with conn:
                 with conn.cursor() as cur:
+                    if user_id != "global":
+                        # Serialize with account deletion before inserting any
+                        # user-owned payload into the runner's optional table.
+                        cur.execute(
+                            "SELECT id FROM users WHERE id = %s FOR KEY SHARE",
+                            (user_id,),
+                        )
+                        if cur.fetchone() is None:
+                            return
                     cur.execute(
                         """
                         INSERT INTO agent_runner_audit_log

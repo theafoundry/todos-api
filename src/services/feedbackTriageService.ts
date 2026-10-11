@@ -9,6 +9,7 @@ import {
 import { validateFeedbackTriageOutput } from "../validation/feedbackTriageContracts";
 import { FailedAutomationActionService } from "./failedAutomationActionService";
 import { FeedbackFailureService } from "./feedbackFailureService";
+import { assertLlmProviderConfigured } from "./llmService";
 
 interface AiProvider {
   generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T>;
@@ -34,6 +35,7 @@ type FeedbackRecord = {
 
 class OpenAiCompatibleProvider implements AiProvider {
   async generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
+    assertLlmProviderConfigured();
     const response = await fetch(
       `${config.aiProviderBaseUrl}/chat/completions`,
       {

@@ -1,6 +1,9 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { ProfileSheet } from "./ProfileSheet";
+import { apiCall } from "../../api/client";
+
+vi.mock("../../api/client", () => ({ apiCall: vi.fn() }));
 
 const props = () => ({
   open: true,
@@ -66,5 +69,51 @@ describe("ProfileSheet", () => {
     expect(callbacks.onNavigate).toHaveBeenCalledWith("focus");
     expect(callbacks.onChangeCustomView).not.toHaveBeenCalled();
     expect(callbacks.onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("exposes the canonical assistant access controls and restores profile focus", async () => {
+    vi.mocked(apiCall).mockResolvedValue(
+      new Response(JSON.stringify({ sessions: [] })),
+    );
+    const callbacks = props();
+    const { rerender } = render(<ProfileSheet {...callbacks} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Connected assistants" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Connected assistants" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Back to profile" }),
+    ).toHaveFocus();
+    expect(
+      await screen.findByText("No assistants connected yet."),
+    ).toBeTruthy();
+    expect(apiCall).toHaveBeenCalledWith("/auth/mcp/sessions");
+    fireEvent.click(screen.getByRole("button", { name: "Back to profile" }));
+    expect(
+      screen.getByRole("button", { name: "Connected assistants" }),
+    ).toHaveFocus();
+    expect(callbacks.onNavigate).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Connected assistants" }),
+    );
+    rerender(<ProfileSheet {...callbacks} open={false} />);
+    rerender(<ProfileSheet {...callbacks} />);
+    expect(
+      screen.getByRole("dialog", { name: "Profile and settings" }),
+    ).toBeTruthy();
+  });
+
+  it("keeps public policies and support reachable from a phone", () => {
+    render(<ProfileSheet {...props()} />);
+    for (const [name, href] of [
+      ["Privacy", "/privacy"],
+      ["Terms", "/terms"],
+      ["Support", "/support"],
+    ]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    }
   });
 });

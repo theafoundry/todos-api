@@ -1,15 +1,21 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { apiCall } from "../../../api/client";
 import type { McpSessionSummary } from "../../../types";
 
 export function IntegrationsTab() {
   const [sessions, setSessions] = useState<McpSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [pending, setPending] = useState<{ sessionId: string | null } | null>(
+    null,
+  );
+  const revoking = useRef(false);
 
   const loadSessions = useCallback(async () => {
     setLoading(true);
-    setMessage("");
+    setError("");
+    setNotice("");
     try {
       const res = await apiCall("/auth/mcp/sessions");
       if (!res.ok) {
@@ -18,7 +24,7 @@ export function IntegrationsTab() {
       const data = (await res.json()) as { sessions?: McpSessionSummary[] };
       setSessions(Array.isArray(data.sessions) ? data.sessions : []);
     } catch {
-      setMessage("Could not load sessions.");
+      setError("Could not load connected assistants. Refresh to try again.");
     } finally {
       setLoading(false);
     }
@@ -28,28 +34,34 @@ export function IntegrationsTab() {
     void loadSessions();
   }, [loadSessions]);
 
-  const revoke = useCallback(async (id: string) => {
-    const res = await apiCall("/auth/mcp/sessions/revoke", {
-      method: "POST",
-      body: JSON.stringify({ sessionId: id }),
-    });
-    if (!res.ok) {
-      setMessage("Could not revoke session.");
-      return;
+  const revoke = useCallback(async (sessionId: string | null) => {
+    if (revoking.current) return;
+    revoking.current = true;
+    setPending({ sessionId });
+    setError("");
+    setNotice("");
+    try {
+      const res = await apiCall("/auth/mcp/sessions/revoke", {
+        method: "POST",
+        body: JSON.stringify(sessionId ? { sessionId } : { revokeAll: true }),
+      });
+      if (!res.ok) throw new Error("Revocation not confirmed");
+      setSessions((prev) =>
+        sessionId ? prev.filter((session) => session.id !== sessionId) : [],
+      );
+      setNotice(
+        sessionId
+          ? "Assistant access revoked."
+          : "All assistant access revoked.",
+      );
+    } catch {
+      setError(
+        "Could not confirm revocation. Refresh connected assistants to check access before trying again.",
+      );
+    } finally {
+      revoking.current = false;
+      setPending(null);
     }
-    setSessions((prev) => prev.filter((session) => session.id !== id));
-  }, []);
-
-  const revokeAll = useCallback(async () => {
-    const res = await apiCall("/auth/mcp/sessions/revoke", {
-      method: "POST",
-      body: JSON.stringify({ revokeAll: true }),
-    });
-    if (!res.ok) {
-      setMessage("Could not revoke sessions.");
-      return;
-    }
-    setSessions([]);
   }, []);
 
   return (
@@ -58,14 +70,33 @@ export function IntegrationsTab() {
         Review connected assistants and revoke access when you no longer need
         it.
       </p>
-      {message && <p className="settings-message">{message}</p>}
+      {error && (
+        <p className="settings-message" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="settings-message" role="status">
+          {notice}
+        </p>
+      )}
+      <button
+        type="button"
+        className="btn"
+        disabled={loading || pending !== null}
+        onClick={() => void loadSessions()}
+      >
+        Refresh connected assistants
+      </button>
       {loading ? (
-        <p className="settings-meta">Loading…</p>
-      ) : sessions.length === 0 ? (
+        <p className="settings-meta" role="status">
+          Loading…
+        </p>
+      ) : sessions.length === 0 && !error ? (
         <p id="mcpSessionsList" className="settings-meta">
           No assistants connected yet.
         </p>
-      ) : (
+      ) : sessions.length > 0 ? (
         <>
           <div id="mcpSessionsList" className="mcp-sessions">
             {sessions.map((session) => (
@@ -88,17 +119,28 @@ export function IntegrationsTab() {
                       : "never"}
                   </span>
                 </div>
-                <button className="btn" onClick={() => revoke(session.id)}>
-                  Revoke
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={pending !== null}
+                  onClick={() => void revoke(session.id)}
+                  aria-label={`Revoke ${session.assistantName || session.clientId || "assistant"}`}
+                >
+                  {pending?.sessionId === session.id ? "Revoking…" : "Revoke"}
                 </button>
               </div>
             ))}
           </div>
-          <button className="btn btn--danger" onClick={revokeAll}>
-            Revoke all
+          <button
+            type="button"
+            className="btn btn--danger"
+            disabled={pending !== null}
+            onClick={() => void revoke(null)}
+          >
+            {pending?.sessionId === null ? "Revoking all…" : "Revoke all"}
           </button>
         </>
-      )}
+      ) : null}
     </section>
   );
 }

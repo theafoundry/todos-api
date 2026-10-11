@@ -81,11 +81,25 @@ class JobRunState:
         """
         conn = self._connect()
         if conn is None:
+            if self._database_url:
+                # Configured durable state must fail closed during a DB outage.
+                return False
             return self._memory_claim(job_name, period_key, user_id)
 
         try:
             with conn.cursor() as cur:
                 try:
+                    if user_id != "global":
+                        # Keep this lock until INSERT commits. Account deletion
+                        # waits for prior writes, then removes runner rows in the
+                        # same transaction; later claims see no live owner.
+                        cur.execute(
+                            "SELECT id FROM users WHERE id = %s FOR KEY SHARE",
+                            (user_id,),
+                        )
+                        if cur.fetchone() is None:
+                            conn.rollback()
+                            return False
                     cur.execute(
                         """
                         INSERT INTO agent_runner_job_runs (job_name, period_key, user_id, status)
@@ -134,6 +148,10 @@ class JobRunState:
                     )
         finally:
             conn.close()
+
+    def mark_completed(self, job_name: str, period_key: str, user_id: str = "global") -> None:
+        """Compatibility helper for jobs that do not persist a result summary."""
+        self.complete(job_name, period_key, {}, user_id)
 
     def fail(self, job_name: str, period_key: str, error_message: str, user_id: str = "global") -> None:
         """Mark a job run as failed."""

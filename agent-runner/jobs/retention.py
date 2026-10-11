@@ -1,8 +1,7 @@
 """
 Data retention job — weekly purge of old activity events, insights, and metrics.
 
-Runs weekly. Calls the data retention endpoints directly since this is a
-global operation, not per-user.
+Runs weekly for each eligible account through its authenticated agent action.
 """
 from __future__ import annotations
 
@@ -29,7 +28,7 @@ def run_retention_for_user(
     **kwargs: Any,
 ) -> str:
     """
-    Run data retention purge. Only executes once per week (first eligible user triggers it).
+    Run this account's data retention purge at most once per week.
     Returns outcome: 'success' | 'skipped' | 'error'
     """
     tz = pytz.timezone(timezone)

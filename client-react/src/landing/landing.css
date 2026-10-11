@@ -424,8 +424,13 @@
 
 .landing-footer__inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-2h);
+}
+
+.landing-footer__inner .pw-public-links {
+  margin-left: auto;
 }
 
 .landing-footer__copy {

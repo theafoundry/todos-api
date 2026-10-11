@@ -58,7 +58,7 @@ describe("useFocusBrief", () => {
     expect(result.current.error).toBe("HTTP 500");
   });
 
-  it("uses cached brief from localStorage when available", async () => {
+  it("ignores and removes the previous session's persistent brief", async () => {
     localStorage.setItem("todos:focus-brief-cache", JSON.stringify(mockBrief));
 
     vi.mocked(apiCall).mockResolvedValue({
@@ -68,13 +68,14 @@ describe("useFocusBrief", () => {
 
     const { result } = renderHook(() => useFocusBrief());
 
-    // Should have the cached brief immediately
-    expect(result.current.brief).toEqual(mockBrief);
-    // Loading will be true initially as it still fetches, then false after fetch completes
+    expect(result.current.brief).toBeNull();
+    expect(localStorage.getItem("todos:focus-brief-cache")).toBeNull();
     await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.brief).toEqual(mockBrief);
+    expect(localStorage.getItem("todos:focus-brief-cache")).toBeNull();
   });
 
-  it("invalidates cache missing provenance fields", async () => {
+  it("removes obsolete malformed storage without rendering it", async () => {
     const staleBrief = {
       rankedPanels: [{ type: "unsorted", data: {}, reason: "" }],
       pinned: { rightNow: {}, todayAgenda: [] },
@@ -89,6 +90,9 @@ describe("useFocusBrief", () => {
     const { result } = renderHook(() => useFocusBrief());
 
     expect(result.current.loading).toBe(true);
+    expect(result.current.brief).toBeNull();
+    expect(localStorage.getItem("todos:focus-brief-cache")).toBeNull();
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it("handles network error gracefully", async () => {
@@ -100,15 +104,22 @@ describe("useFocusBrief", () => {
     expect(result.current.error).toBe("Network error");
   });
 
-  it("retains the cached brief on a failed read and reconciles it on Retry", async () => {
-    localStorage.setItem("todos:focus-brief-cache", JSON.stringify(mockBrief));
+  it("retains only the current mounted session's brief on a transient failure and reconciles on Retry", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockBrief,
+    } as Response);
+    const { result } = renderHook(() => useFocusBrief());
+    await waitFor(() => expect(result.current.loading).toBe(false));
     vi.mocked(apiCall).mockResolvedValueOnce({
       ok: false,
       status: 500,
     } as Response);
-    const { result } = renderHook(() => useFocusBrief());
-    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      expect(await result.current.revalidate()).toBe(false);
+    });
     expect(result.current.brief).toEqual(mockBrief);
+    expect(result.current.error).toBe("HTTP 500");
     const fresh = { ...mockBrief, generatedAt: "2026-10-08T10:00:00Z" };
     vi.mocked(apiCall).mockResolvedValueOnce({
       ok: true,
@@ -161,5 +172,109 @@ describe("useFocusBrief", () => {
     expect(apiCall).toHaveBeenCalledTimes(2);
     expect(result.current.error).toContain("Could not refresh");
     expect(result.current.brief).toEqual(mockBrief);
+  });
+
+  it.each([401, 403, 503])(
+    "clears the current brief when GET returns %s",
+    async (status) => {
+      vi.mocked(apiCall).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBrief,
+      } as Response);
+      const { result } = renderHook(() => useFocusBrief());
+      await waitFor(() => expect(result.current.brief).toEqual(mockBrief));
+      vi.mocked(apiCall).mockResolvedValueOnce({
+        ok: false,
+        status,
+      } as Response);
+      await act(async () => {
+        expect(await result.current.revalidate()).toBe(false);
+      });
+      expect(result.current.brief).toBeNull();
+      expect(result.current.error).toBe(`HTTP ${status}`);
+      expect(result.current.unavailable).toBe(status === 503);
+    },
+  );
+
+  it.each([401, 403, 503])(
+    "clears the current brief when refresh POST returns %s without another GET",
+    async (status) => {
+      vi.mocked(apiCall).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBrief,
+      } as Response);
+      const { result } = renderHook(() => useFocusBrief());
+      await waitFor(() => expect(result.current.brief).toEqual(mockBrief));
+      vi.mocked(apiCall).mockResolvedValueOnce({
+        ok: false,
+        status,
+      } as Response);
+      await act(async () => {
+        expect(await result.current.refresh()).toBe(false);
+      });
+      expect(result.current.brief).toBeNull();
+      expect(result.current.error).toContain(`(${status})`);
+      expect(apiCall).toHaveBeenCalledTimes(2);
+      expect(result.current.refreshing).toBe(false);
+      expect(result.current.unavailable).toBe(status === 503);
+    },
+  );
+
+  it("cannot restore an earlier GET after hosted AI becomes unavailable during refresh", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockBrief,
+    } as Response);
+    const { result } = renderHook(() => useFocusBrief());
+    await waitFor(() => expect(result.current.brief).toEqual(mockBrief));
+    let finishEarlier!: (response: Response) => void;
+    vi.mocked(apiCall).mockReturnValueOnce(
+      new Promise<Response>((resolve) => {
+        finishEarlier = resolve;
+      }),
+    );
+    let earlier!: Promise<boolean>;
+    act(() => {
+      earlier = result.current.revalidate();
+    });
+    vi.mocked(apiCall).mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+    } as Response);
+    await act(async () => {
+      expect(await result.current.refresh()).toBe(false);
+    });
+    await act(async () => {
+      finishEarlier({ ok: true, json: async () => mockBrief } as Response);
+      await earlier;
+    });
+    expect(result.current.brief).toBeNull();
+    expect(result.current.unavailable).toBe(true);
+    expect(result.current.loading).toBe(false);
+    expect(localStorage.getItem("todos:focus-brief-cache")).toBeNull();
+  });
+
+  it("cannot persist a late response after its session unmounts", async () => {
+    let finish!: (value: Response) => void;
+    vi.mocked(apiCall).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const firstSession = renderHook(() => useFocusBrief());
+    firstSession.unmount();
+    vi.mocked(apiCall).mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+    } as Response);
+    const nextSession = renderHook(() => useFocusBrief());
+    await waitFor(() =>
+      expect(nextSession.result.current.error).toBe("HTTP 503"),
+    );
+    await act(async () => {
+      finish({ ok: true, json: async () => mockBrief } as Response);
+    });
+    expect(nextSession.result.current.brief).toBeNull();
+    expect(localStorage.getItem("todos:focus-brief-cache")).toBeNull();
   });
 });

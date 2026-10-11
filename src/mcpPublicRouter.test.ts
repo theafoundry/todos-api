@@ -18,6 +18,7 @@ jest.mock("./config", () => {
 });
 
 import { createApp } from "./app";
+import { config } from "./config";
 import { TodoService } from "./services/todoService";
 import type { IProjectService } from "./interfaces/IProjectService";
 import type {
@@ -72,6 +73,7 @@ describe("Public MCP OAuth and discovery routes", () => {
   let mockAuthService: {
     login: jest.Mock;
     verifyToken: jest.Mock;
+    verifyActiveToken: jest.Mock;
     createMcpToken: jest.Mock;
     verifyMcpToken: jest.Mock;
     decodeMcpToken: jest.Mock;
@@ -94,6 +96,11 @@ describe("Public MCP OAuth and discovery routes", () => {
         userId: "user-1",
         email: "user-1@example.com",
       }),
+      verifyActiveToken: jest
+        .fn()
+        .mockImplementation(async (token) =>
+          mockAuthService.verifyToken(token),
+        ),
       createMcpToken: jest.fn().mockImplementation((input) => ({
         token: `mcp-token-${input.userId}`,
         tokenType: "Bearer",
@@ -150,6 +157,48 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(response.body.scopes_supported).toEqual(
       expect.arrayContaining(["openid", "email", "tasks.read"]),
     );
+  });
+
+  it("rejects a deleted account's still-signed OAuth link cookie before displaying consent or issuing a code", async () => {
+    const registered = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "Synthetic deleted-account client",
+        grant_types: ["authorization_code", "refresh_token"],
+      })
+      .expect(201);
+    const pkce = createPkcePair(
+      "deleted-owner-verifier-1111111111111111111111111111111111",
+    );
+    const fields = {
+      client_id: registered.body.client_id,
+      redirect_uri: "https://chat.openai.com/aip/callback",
+      response_type: "code",
+      scope: "tasks.read tasks.write",
+      code_challenge: pkce.challenge,
+      code_challenge_method: "S256",
+    };
+    mockAuthService.verifyActiveToken.mockRejectedValue(
+      new Error("Invalid token"),
+    );
+    const cookie = `${config.mcpOauthSessionCookieName}=still-signed-cookie`;
+    const page = await request(app)
+      .get("/oauth/authorize")
+      .query(fields)
+      .set("Cookie", cookie)
+      .expect(200);
+    expect(page.text).toContain("Connect Assistant");
+    expect(page.text).not.toContain("Authorize Assistant");
+    const decision = await request(app)
+      .post("/oauth/authorize/decision")
+      .type("form")
+      .set("Cookie", cookie)
+      .send({ ...fields, decision: "approve" })
+      .expect(400);
+    expect(decision.headers.location).toBeUndefined();
+    expect(decision.text).not.toContain("?code=");
+    expect(mockAuthService.verifyActiveToken).toHaveBeenCalledTimes(2);
   });
 
   it("publishes OIDC discovery with the verified-email UserInfo contract", async () => {

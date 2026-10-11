@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./landing.css";
 import { BrandMark } from "../components/ui/BrandMark";
+import { PublicLinks } from "../components/shared/PublicLinks";
 import { usePublicTheme } from "../styles/publicTheme";
 
 // Matches the landing's narrow breakpoint in landing.css.
@@ -287,9 +288,9 @@ function HeroSection({ dark, narrow }: ArtProps) {
           </div>
           <div className="landing-hero__aside">
             <p className="landing-hero__sub">
-              Capture anything, let AI organize it, and wake up to a plan that
-              fits your energy, your calendar, and your goals. A calm workspace,
-              not another dashboard.
+              Capture actions while chatting with ChatGPT or Claude. Review them
+              in Inbox, accept what matters into Tasks, and plan a realistic day
+              in a calm, simple workspace.
             </p>
             <div className="landing-hero__ctas">
               <a
@@ -369,13 +370,13 @@ function FeaturesSection() {
         <ul className="landing-features-grid">
           <FeatureCard
             icon={<IconLightning />}
-            title="A daily plan that balances priorities and deadlines"
-            description="AI generates a time-boxed daily plan based on your priorities, energy level, and deadlines. Review it, adjust it, and start working — no busywork."
+            title="Plan a realistic day"
+            description="Build a plan from your accepted tasks, priorities, energy, and time available. Review the suggestions before applying changes."
           />
           <FeatureCard
             icon={<IconCapture />}
-            title="Capture anything, organize later"
-            description='Drop tasks, ideas, and notes onto your desk. Organize them when you&apos;re ready, or type naturally — "Call dentist tomorrow 2pm" — and the date is set automatically.'
+            title="Capture actions, review later"
+            description="Save an intention from a conversation or add it in Inbox. Review its title and original context before accepting it into Tasks, then choose when to work on it."
           />
           <FeatureCard
             icon={<IconReview />}
@@ -384,8 +385,8 @@ function FeaturesSection() {
           />
           <FeatureCard
             icon={<IconAI />}
-            title="Your AI assistant already knows your tasks"
-            description='Connect Claude or ChatGPT and manage tasks through conversation. "What should I work on?" or "Plan my day" — your assistant has full context.'
+            title="Capture with your AI assistant"
+            description="Connect ChatGPT or Claude through MCP to capture intentions and ask for a plan from your accepted tasks. You choose which assistant to connect and can revoke its access."
           />
         </ul>
       </div>
@@ -487,13 +488,13 @@ function CapabilitiesSection({ narrow }: Pick<ArtProps, "narrow">) {
           />
           <CapabilityCard
             icon={<IconDesk />}
-            title="Desk"
-            description="Capture ideas fast. New items land on your desk until you're ready to organize them."
+            title="Inbox"
+            description="Capture intentions now. Review them when you're ready, then accept them into Tasks."
           />
           <CapabilityCard
             icon={<IconKeyboard />}
             title="Keyboard First"
-            description="Command palette (Ctrl+K), keyboard shortcuts for every action, and quick entry without touching the mouse."
+            description="Desktop command palette (Ctrl+K), navigation shortcuts, and quick entry without touching the mouse."
           />
           <CapabilityCard
             icon={<IconDarkMode />}
@@ -551,6 +552,7 @@ function LandingFooter() {
         <span className="landing-footer__copy">
           © {new Date().getFullYear()} Planwren. Built for focused work.
         </span>
+        <PublicLinks />
       </div>
     </footer>
   );

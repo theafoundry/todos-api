@@ -1,104 +1,90 @@
-# Planwren submission copy
+# Planwren public listing draft
 
-Status: prepared draft for the authorized repaired candidate; no portal upload
-or submission has occurred. The candidate is not deployed. Review credentials,
-authenticated screenshots and the final recording remain pending.
+Prepared October 11, 2026 from source `59158d060dc038bfd18e9a1991a5727ae5299e3d`
+in the isolated `codex/planwren-public-readiness` worktree. The public-upload copy
+is version `0.3.0`. This is preparation material, not a portal upload, submission,
+approved release, or recorded demo.
 
-## Name and publisher
+## Selected identity and availability
 
-- Display name: **Planwren**
-- Publisher: **Thea Foundry**
-- Category: **Productivity**
-- Brand: coral Fold mark (`#E17055`) with cream (`#FFFCF5`) and ink (`#2D1F1A`)
+The owner selected **Thea Foundry LLC** as the intended verified business
+publisher and **all available countries**. The manifest records that name in
+`author.name` and `extensions.com.openai.interface.developerName`; an explicit
+`publication.countries: []` removes country restrictions. Actual business and
+domain verification in the target portal remain unverified. Existing public
+pages use the Thea Foundry brand; the owner must confirm its relationship to the
+selected legal publisher when resolving policy coverage.
 
-## Short description
+The owner selected free core capture, review and planning at launch, with paid
+tiers deferred until post-launch measurement. The manifest declares
+`review.commerce:false` and describes the absence of purchase, payment or checkout
+flows. Hosted backend AI is to remain disabled until hard cost budgets exist;
+this draft does not claim production settings were changed.
+No rights or policy attestation has been inferred from source access.
 
-Plan and act on today's tasks
+## Listing fields
 
-## Detailed description
+- Display name: **Planwren** (8 characters).
+- Category: **Productivity**.
+- Subtitle: **Capture now, plan a calmer day** (30 characters, including spaces and punctuation).
+- Detailed description: 1234 characters; the maximum is 4000.
+- Publisher name: **Thea Foundry LLC** (16 characters).
 
-Planwren is a personal planning workspace by Thea Foundry. Connect your account
-to see work due or overdue today and build a realistic plan from your available
-time and energy. View the plan in an interactive Today Plan component, capture
-a new task, complete or reopen a task already shown, and reschedule work using
-your account's date and timezone.
+Planwren offers free core capture, review, and daily planning. It helps you save actions while chatting in ChatGPT, then come back to a calm, simple workspace to review and plan. Capture an idea or action into Inbox without deciding its full organization on the spot. In the Planwren web app, review saved captures, edit their titles, and accept the ones you want into Tasks. Use Inbox, Today, and Tasks to keep capture, daily work, and your task list easy to find.
 
-Planwren accesses the connected person's account. It does not delete tasks,
-create projects, access another person's account, send messages, or make
-purchases. Task changes return the server's authoritative state; the app does
-not guess task identifiers from titles.
+Back in ChatGPT, list your own due, scheduled, and overdue tasks, then build a realistic day plan from your available time and energy. View the returned plan in the interactive Today Plan, complete or reopen a task already shown, and reschedule a known task using your account date and timezone. A capture stays an Inbox item until you review it; words such as tomorrow in captured text do not automatically schedule a task.
+
+The connection accesses your own Planwren account. Its six conversational tools do not delete tasks, send messages, make purchases, manage projects, or access another person’s account. Task changes use exact identifiers from prior results and report the state confirmed by the service. Review and full editing happen in the Planwren web app.
 
 ## Starter prompts
 
-- “Plan my day. I have two hours and medium energy.”
-- “What is due or overdue today?”
-- “Capture: call the dentist tomorrow.”
+- Capture: call the dentist tomorrow.
+- Plan my day. I have two hours and medium energy.
+- What is due or overdue today?
 
-## Public references
+These three prompts are distinct after whitespace normalization, single-line,
+under 128 characters each, and contain no app mentions.
 
-| Field          | Value                                                     |
-| -------------- | --------------------------------------------------------- |
-| Website        | `https://www.planwren.com`                                |
-| Privacy        | `https://www.planwren.com/privacy`                        |
-| Terms          | `https://www.planwren.com/terms`                          |
-| Support        | `https://www.planwren.com/support`                        |
-| Support email  | `hello@theafoundry.com`                                   |
-| Remote MCP     | `https://todos.theafoundry.com/mcp/app`                   |
-| OAuth issuer   | `https://todos.theafoundry.com`                           |
-| Coral Fold SVG | `https://www.planwren.com/brand/fold-coral.svg?v=fold-v1` |
-| App icon       | `https://www.planwren.com/app/icon-512.png?v=fold-v1`     |
+## Public URLs and protocol identity
 
-The public brand and website use Planwren. Existing protocol identifiers and
-the canonical OAuth issuer retain the `todos.theafoundry.com` origin; this
-package does not migrate OAuth, MCP, resource identifiers, or account grants.
-Current production is `0335614086f2a4ab587464e81037348b6486c193` and retains
-older hosted Todos labels and false complete/reschedule destructive hints.
-The authorized candidate changes hosted copy to Planwren, those hints to true,
-and normalizes equivalent reschedule timestamp retries. Exact candidate HEAD
-and results are in the candidate handoff; no repaired deployment is claimed here.
+| Listing field | URL                              | Status                                                                                                            |
+| ------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Website       | https://www.planwren.com         | Root's current read-only check reports a public page; inspect the rendered product copy in the readiness report.  |
+| Support       | https://www.planwren.com/support | Root's current check reports public support/contact content; delivery to the contact address has not been tested. |
+| Privacy       | https://www.planwren.com/privacy | Accessible policy; coverage and owner decisions remain incomplete.                                                |
+| Terms         | https://www.planwren.com/terms   | Accessible terms; legal applicability and owner attestations remain pending.                                      |
 
-## Reviewer notes
+The portable MCP declaration is `https://todos.theafoundry.com/mcp/app`.
+The OAuth issuer and UI resource identity remain on `todos.theafoundry.com`.
+The broader legacy `/mcp` connection is separate and is not bundled into this
+public upload. The original private `plugins/todos` source and bindings are
+unchanged.
 
-Use the dedicated synthetic reviewer account supplied through the portal's
-protected credential field once it has been separately authorized, created,
-verified, and tested. Account provisioning and credential handoff have not been
-performed during package preparation. The account must work without MFA, SMS,
-email confirmation during review, VPN, or private-network access.
+## Release notes draft
 
-Begin with “Plan my day. I have two hours and medium energy.” Verify the textual
-plan and the Today Plan component use the same date, budget, energy, and ordered
-task IDs. Test inline and fullscreen views, complete and undo a synthetic task,
-refresh the plan, then disconnect and reconnect. Follow
-[reviewer-guide.md](reviewer-guide.md) and record results in
-[test-cases.md](test-cases.md).
+Initial public Planwren package draft: capture actions from ChatGPT into Inbox, review them in the web workspace, and plan a realistic day using time and energy. Includes the focused remote MCP connection, six existing conversational tools, Today Planning skill, and approved Fold icons as PNGs. Intended publisher: Thea Foundry LLC. Country availability: all available countries. Core capture, review, and planning are free, with no purchase or checkout flow. Authenticated review access and a verified demo recording remain pending.
 
-## Screenshot and recording status
+Candidate service/client improvements: single-use authorization codes and transactional refresh rotation prevent duplicate exchanges; detected reuse of a rotated refresh token requires reconnecting that assistant session. Clients must serialize refreshes and retain the latest token. Capture retries retain their safe, repeatable behavior. Mobile users can revoke assistants through Profile and settings → Connected assistants; desktop users use Settings → Integrations. Onboarding and public pages now describe the capture, Inbox review and planning flow accurately, with visible privacy, terms and support links.
 
-Public-page and isolated synthetic previews may support design review. They do
-not establish authenticated ChatGPT acceptance. Any final custom-UI screenshots
-and the required recording must be captured from the actual signed-in ChatGPT session using
-the dedicated synthetic account, with no credentials or tokens visible.
+## Recording and access
 
-The existing
-`https://todos.theafoundry.com/review/todos-chatgpt-demo-v1.mp4` is a historical
-illustrated walkthrough with synthetic data and earlier Todos branding. It is
-not the final Planwren recording or acceptance evidence for the deployed source.
-Do not attach it as the final submission demo. The August 12, 2026 evidence at
-[PR #1074](https://github.com/theafoundry/todos-api/pull/1074#issuecomment-5272324021)
-also belongs to an earlier implementation.
+The five positive and three negative cases are drafted in the package and
+[test-cases.md](test-cases.md). Their signed-in ChatGPT executions are **Not run**.
+Local regression tests are separate evidence and cannot pass these host cases.
 
-## Submission gate
+[demo-video-script.txt](demo-video-script.txt) gives a capture-first walkthrough,
+including actual web Inbox review, the five supported cases, and three boundaries.
+A currently authorized synthetic account and working development connection are
+needed before rehearsing writes. No account was created, no credentials were
+issued, and no real production task was changed during preparation.
 
-Package preparation does not authorize portal upload, account creation,
-credential grants, or directory submission. Before submission, complete
-publisher/domain verification, credential checks, the authenticated test matrix,
-a current authenticated recording, genuine custom-UI screenshots if included,
-and final owner approval. Follow the
-current official workflow recorded in [README.md](README.md).
+`review.demo_recording_url` is absent. The repository's historical
+`todos-chatgpt-demo-v1.mp4` is an illustrated synthetic walkthrough with earlier
+branding, not a current recorded Planwren acceptance demo. It was not viewed or
+approved for this draft and must not be attached as evidence. A final recording
+must show real interactions against the chosen source, be played back, and be
+hosted at a reviewer-accessible URL before that field is populated.
 
-The candidate write effects, normalized timestamp behavior and hosted-copy
-changes are described in [branding-and-annotations.md](branding-and-annotations.md).
-Completion undo means reopening, not restoration of a prior lifecycle status.
-Stable issuer, resource and server identities remain compatibility names.
-Verify new live source, annotations and branding after an approved deployment
-before recording final authenticated acceptance or submitting this draft.
+Reviewer credentials, exact login/workspace details and access instructions must
+be supplied only through protected portal fields after separately authorized
+provisioning and access testing. These materials and the ZIP contain none.

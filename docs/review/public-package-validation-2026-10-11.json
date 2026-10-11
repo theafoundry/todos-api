@@ -1,0 +1,256 @@
+{
+  "preparedAtUTC": "2026-10-11T12:25:44.794510+00:00",
+  "baselineSource": "59158d060dc038bfd18e9a1991a5727ae5299e3d",
+  "branch": "codex/planwren-public-readiness",
+  "scope": "Offline public-upload draft only; no portal upload, account provisioning, credential issuance, authenticated production writes or current recording.",
+  "package": {
+    "valid": true,
+    "metadataComplete": false,
+    "preparationGaps": ["verified authenticated demo recording URL"],
+    "scope": "local public package; publisher/domain verification, dashboard scans, demo account, authenticated ChatGPT QA and recording remain pending",
+    "packageName": "planwren",
+    "version": "0.3.0",
+    "endpoint": "https://todos.theafoundry.com/mcp/app",
+    "tools": [
+      "list_today",
+      "plan_today",
+      "capture_task",
+      "complete_task",
+      "reschedule_task",
+      "render_today_plan"
+    ],
+    "schemas": [
+      "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+      "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+    ],
+    "images": [
+      {
+        "file": "logo.png",
+        "width": 512,
+        "height": 512,
+        "bytes": 18421
+      },
+      {
+        "file": "composer-icon.png",
+        "width": 256,
+        "height": 256,
+        "bytes": 7382
+      },
+      {
+        "file": "logo-dark.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 49414
+      },
+      {
+        "file": "composer-icon-dark.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 49414
+      }
+    ],
+    "files": [
+      {
+        "path": "assets/composer-icon-dark.png",
+        "bytes": 49414,
+        "sha256": "7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c"
+      },
+      {
+        "path": "assets/composer-icon.png",
+        "bytes": 7382,
+        "sha256": "963716e9178ab7e82f421bca51968fb12f876af30e77c7ca4e2ccf2325431fc3"
+      },
+      {
+        "path": "assets/logo-dark.png",
+        "bytes": 49414,
+        "sha256": "7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c"
+      },
+      {
+        "path": "assets/logo.png",
+        "bytes": 18421,
+        "sha256": "33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03"
+      },
+      {
+        "path": "mcp.json",
+        "bytes": 208,
+        "sha256": "1a6c2b68cda6b0aee9c41f7d93001fb1885a44a15932734196cfe059dc1d0121"
+      },
+      {
+        "path": "plugin.json",
+        "bytes": 10288,
+        "sha256": "e64914a6610373f661172ff4a33b90e518dca2e036a75423a69603a41f0fe01c"
+      },
+      {
+        "path": "skills/today-planning/SKILL.md",
+        "bytes": 5334,
+        "sha256": "8f613fb020641e9ca1cf36e39c297c9b499d9dff87c8560b5425f2bcfa09febc"
+      },
+      {
+        "path": "skills/today-planning/agents/openai.yaml",
+        "bytes": 445,
+        "sha256": "0ab76195aa1ffd30896723b2c5ed87daf4ef3be04dfff3011915a39b2ccd5ec6"
+      }
+    ]
+  },
+  "archive": {
+    "valid": true,
+    "archive": ".local/publication/planwren-public-0.3.0-draft.zip",
+    "bytes": 114790,
+    "sha256": "acabb31fec0b1b3da34625636e42e5eb7415219c9c7e4b83cc50a46570d1639c",
+    "packageName": "planwren",
+    "version": "0.3.0",
+    "files": [
+      {
+        "path": "assets/composer-icon-dark.png",
+        "bytes": 49414,
+        "sha256": "7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c"
+      },
+      {
+        "path": "assets/composer-icon.png",
+        "bytes": 7382,
+        "sha256": "963716e9178ab7e82f421bca51968fb12f876af30e77c7ca4e2ccf2325431fc3"
+      },
+      {
+        "path": "assets/logo-dark.png",
+        "bytes": 49414,
+        "sha256": "7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c"
+      },
+      {
+        "path": "assets/logo.png",
+        "bytes": 18421,
+        "sha256": "33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03"
+      },
+      {
+        "path": "mcp.json",
+        "bytes": 208,
+        "sha256": "1a6c2b68cda6b0aee9c41f7d93001fb1885a44a15932734196cfe059dc1d0121"
+      },
+      {
+        "path": "plugin.json",
+        "bytes": 10288,
+        "sha256": "e64914a6610373f661172ff4a33b90e518dca2e036a75423a69603a41f0fe01c"
+      },
+      {
+        "path": "skills/today-planning/SKILL.md",
+        "bytes": 5334,
+        "sha256": "8f613fb020641e9ca1cf36e39c297c9b499d9dff87c8560b5425f2bcfa09febc"
+      },
+      {
+        "path": "skills/today-planning/agents/openai.yaml",
+        "bytes": 445,
+        "sha256": "0ab76195aa1ffd30896723b2c5ed87daf4ef3be04dfff3011915a39b2ccd5ec6"
+      }
+    ],
+    "extractedPackageValidated": true,
+    "scope": "local public package; publisher/domain verification, dashboard scans, demo account, authenticated ChatGPT QA and recording remain pending"
+  },
+  "checks": [
+    {
+      "command": "node scripts/validate-planwren-public-package.mjs",
+      "result": "Passed; structural validation only; metadataComplete:false"
+    },
+    {
+      "command": "node --test scripts/review/planwren-public-package.test.mjs",
+      "result": "Passed; 43 tests"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 scripts/review/test-planwren-public-package.py",
+      "result": "Passed; 22 tests, including deterministic reproducibility and archive tamper rejection"
+    },
+    {
+      "command": "python3 scripts/build-planwren-public-package.py --output .local/publication/planwren-public-0.3.0-draft.zip",
+      "result": "Passed; final ZIP built, safe extraction and source hashes validated"
+    },
+    {
+      "command": "python3 scripts/build-planwren-public-package.py --verify .local/publication/planwren-public-0.3.0-draft.zip",
+      "result": "Passed; final ZIP verified independently after build"
+    },
+    {
+      "command": "Direct ZIP manifest and inventory inspection",
+      "result": "Passed; eight files; exactly 5 positive and 3 negative cases; expected identity/countries; commerce:false, no app bindings or recording declaration"
+    },
+    {
+      "command": "View actual approved light/dark PNG assets",
+      "result": "Passed visual inspection at actual asset sizes; cream Fold silhouette on coral/ink tiles is clear and contains no small text"
+    },
+    {
+      "command": "git diff --exit-code -- plugins/todos",
+      "result": "Passed; original private package has no tracked diff"
+    },
+    {
+      "command": "node --test scripts/review/synthetic-review-acceptance.test.mjs",
+      "result": "Passed; 18 safety, source-route assertion and two-run reproducibility tests. Server protocol assertions only; all host cases Not run"
+    },
+    {
+      "command": "node --test scripts/review/reset-review-safety.test.mjs",
+      "result": "Passed; 63 offline reset guard/CLI tests. No real database/reset/account operations executed"
+    }
+  ],
+  "hostCases": "Not run; all five positive and three negative cases are expectations, not passed host evidence",
+  "recording": "Not recorded, not viewed, not hosted; demo_recording_url absent",
+  "selectedPublisher": "Thea Foundry LLC (owner-selected intention; actual portal verification unverified)",
+  "selectedCountries": "All available countries; explicit publication.countries=[]",
+  "ownerDependentItems": [
+    "Current policy coverage and legal publisher applicability",
+    "Authorized reviewer account and secure access verification",
+    "Actual signed-in development/demo and saved-version review cases",
+    "Real recording playback and reviewer-accessible URL",
+    "Actual business/domain verification, required scans, attestations and final submission authorization"
+  ],
+  "privatePackageTrackedDiffEmpty": true,
+  "candidateHeadAtCheck": "36af6024789e58feb9799e14d702084861259566",
+  "archiveVerification": {
+    "valid": true,
+    "archive": ".local/publication/planwren-public-0.3.0-draft.zip",
+    "bytes": 114790,
+    "sha256": "acabb31fec0b1b3da34625636e42e5eb7415219c9c7e4b83cc50a46570d1639c",
+    "packageName": "planwren",
+    "version": "0.3.0",
+    "files": [
+      {
+        "path": "assets/composer-icon-dark.png",
+        "bytes": 49414,
+        "sha256": "7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c"
+      },
+      {
+        "path": "assets/composer-icon.png",
+        "bytes": 7382,
+        "sha256": "963716e9178ab7e82f421bca51968fb12f876af30e77c7ca4e2ccf2325431fc3"
+      },
+      {
+        "path": "assets/logo-dark.png",
+        "bytes": 49414,
+        "sha256": "7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c"
+      },
+      {
+        "path": "assets/logo.png",
+        "bytes": 18421,
+        "sha256": "33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03"
+      },
+      {
+        "path": "mcp.json",
+        "bytes": 208,
+        "sha256": "1a6c2b68cda6b0aee9c41f7d93001fb1885a44a15932734196cfe059dc1d0121"
+      },
+      {
+        "path": "plugin.json",
+        "bytes": 10288,
+        "sha256": "e64914a6610373f661172ff4a33b90e518dca2e036a75423a69603a41f0fe01c"
+      },
+      {
+        "path": "skills/today-planning/SKILL.md",
+        "bytes": 5334,
+        "sha256": "8f613fb020641e9ca1cf36e39c297c9b499d9dff87c8560b5425f2bcfa09febc"
+      },
+      {
+        "path": "skills/today-planning/agents/openai.yaml",
+        "bytes": 445,
+        "sha256": "0ab76195aa1ffd30896723b2c5ed87daf4ef3be04dfff3011915a39b2ccd5ec6"
+      }
+    ],
+    "extractedPackageValidated": true,
+    "scope": "local public package; publisher/domain verification, dashboard scans, demo account, authenticated ChatGPT QA and recording remain pending"
+  },
+  "selectedCommerce": "Free core capture, review and planning launch; commerce:false, no purchase/checkout; paid tiers deferred",
+  "localSyntheticEvidence": "synthetic-review-2026-10-11.json (65 loaded source files and harness hashes; actual routes with fixture auth/storage)"
+}

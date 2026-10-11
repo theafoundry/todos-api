@@ -30,10 +30,14 @@ export class LlmProviderNotConfiguredError extends Error {
  * Throws LlmProviderNotConfiguredError when env vars are absent.
  * Throws an Error on HTTP failure or empty response.
  */
-export async function callLlm(options: LlmCallOptions): Promise<string> {
+export function assertLlmProviderConfigured(): void {
   if (!config.aiProviderEnabled || !config.aiProviderApiKey) {
     throw new LlmProviderNotConfiguredError();
   }
+}
+
+export async function callLlm(options: LlmCallOptions): Promise<string> {
+  assertLlmProviderConfigured();
 
   const url = `${config.aiProviderBaseUrl}/chat/completions`;
 

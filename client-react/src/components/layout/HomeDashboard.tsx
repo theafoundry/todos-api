@@ -23,8 +23,9 @@ export function HomeDashboard({
   onToggleTodo,
   onSelectProject,
   onEditTodo,
+  onNavigate,
 }: Props) {
-  const { brief, loading, error, refreshing } = useFocusBrief();
+  const { brief, loading, error, refreshing, unavailable } = useFocusBrief();
   const [showMore, setShowMore] = useState(false);
 
   if (loading && !brief) {
@@ -41,6 +42,42 @@ export function HomeDashboard({
   }
 
   if (!brief) {
+    if (unavailable) {
+      return (
+        <div className="home-dashboard">
+          <ViewState
+            empty
+            emptyContent={
+              <div>
+                <h2>Your tasks are ready</h2>
+                <p>
+                  Hosted AI is currently unavailable. Review Inbox, choose tasks
+                  for Today, and plan a realistic day.
+                </p>
+                {onNavigate && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => onNavigate("today")}
+                    >
+                      Open Today
+                    </button>{" "}
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => onNavigate("all")}
+                    >
+                      Open Tasks
+                    </button>
+                  </>
+                )}
+              </div>
+            }
+          />
+        </div>
+      );
+    }
     return (
       <div className="home-dashboard">
         <ViewState error={error ?? "Failed to load focus brief."} />

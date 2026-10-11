@@ -1314,7 +1314,7 @@ export class AgentExecutor {
           const { DataRetentionService } =
             await import("../services/dataRetentionService");
           const svc = new DataRetentionService(this.deps.persistencePrisma);
-          const purged = await svc.purgeAll();
+          const purged = await svc.purgeAll(context.userId);
           return this.success(action, readOnly, context, 200, { purged });
         }
 

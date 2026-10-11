@@ -61,6 +61,7 @@ describe("Remote MCP router auth and scopes", () => {
   let currentSession: ReturnType<typeof buildMcpSession>;
   let mockAuthService: {
     verifyToken: jest.Mock;
+    verifyActiveToken: jest.Mock;
     createMcpToken: jest.Mock;
     verifyMcpToken: jest.Mock;
     getUserById: jest.Mock;
@@ -75,6 +76,11 @@ describe("Remote MCP router auth and scopes", () => {
       verifyToken: jest
         .fn()
         .mockReturnValue({ userId: "user-1", email: "user-1@example.com" }),
+      verifyActiveToken: jest
+        .fn()
+        .mockImplementation(async (token) =>
+          mockAuthService.verifyToken(token),
+        ),
       createMcpToken: jest.fn().mockImplementation((input) => ({
         token: `mcp-token-${input.userId}`,
         tokenType: "Bearer",

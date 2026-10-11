@@ -1,99 +1,102 @@
-# Public Planwren package
+# Planwren public-upload draft
 
-`plugins/planwren-public` is the separate **Planwren by Thea Foundry** public
-package, version `0.2.0`. The developer package in `plugins/todos` and its local
-marketplace registration remain unchanged.
+Prepared October 11, 2026 from baseline source `59158d060dc038bfd18e9a1991a5727ae5299e3d`.
+The separate package is `plugins/planwren-public`, name `planwren`, version
+`0.3.0`. The current archive is a **validated draft**, not ready to submit while
+reviewer access, host review, policy coverage and a verified recording
+remain incomplete. It has not been uploaded, submitted or published.
 
-## Format and contents
+## Current deliverable
 
-This uses the current portable Agent Plugins format, with root `plugin.json`
-and `mcp.json`, automatically discovered `skills/`, and four referenced icons.
-OpenAI listing and review settings live in `extensions.com.openai`. There is
-one remote Streamable HTTP server at
-`https://todos.theafoundry.com/mcp/app`. OAuth discovery remains server-owned;
-the exact issuer is `https://todos.theafoundry.com`.
+Local ZIP: [.local/publication/planwren-public-0.3.0-draft.zip](../../.local/publication/planwren-public-0.3.0-draft.zip).
+The ignored `.local` folder holds the generated deliverable, not public source or
+credentials. The ZIP is 114790 bytes and its SHA-256 is
+`acabb31fec0b1b3da34625636e42e5eb7415219c9c7e4b83cc50a46570d1639c`.
 
-The ZIP has eight regular files at its root layout. It contains no app reference,
-lifecycle hook, local server command, embedded authentication header, credential,
-review-account identifier, executable, approval-policy override, or local path.
-The listing supplies the public Planwren website, privacy, terms and support
-URLs. Availability countries and translations are omitted pending owner choices.
+The eight entries are root `plugin.json`, `mcp.json`, four approved PNG icons,
+`skills/today-planning/SKILL.md` and its `agents/openai.yaml`. The archive contains
+no enclosing directory, root `.app.json`, `apps` declarations, compatibility
+manifest, private integration ID, auth header, credential, executable or repository
+source. `plugins/todos` has no tracked diff; its original private identity and
+bindings were not copied or modified.
 
-The public skill preserves the six conversational tool boundaries, adds the
-declared remote dependency, and obtains the account's authoritative date and
-timezone with `list_today` before an initial plan when context is absent.
-Capture means an inbox capture, not a promised scheduled task. The app-only
-`open_today_plan` entrypoint remains part of the deployed seven-definition
-server catalog; the package neither hides it nor adds a conversational tool.
+The one remote MCP is `https://todos.theafoundry.com/mcp/app`. The broader legacy
+`/mcp` is separate. Canonical OAuth issuer, UI resource and server identifiers
+remain intact; this package does not migrate accounts or grants. OAuth configuration
+is discovered from the existing service, not supplied as secrets in the ZIP.
 
-## Brand provenance
+## Metadata
 
-The two light PNGs are copied without alteration from the Fold assets in the
-deployed source `0335614086f2a4ab587464e81037348b6486c193`. Both dark SVGs are
-unchanged copies of that source's square cream-on-ink app icon.
+The capture-first subtitle is **Capture now, plan a calmer day**, exactly 30
+characters. The detailed description is 1234 characters. Three unique starter
+prompts contain 35, 48 and 29 characters. All fit current listing limits and have
+no mentions or unsupported controls. All four required listing HTTPS URL fields
+are present; their accessible content and policy gaps are reported in
+[public-readiness-2026-10-11.md](public-readiness-2026-10-11.md).
 
-| Public file                     | Canonical source                              | SHA-256                                                            |
-| ------------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
-| `assets/logo.png`               | `plugins/todos/assets/logo.png`               | `33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03` |
-| `assets/composer-icon.png`      | `plugins/todos/assets/composer-icon.png`      | `963716e9178ab7e82f421bca51968fb12f876af30e77c7ca4e2ccf2325431fc3` |
-| `assets/logo-dark.svg`          | `client-react/public/brand/app-icon-dark.svg` | `b70cf9a005306cd2311aa8e01bd143ab2cd198ee160321325436c227c81be000` |
-| `assets/composer-icon-dark.svg` | `client-react/public/brand/app-icon-dark.svg` | `b70cf9a005306cd2311aa8e01bd143ab2cd198ee160321325436c227c81be000` |
+The owner selected **Thea Foundry LLC** and **all available countries**.
+`author.name` and `developerName` agree. `publication.countries: []` deliberately
+removes availability restrictions. This records the intended publisher, not proof
+of portal business verification. The owner selected free core capture, review and planning at launch;
+`review.commerce:false` declares no purchase or checkout flow. `demo_recording_url`
+remains absent;
+no translations, screenshots, reviewer credentials or attestations are invented.
 
-The candidate source now uses Planwren throughout the widget, native metadata
-descriptions and OAuth connection copy. Production source `03356140` still
-serves the earlier Todos labels until a separately approved deployment.
-Canonical protocol identifiers retain Todos for compatibility. See
-[branding-and-annotations.md](branding-and-annotations.md) for the exact
-source changes and the distinction from authenticated hosted acceptance.
+Exactly five positive and three negative cases are embedded as reproducible
+expectations with setup, natural prompts, expected tools/arguments and observable
+results. Signed-in ChatGPT executions are **Not run**. Reviewer credentials and
+actual sign-in/workspace instructions belong only in protected portal fields.
 
-## Reproduce and verify
+## Icon provenance and verification
 
-Use the repository's supported Node version and installed lockfile dependencies:
+The light PNGs retain the approved source bytes from the original public copy,
+matching the canonical Fold branding. Both dark icons reuse the exact
+`client-react/public/brand/app-icon-dark-1024.png` bytes; no redesign or rerun of the
+brand generator touched the private package. Actual light/composer/dark assets
+were viewed: the cream Fold silhouette remains clear on coral and ink tiles,
+with no small lettering. Machine inspection verifies square dimensions, PNG
+signature/chunks/CRC/payload and size below 5 MiB.
 
-```bash
+| Asset                    | Dimensions  | Bytes | SHA-256                                                            |
+| ------------------------ | ----------- | ----- | ------------------------------------------------------------------ |
+| `logo.png`               | 512 × 512   | 18421 | `33f2d3f35b2696deae48fb78bab8b9c9d7393890bbb4b897b8433c59cfe24a03` |
+| `composer-icon.png`      | 256 × 256   | 7382  | `963716e9178ab7e82f421bca51968fb12f876af30e77c7ca4e2ccf2325431fc3` |
+| `logo-dark.png`          | 1024 × 1024 | 49414 | `7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c` |
+| `composer-icon-dark.png` | 1024 × 1024 | 49414 | `7226479bc12fd57d532ac7015784f6b1beaff47b3836bc90e53534d37707289c` |
+
+PNG-only assets and a logo minimum of 256px meet both the supplied submission
+skill and the current official guide. The official guide also permits JPEG,
+WebP and SVG square icons at least 48px; replacing the SVGs is a compatibility
+choice, not evidence that current portal validation rejects SVG.
+
+## Reproduce and inspect
+
+Use repository-supported Node 22 and installed lockfile dependencies:
+
+```sh
 node scripts/validate-planwren-public-package.mjs
 node --test scripts/review/planwren-public-package.test.mjs
-python3 scripts/review/test-planwren-public-package.py
-python3 scripts/build-planwren-public-package.py --output /tmp/planwren-public-0.2.0.zip
-python3 scripts/build-planwren-public-package.py --verify /tmp/planwren-public-0.2.0.zip
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/review/test-planwren-public-package.py
+python3 scripts/build-planwren-public-package.py --output .local/publication/planwren-public-0.3.0-draft.zip
+python3 scripts/build-planwren-public-package.py --verify .local/publication/planwren-public-0.3.0-draft.zip
 ```
 
-The validator uses the exact vendored Agent Plugins 1.0.0 JSON schemas, with
-their source hashes in
-`scripts/review/planwren-package-schemas/provenance.json`, plus the documented
-OpenAI listing, skill, image and archive limits. Its additional restrictions
-apply to this Planwren package, rather than every possible plugin. The builder
-uses fixed timestamps, sorted entries and standard-library ZIP encoding. It
-checks every archive member against validated source bytes, extracts into a
-private temporary directory and validates the extracted package again.
+The Node validator passes, reporting `metadataComplete:false` with the recording gap. The 43 Node tests and 22 Python tests pass. The builder verifies
+every member's safe path, type, size, exact source bytes and CRC, then extracts and
+validates the actual upload copy. It produces deterministic archives; the
+reproducibility test builds twice and compares exact bytes. A separate verify pass
+and direct ZIP inventory/manifest inspection passed after the final build.
+Current detailed evidence is in
+[public-package-validation-2026-10-11.json](public-package-validation-2026-10-11.json).
 
-The focused tests cover hostile configuration, credentials, paths, references,
-SVG content, corrupted images, unsafe ZIP entries and reproducibility. Local
-validation does not replace the portal's metadata, skill-safety, security and
-MCP scans.
+Local structure, syntax and hashes cannot establish publisher/domain verification,
+policy accuracy, account access, actual host behavior, recording playback, portal
+metadata/skill/tool scans or approval. Follow the dated readiness report and
+[owner-decisions-2026-10-11.md](owner-decisions-2026-10-11.md) for remaining gates.
+Only a separately authorized final portal setup follows completion of source,
+listing, demo/review materials and the final ZIP. Submission and publication are
+separate authorized actions.
 
-## Evidence and remaining gates
-
-Five positive and three negative cases are packaged as **expected behavior**.
-They have not been executed in a signed-in ChatGPT session for this source.
-The manifest omits screenshots and `demo_recording_url` until genuine captures
-and recording exist; the historical illustrated MP4 is not a final demo.
-
-See [acceptance-report.md](acceptance-report.md) for passed local checks, the
-repaired legacy evaluation and the distinction between public release
-verification and authenticated acceptance. Follow
-[test-cases.md](test-cases.md) and
-[screenshot-and-recording-plan.md](screenshot-and-recording-plan.md) for remaining
-review work. Publisher/domain verification, a dedicated synthetic account,
-protected review credentials, a deployed scan of the corrected annotations,
-signed-in QA, recording and owner approval remain pending.
-
-The user approved publishing this package and its source repairs as a draft PR.
-Merge, deployment, portal upload/submission, reviewer-account creation,
-credential grants and directory publication remain outside this authorization.
-The companion review bundle must not be uploaded as the plugin ZIP.
-
-The authoritative workflow and field definitions are the current official
-[package guide](https://developers.openai.com/plugins/build/plugins),
-[submission reference](https://developers.openai.com/plugins/deploy/submission)
-and [validation reference](https://developers.openai.com/plugins/deploy/submission-errors).
+Any package edit changes the archive and hash. Rebuild, re-inspect the ZIP and
+update this evidence before final upload. Older version `0.2.0` documents and
+release records are historical and do not pass the current draft's host review.

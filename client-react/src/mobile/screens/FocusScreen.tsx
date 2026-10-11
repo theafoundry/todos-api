@@ -27,6 +27,8 @@ interface Props {
   brief: FocusBriefResponse | null;
   briefLoading: boolean;
   briefError: string | null;
+  briefUnavailable?: boolean;
+  onNavigate?: (destination: "today" | "tasks") => void;
 }
 
 function getGreeting(): string {
@@ -66,6 +68,8 @@ export function FocusScreen({
   brief,
   briefLoading,
   briefError,
+  briefUnavailable,
+  onNavigate,
 }: Props) {
   const openTodos = useMemo(
     () => todos.filter((t) => !t.completed && !t.archived),
@@ -164,7 +168,34 @@ export function FocusScreen({
         </p>
       )}
       {showSkeleton && <CardCarousel>{SKELETON_CARDS}</CardCarousel>}
-      {briefError && !brief && (
+      {briefUnavailable && !brief && !briefLoading && (
+        <div className="m-empty">
+          <div className="m-empty__title">Your tasks are ready</div>
+          <p className="m-empty__hint">
+            Hosted AI is currently unavailable. Review Inbox, choose tasks for
+            Today, and plan a realistic day.
+          </p>
+          {onNavigate && (
+            <>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => onNavigate("today")}
+              >
+                Open Today
+              </button>{" "}
+              <button
+                type="button"
+                className="btn"
+                onClick={() => onNavigate("tasks")}
+              >
+                Open Tasks
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {briefError && !brief && !briefUnavailable && (
         <div className="m-focus__error">
           <p>Failed to load focus brief.</p>
         </div>

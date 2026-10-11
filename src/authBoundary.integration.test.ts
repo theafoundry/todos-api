@@ -1071,6 +1071,124 @@ describe("Application and assistant credential boundaries (integration)", () => 
       .expect(401);
   });
 
+  test("rejects a malformed public authorization code as invalid_grant", async () => {
+    const fields = await publicAuthorization();
+    const invalid = await request(app)
+      .post("/oauth/token")
+      .type("form")
+      .send({
+        grant_type: "authorization_code",
+        code: "synthetic-invalid-code",
+        client_id: fields.client_id,
+        redirect_uri: REDIRECT,
+        code_verifier: VERIFIER,
+      })
+      .expect(401);
+    expect(invalid.body).toMatchObject({
+      error: "invalid_grant",
+      error_details: { code: "MCP_AUTH_CODE_INVALID" },
+    });
+  });
+
+  test("consumes a public authorization code once across concurrent exchanges", async () => {
+    const fields = { ...(await publicAuthorization()), resource: APP_RESOURCE };
+    const approval = await request(app)
+      .post("/oauth/authorize/decision")
+      .set("Cookie", `${config.mcpOauthSessionCookieName}=${owner.token}`)
+      .type("form")
+      .send({ ...fields, decision: "approve" })
+      .expect(303);
+    const code = new URL(approval.headers.location).searchParams.get("code");
+    const exchange = {
+      grant_type: "authorization_code",
+      code,
+      client_id: fields.client_id,
+      redirect_uri: REDIRECT,
+      code_verifier: VERIFIER,
+      resource: APP_RESOURCE,
+    };
+    const results = await Promise.all([
+      request(app).post("/oauth/token").type("form").send(exchange),
+      request(app).post("/oauth/token").type("form").send(exchange),
+    ]);
+    expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+    expect(
+      await prisma.mcpAssistantSession.count({
+        where: { userId: owner.user.id, clientId: fields.client_id },
+      }),
+    ).toBe(1);
+    expect(results.find((result) => result.status === 409)?.body).toMatchObject(
+      {
+        error: "invalid_grant",
+      },
+    );
+  });
+
+  test.each([undefined, BROAD_RESOURCE, APP_RESOURCE])(
+    "atomically rotates refresh credentials and revokes their session on replay for resource %p",
+    async (resource) => {
+      const session = resource
+        ? await oauth.createAssistantSession({
+            userId: owner.user.id,
+            clientId: "synthetic-rotation",
+            source: "oauth",
+            scopes: WRITE_SCOPES,
+            resource,
+          })
+        : undefined;
+      const issued = await oauth.createRefreshToken({
+        userId: owner.user.id,
+        email: owner.user.email!,
+        clientId: "synthetic-rotation",
+        scopes: WRITE_SCOPES,
+        sessionId: session?.id,
+        resource,
+      });
+      const exchange = {
+        refreshToken: issued.refreshToken,
+        clientId: "synthetic-rotation",
+        resource,
+      };
+      const results = await Promise.allSettled([
+        new McpOAuthService(prisma).exchangeRefreshToken(exchange),
+        new McpOAuthService(prisma).exchangeRefreshToken(exchange),
+      ]);
+      expect(
+        results.filter((result) => result.status === "fulfilled"),
+      ).toHaveLength(1);
+      expect(
+        results.filter((result) => result.status === "rejected"),
+      ).toHaveLength(1);
+      const successful = results.find(
+        (result) => result.status === "fulfilled",
+      );
+      if (successful?.status !== "fulfilled")
+        throw new Error("No refresh succeeded");
+      await expect(
+        oauth.exchangeRefreshToken({
+          ...exchange,
+          refreshToken: successful.value.refreshToken,
+        }),
+      ).rejects.toThrow("Assistant session revoked");
+      expect(
+        await prisma.mcpAssistantSession.count({
+          where: { userId: owner.user.id, clientId: "synthetic-rotation" },
+        }),
+      ).toBe(1);
+      const access = auth.createMcpToken({
+        userId: owner.user.id,
+        email: owner.user.email!,
+        sessionId: successful.value.sessionId,
+        resource,
+        scopes: WRITE_SCOPES,
+      });
+      await expect(
+        auth.verifyMcpToken(access.token, { resource }),
+      ).rejects.toThrow("MCP token revoked");
+      expect(auth.verifyToken(owner.token).userId).toBe(owner.user.id);
+    },
+  );
+
   test.each([
     { label: "null", resource: null },
     { label: "empty", resource: "" },

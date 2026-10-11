@@ -188,6 +188,10 @@ describe("api/client", () => {
       localStorage.setItem("authToken", "old-token");
       localStorage.setItem("refreshToken", "refresh-123");
       localStorage.setItem("user", JSON.stringify({ id: "u1" }));
+      localStorage.setItem(
+        "todos:focus-brief-cache",
+        JSON.stringify({ privateTask: "Old account task" }),
+      );
       const mockFetch = vi.mocked(global.fetch);
       mockFetch
         .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
@@ -198,6 +202,7 @@ describe("api/client", () => {
       expect(localStorage.getItem("authToken")).toBeNull();
       expect(localStorage.getItem("refreshToken")).toBeNull();
       expect(localStorage.getItem("user")).toBeNull();
+      expect(localStorage.getItem("todos:focus-brief-cache")).toBeNull();
     });
 
     it("clears all auth storage on refresh 401", async () => {
@@ -282,6 +287,216 @@ describe("api/client", () => {
         );
       },
     );
+  });
+
+  describe("authentication response account isolation", () => {
+    const setAccount = (id: string) => {
+      localStorage.setItem("authToken", `synthetic-${id}-access`);
+      localStorage.setItem("refreshToken", `synthetic-${id}-refresh`);
+      localStorage.setItem("user", JSON.stringify({ id }));
+    };
+
+    it.each([200, 401])(
+      "preserves a delayed %s from the same login after a peer refresh",
+      async (status) => {
+        setAccount("a");
+        let finishDelayed!: (response: Response) => void;
+        const fetch = vi.mocked(global.fetch);
+        fetch
+          .mockReturnValueOnce(
+            new Promise<Response>((resolve) => {
+              finishDelayed = resolve;
+            }),
+          )
+          .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+          .mockResolvedValueOnce(
+            new Response(
+              JSON.stringify({
+                token: "synthetic-a-new",
+                refreshToken: "synthetic-a-new-refresh",
+              }),
+            ),
+          )
+          .mockResolvedValueOnce(new Response("{}"))
+          .mockResolvedValueOnce(new Response("{}"));
+        const delayed = apiCall("/users/me");
+        const peer = apiCall("/todos");
+        expect((await peer).status).toBe(200);
+        finishDelayed(new Response("{}", { status }));
+        expect((await delayed).status).toBe(200);
+        expect(
+          fetch.mock.calls.filter(([url]) =>
+            String(url).endsWith("/auth/refresh"),
+          ),
+        ).toHaveLength(1);
+        expect(localStorage.getItem("authToken")).toBe("synthetic-a-new");
+        expect(fetch).toHaveBeenCalledTimes(status === 200 ? 4 : 5);
+        if (status === 401)
+          expect(fetch.mock.calls[4]?.[1]?.headers).toEqual(
+            expect.objectContaining({
+              Authorization: "Bearer synthetic-a-new",
+            }),
+          );
+      },
+    );
+
+    it.each(["success", "failure", "network"])(
+      "ignores a late account A refresh %s after switching to B",
+      async (outcome) => {
+        setAccount("a");
+        let finish!: (response: Response) => void;
+        let fail!: (error: Error) => void;
+        const deferred = new Promise<Response>((resolve, reject) => {
+          finish = resolve;
+          fail = reject;
+        });
+        const fetch = vi.mocked(global.fetch);
+        fetch
+          .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+          .mockReturnValueOnce(deferred);
+        const pending = apiCall("/todos");
+        const assertion = expect(pending).rejects.toThrow(
+          "Your session changed",
+        );
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+        setAccount("b");
+        if (outcome === "network") fail(new Error("Network interrupted"));
+        else
+          finish(
+            outcome === "failure"
+              ? new Response("Unauthorized", { status: 401 })
+              : new Response(
+                  JSON.stringify({
+                    token: "synthetic-a-new",
+                    refreshToken: "synthetic-a-new-refresh",
+                  }),
+                ),
+          );
+        await assertion;
+        expect(localStorage.getItem("authToken")).toBe("synthetic-b-access");
+        expect(localStorage.getItem("refreshToken")).toBe(
+          "synthetic-b-refresh",
+        );
+        expect(localStorage.getItem("user")).toBe(JSON.stringify({ id: "b" }));
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(pageTransitions.navigateWithFade).not.toHaveBeenCalled();
+      },
+    );
+
+    it("cannot restore account A after logout while refresh is pending", async () => {
+      setAccount("a");
+      let finish!: (response: Response) => void;
+      const fetch = vi.mocked(global.fetch);
+      fetch
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockReturnValueOnce(
+          new Promise<Response>((resolve) => {
+            finish = resolve;
+          }),
+        );
+      const pending = apiCall("/todos");
+      const assertion = expect(pending).rejects.toThrow("Your session changed");
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      localStorage.clear();
+      finish(
+        new Response(
+          JSON.stringify({
+            token: "synthetic-a-new",
+            refreshToken: "synthetic-a-new-refresh",
+          }),
+        ),
+      );
+      await assertion;
+      expect(localStorage.getItem("authToken")).toBeNull();
+      expect(localStorage.getItem("refreshToken")).toBeNull();
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(pageTransitions.navigateWithFade).not.toHaveBeenCalled();
+    });
+
+    it("does not retry an old request using B when its original 401 arrives late", async () => {
+      setAccount("a");
+      let finish!: (response: Response) => void;
+      const fetch = vi.mocked(global.fetch);
+      fetch.mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+      );
+      const pending = apiCall("/todos", {
+        method: "POST",
+        body: "private account A task",
+      });
+      const assertion = expect(pending).rejects.toThrow("Your session changed");
+      setAccount("b");
+      finish(new Response("Unauthorized", { status: 401 }));
+      await assertion;
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(localStorage.getItem("authToken")).toBe("synthetic-b-access");
+    });
+
+    it("does not deliver an old successful response to a new account", async () => {
+      setAccount("a");
+      let finish!: (response: Response) => void;
+      vi.mocked(global.fetch).mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+      );
+      const pending = apiCall("/todos");
+      const assertion = expect(pending).rejects.toThrow("Your session changed");
+      setAccount("b");
+      finish(new Response(JSON.stringify({ title: "Private account A task" })));
+      await assertion;
+      expect(localStorage.getItem("authToken")).toBe("synthetic-b-access");
+    });
+
+    it("does not share A's pending refresh with B or release B's refresh early", async () => {
+      setAccount("a");
+      let finishA!: (response: Response) => void;
+      let finishB!: (response: Response) => void;
+      const fetch = vi.mocked(global.fetch);
+      fetch
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockReturnValueOnce(
+          new Promise<Response>((resolve) => {
+            finishA = resolve;
+          }),
+        )
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockReturnValueOnce(
+          new Promise<Response>((resolve) => {
+            finishB = resolve;
+          }),
+        )
+        .mockResolvedValueOnce(new Response("{}"));
+      const pendingA = apiCall("/todos");
+      const assertionA = expect(pendingA).rejects.toThrow(
+        "Your session changed",
+      );
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      setAccount("b");
+      const pendingB = apiCall("/users/me");
+      await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(4));
+      finishA(new Response("Unauthorized", { status: 401 }));
+      await assertionA;
+      finishB(
+        new Response(
+          JSON.stringify({
+            token: "synthetic-b-new",
+            refreshToken: "synthetic-b-new-refresh",
+          }),
+        ),
+      );
+      expect((await pendingB).status).toBe(200);
+      expect(localStorage.getItem("authToken")).toBe("synthetic-b-new");
+      expect(fetch).toHaveBeenCalledTimes(5);
+      expect(fetch.mock.calls[3]?.[1]?.body).toBe(
+        JSON.stringify({ refreshToken: "synthetic-b-refresh" }),
+      );
+      expect(fetch.mock.calls[4]?.[1]?.headers).toEqual(
+        expect.objectContaining({ Authorization: "Bearer synthetic-b-new" }),
+      );
+    });
   });
 
   describe("buildUrl", () => {

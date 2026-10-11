@@ -466,6 +466,8 @@ export function MobileShell() {
                   brief={focusBrief.brief}
                   briefLoading={focusBrief.loading}
                   briefError={focusBrief.error}
+                  briefUnavailable={focusBrief.unavailable}
+                  onNavigate={handleTabChange}
                 />
               )}
               {activeTab === "today" && (
@@ -622,9 +624,15 @@ export function MobileShell() {
           <div className="m-shell__page-content">
             <div className="m-empty">
               <IllustrationConstruction />
-              <div className="m-empty__title">Coming soon on mobile</div>
+              <div className="m-empty__title">
+                {page === "ai"
+                  ? "Hosted AI is currently unavailable"
+                  : "Coming soon on mobile"}
+              </div>
               <div className="m-empty__hint">
-                Use the desktop app for full access
+                {page === "ai"
+                  ? "Capture from connected assistants, review Inbox, and plan your day in Today."
+                  : "Use the desktop app for full access"}
               </div>
             </div>
           </div>

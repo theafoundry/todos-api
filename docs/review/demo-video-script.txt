@@ -1,72 +1,98 @@
-PLANWREN REVIEW RECORDING SCRIPT — PREPARED, NOT RECORDED
+PLANWREN PUBLIC DEMO — SCRIPT ONLY; NOT RECORDED OR HOST-VERIFIED
+Prepared October 11, 2026 for public package 0.3.0.
+Baseline source: 59158d060dc038bfd18e9a1991a5727ae5299e3d.
 
-The authorized candidate repairs write annotations, equivalent timestamp
-retries and hosted Planwren copy. It is not yet deployed; current production
-remains source 0335614086f2a4ab587464e81037348b6486c193. Before final recording,
-verify an approved repaired deployment and record its exact served SHA. Local
-candidate previews or old production screens cannot establish repaired-source
-ChatGPT acceptance.
+Dependencies before rehearsal
+Use the existing development integration only after confirming that a dedicated
+synthetic reviewer account and its writes are authorized, that the integration
+serves the source being reviewed, and that the fixture in reviewer-guide.md is
+present. Neither a reviewer account nor a current demo recording was prepared
+for this task. Do not use a real production account, create credentials or upload
+a submission draft merely to start recording. Candidate changes require approved
+deployment or a suitable development connection before they can be demonstrated.
 
-Use an actual signed-in ChatGPT session connected to a separately approved,
-dedicated synthetic reviewer account. Record the deployed source SHA, UTC time,
-client/browser and fixture reset time with the resulting video. No credentials,
-OAuth codes, tokens, personal tasks or password prompts may appear on screen.
-The existing todos-chatgpt-demo-v1.mp4/SRT/SVG walkthrough is historical and
-synthetic; do not reuse it as authenticated evidence or the final Planwren demo.
+Computer control and screenshots do not themselves capture video. Check that a
+screen recorder is available, or have the owner start/stop their recorder. Use the
+same visible script manually if computer control is not available. Rehearse first;
+retain and resolve actual failures before recording. Never narrate an unobserved
+success. Allow enough time for each prompt/result to be read.
 
-Scene 1 — Product and connection (about 20 seconds)
-Show the Planwren name and coral Fold icon. Introduce “Planwren by Thea Foundry
-turns your own tasks into a focused daily plan.” Show the supported connection
-handoff and the approved synthetic account without exposing its password or
-tokens. State that task access is limited to the connected account. Capture the
-success state; if connection fails, retain the failure and do not narrate success.
+Never show passwords, OAuth codes, tokens, secret client details, real tasks or
+unrelated conversations. Record source SHA, package version, UTC time, surface,
+operator and synthetic fixture/reset time in the separate evidence notes.
 
-Scene 2 — Factual tasks and planning (about 35 seconds)
-Ask “What is due or overdue today?” Show the returned synthetic tasks and the
-account date/timezone. Ask “Plan my day. I have two hours and medium energy.”
-Show the textual plan and any warnings. In a fresh conversation, list_today
-first supplies the authoritative account date/timezone; reuse that context for
-planning. Explain that the planner uses explicit time and energy; the rendered
-plan must preserve those inputs and task order.
+Scene 1 — Capture in ChatGPT (about 30 seconds; P1)
+Show the Planwren name and existing Fold mark in the actual ChatGPT development
+connection. Say: “Planwren saves actions from a conversation, so you can review
+later and plan a realistic day.” Authentication/consent may be shown only with
+secrets excluded; capture the real successful connection state.
+Ask: “Capture: call the dentist tomorrow.”
+Show the confirmed result. Say it is saved in Inbox for review. Do not say that
+“tomorrow” scheduled a task: capture preserves the action text.
 
-Scene 3 — Actual Today Plan component (about 40 seconds)
-Show Today Plan in the actual ChatGPT inline/panel container. Open fullscreen
-using the available control and return to the conversation. Show available,
-planned and remaining minutes. If demonstrating the thread entrypoint, open
-setup, choose the budget and energy, then plan. Do not substitute a local iframe
-or static screenshot for this scene.
+Scene 2 — Review later in the web app (about 35 seconds)
+Open the same synthetic account in the actual Planwren web app. Show its primary
+Inbox, Today and Tasks navigation. Open Inbox and find the fresh capture. Show
+original text and source, edit the title if desired, then choose Accept to Tasks.
+Inspect the one resulting task in Tasks and its preserved capture context.
+Explain that Inbox acceptance happens in the web app; the focused ChatGPT tool
+set captures and plans but does not accept or edit Inbox items. Demonstrate only
+authorized synthetic data and truthful current behavior.
 
-Scene 4 — Complete, undo, refresh and reschedule (about 45 seconds)
-Complete one synthetic task already returned in context. Show authoritative
-success and changed component state. Undo the same completion and refresh the
-plan to confirm the task is open again. Explain that reopening sets status to
-next and clears the completion timestamp, rather than restoring an earlier
-waiting or in-progress status. Reschedule a contextual synthetic task
-to tomorrow at 9 in the account timezone, clarifying ambiguity if necessary.
-Show the returned server date and state rather than relying on animation alone.
-The repaired complete/reschedule tools have true destructive hints; preserve
-and accurately capture any host confirmation behavior. Do not narrate a fixed
-confirmation UI unless the recording actually shows it. In separate authorized
-QA, repeat a reschedule with equivalent timestamp spellings and confirm
-changed:false and unchanged dates; omitted fields remain intact and explicit
-null clears only the selected field.
+Scene 3 — Read daily work (about 25 seconds; P2)
+Back in ChatGPT, ask: “What is due or overdue today? Include completed tasks in that list.” Show the factual result, including the synthetic completed item. Check
+that it uses the returned account date/timezone and does not turn the read into
+an unsolicited plan or write.
 
-Scene 5 — Capture and capability boundary (about 25 seconds)
-Ask “Capture: call the dentist tomorrow.” Show the capture result without
-claiming scheduling behavior not returned by the tool. Ask “Delete all my
-overdue tasks.” Show the unsupported-operation explanation and no mutation.
-Mention that task titles are data, not instructions, and that Planwren has no
-cross-account lookup or messaging capability.
+Scene 4 — A realistic, matching plan (about 45 seconds; P3)
+Begin a fresh conversation with no date/timezone context.
+Ask: “I have 45 minutes and low energy today. Make a realistic plan and show it.”
+Show account context from list_today, then the actual plan_today result. Compare
+its date, 45-minute budget, low energy, total/remaining minutes and warnings with
+the textual answer and Today Plan component. Show inline and fullscreen views
+where supported and return to the conversation. The component must use the
+returned ordered task IDs and identical inputs. No scheduling or completion
+should be implied just because a plan was generated.
 
-Scene 6 — Session recovery and close (about 30 seconds)
-Demonstrate an authorized disconnect/reconnect with the synthetic account,
-excluding secret screens. Refresh Today Plan and confirm authoritative state
-returns without replaying a mutation. Complete the longer expiry/refresh tests
-separately in the test matrix if they cannot be shown in this short recording.
-Close with www.planwren.com and its public privacy, terms and support links.
+Scene 5 — Complete, reopen and reschedule (about 45 seconds; P4/P5)
+Keep Scene 4's latest structured plan, which must contain at least two tasks.
+Ask: “I finished the first task in the latest plan. Then undo that completion.”
+Show both confirmed states for the same synthetic task. Undo reopens to next and
+clears completion time; it does not restore a previous lifecycle status.
+Ask: “Schedule the second task in the latest plan for tomorrow at 9 AM. Keep its
+due date.” Show the authoritative returned scheduled and due dates. Preserve
+actual host confirmations if displayed; do not invent a fixed confirmation UI.
+Only the named contextual task may change. Dates use the account timezone.
 
-Evidence rule
-Narrate only what the recording actually shows. Retain failures as failures.
-Use captions and readable task text; check light/dark and mobile views through
-separate captures. Record the final video filename/hash and sanitized evidence
-paths in acceptance-report.md only after the authenticated session is complete.
+Scene 6 — Three boundaries (about 40 seconds; N1/N2/N3)
+Ask each prompt separately and show the real response and absence of a Planwren
+tool call or mutation:
+1. “Delete all my overdue tasks.”
+2. “Plan Alex’s day using Alex’s private tasks.”
+3. “Email the first task in the latest plan to my colleague.”
+Expected explanations: deletion unsupported, connected-account access only,
+and no email capability. The app must not emulate these operations, fabricate
+success, or capture a replacement action without being asked.
+
+Scene 7 — Close and evidence (about 15 seconds)
+Show www.planwren.com and its support/privacy/terms links. State only what was
+demonstrated. Do not claim public approval or publication.
+
+After recording
+Play back the entire saved video. Confirm readable prompts, results, the genuine
+host component and web Inbox workflow, all eight cases, audio/captions, correct
+source/version, successful playback and no secrets. Keep failures identified.
+Record the actual file hash and evidence references after verification. Host it
+only at an owner-chosen, separately authorized reviewer-accessible destination;
+check actual playback and permissions. Then add that real URL under
+extensions.com.openai.review.demo_recording_url and rebuild/inspect the ZIP.
+
+The historical todos-chatgpt-demo-v1.mp4/SRT/SVG assets are illustrated synthetic
+walkthrough material for an earlier implementation. They were not viewed or
+validated for this package and cannot replace this real recording.
+
+Local preparation evidence
+The source-based synthetic runner has exercised server protocol and web capture
+review only. See synthetic-review-2026-10-11.md. It is not a recording and does
+not demonstrate ChatGPT routing, actual component display, sign-in or consent.
+Do not use its local fixture report as a passed host case or narrated demo.

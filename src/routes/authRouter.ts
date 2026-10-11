@@ -344,7 +344,7 @@ function mapAuthorizationCodeError(error: unknown) {
           code: "MCP_REFRESH_TOKEN_REUSED",
           message: "Refresh token already rotated",
           retryable: false,
-          hint: "Retry with the newest refresh token returned by the previous exchange.",
+          hint: "Refresh token reuse revoked this assistant session. Reconnect the assistant to authorize a new session.",
         }),
       };
     case "Refresh token client mismatch":

@@ -60,6 +60,20 @@ describe("AuthPage", () => {
     expect(screen.getByRole("button", { name: "Back to home" })).toBeTruthy();
   });
 
+  it("makes policies and support available before an account is created", () => {
+    render(createElement(AuthPage));
+    expect(
+      screen.getByRole("navigation", { name: "Help and policies" }),
+    ).toBeTruthy();
+    for (const [name, href] of [
+      ["Privacy", "/privacy"],
+      ["Terms", "/terms"],
+      ["Support", "/support"],
+    ]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    }
+  });
+
   it("calls navigateWithFade when back button is clicked", () => {
     render(createElement(AuthPage));
     fireEvent.click(screen.getByRole("button", { name: "Back to home" }));

@@ -1,23 +1,16 @@
-import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import {
+  assertReviewResetAccount,
+  assertReviewResetDatabase,
+  assertReviewResetEnrollment,
+  ReviewDatabaseProof,
+  ReviewResetSafetyError,
+  validateReviewResetEnvironment,
+} from "./reset-review-safety";
 
-const CONFIRMATION = "RESET_DEDICATED_REVIEW_ACCOUNT";
 const ONE_DAY_MS = 86_400_000;
 
-function required(name: string): string {
-  const value = (process.env[name] || "").trim();
-  if (!value) throw new Error(`${name} is required`);
-  return value;
-}
-
-function dateInTimezone(value: Date, timezone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(value);
+function utcDate(value: Date): string {
+  return value.toISOString().slice(0, 10);
 }
 
 function reviewInstant(date: string, hourUtc: number): Date {
@@ -25,43 +18,49 @@ function reviewInstant(date: string, hourUtc: number): Date {
 }
 
 async function main() {
-  const databaseUrl = required("DATABASE_URL");
-  const reviewUserId = required("REVIEW_ACCOUNT_USER_ID");
-  const reviewEmail = required("REVIEW_ACCOUNT_EMAIL").toLowerCase();
-  const confirmation = required("REVIEW_RESET_CONFIRM");
-  const timezone = (process.env.REVIEW_TIMEZONE || "America/New_York").trim();
-
-  if (confirmation !== CONFIRMATION) {
-    throw new Error(`REVIEW_RESET_CONFIRM must equal ${CONFIRMATION}`);
-  }
-  new Intl.DateTimeFormat("en", { timeZone: timezone }).format(new Date());
+  // No implicit .env loading. Reject unsafe input before loading any DB module.
+  const { databaseUrl, timezone, ...identity } = validateReviewResetEnvironment(
+    process.env,
+  );
+  const { PrismaPg } = await import("@prisma/adapter-pg");
+  const { PrismaClient } = await import("@prisma/client");
 
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: databaseUrl }),
   });
   try {
-    const user = await prisma.user.findUnique({ where: { id: reviewUserId } });
-    if (!user || user.email?.toLowerCase() !== reviewEmail) {
-      throw new Error(
-        "REVIEW_ACCOUNT_USER_ID and REVIEW_ACCOUNT_EMAIL do not identify the same existing account",
-      );
-    }
-    if (!user.isVerified) {
-      throw new Error("The dedicated review account must already be verified");
-    }
-
     const now = new Date();
-    const today = dateInTimezone(now, timezone);
-    const yesterday = dateInTimezone(
-      new Date(now.getTime() - ONE_DAY_MS),
-      timezone,
-    );
-    const tomorrow = dateInTimezone(
-      new Date(now.getTime() + ONE_DAY_MS),
-      timezone,
-    );
+    // The guard and existing enrollment both require UTC; calendar shifts and
+    // fixture instants therefore share the authoritative account timezone.
+    const today = utcDate(now);
+    const yesterday = utcDate(new Date(now.getTime() - ONE_DAY_MS));
+    const tomorrow = utcDate(new Date(now.getTime() + ONE_DAY_MS));
 
     await prisma.$transaction(async (tx) => {
+      const proof = await tx.$queryRaw<ReviewDatabaseProof[]>`
+        SELECT current_database() AS "databaseName",
+               inet_server_addr()::text AS "serverAddress",
+               shobj_description(d.oid, 'pg_database') AS "marker"
+        FROM pg_database d
+        WHERE d.datname = current_database()
+      `;
+      if (proof.length !== 1) {
+        throw new ReviewResetSafetyError(
+          "Review reset could not verify the disposable database",
+        );
+      }
+      assertReviewResetDatabase(proof[0]);
+      const user = await tx.user.findUnique({
+        where: { id: identity.userId },
+        select: { id: true, email: true, isVerified: true },
+      });
+      assertReviewResetAccount(user, { databaseUrl, timezone, ...identity });
+      const enrollment = await tx.agentEnrollment.findUnique({
+        where: { userId: user.id },
+        select: { timezone: true },
+      });
+      assertReviewResetEnrollment(enrollment);
+
       await tx.todo.deleteMany({ where: { userId: user.id } });
       await tx.project.deleteMany({ where: { userId: user.id } });
 
@@ -69,7 +68,7 @@ async function main() {
         data: {
           userId: user.id,
           name: "Review launch",
-          description: "Deterministic fixtures for hosted app review.",
+          description: "Deterministic local synthetic review fixtures.",
           priority: "high",
         },
       });
@@ -87,11 +86,12 @@ async function main() {
           {
             userId: user.id,
             projectId: launch.id,
-            title: "Review production launch checklist",
+            title: "Review sample A",
             status: "next",
             priority: "urgent",
-            energy: "high",
-            estimateMinutes: 45,
+            energy: "low",
+            estimateMinutes: 15,
+            effortScore: 15,
             dueDate: reviewInstant(today, 17),
             tags: ["review-fixture"],
             order: 10,
@@ -99,23 +99,26 @@ async function main() {
           {
             userId: user.id,
             projectId: launch.id,
-            title: "Confirm reviewer demo flow",
+            title: "Review sample B",
             status: "next",
             priority: "high",
-            energy: "medium",
-            estimateMinutes: 30,
+            energy: "low",
+            estimateMinutes: 15,
+            effortScore: 15,
             scheduledDate: reviewInstant(today, 14),
+            dueDate: reviewInstant(tomorrow, 17),
             tags: ["review-fixture"],
             order: 20,
           },
           {
             userId: user.id,
             projectId: launch.id,
-            title: "Close an overdue review item",
+            title: "Review sample C",
             status: "next",
             priority: "high",
             energy: "low",
-            estimateMinutes: 15,
+            estimateMinutes: 10,
+            effortScore: 10,
             dueDate: reviewInstant(yesterday, 17),
             tags: ["review-fixture"],
             order: 30,
@@ -128,6 +131,7 @@ async function main() {
             priority: "medium",
             energy: "medium",
             estimateMinutes: 20,
+            effortScore: 20,
             dueDate: reviewInstant(tomorrow, 17),
             tags: ["review-fixture"],
             order: 40,
@@ -137,9 +141,26 @@ async function main() {
             title: "Capture an unfiled idea",
             status: "inbox",
             priority: "low",
+            energy: "low",
             estimateMinutes: 10,
+            effortScore: 10,
             tags: ["review-fixture"],
             order: 50,
+          },
+          {
+            userId: user.id,
+            projectId: launch.id,
+            title: "Review completed sample",
+            status: "done",
+            completed: true,
+            completedAt: now,
+            priority: "low",
+            energy: "low",
+            estimateMinutes: 5,
+            effortScore: 5,
+            dueDate: reviewInstant(today, 17),
+            tags: ["review-fixture"],
+            order: 60,
           },
         ],
       });
@@ -158,14 +179,10 @@ async function main() {
           weekendsActive: true,
         },
       });
-      await tx.agentEnrollment.updateMany({
-        where: { userId: user.id },
-        data: { timezone },
-      });
     });
 
     console.log(
-      `Reset dedicated review account ${reviewEmail}: 2 projects, 5 tasks, effective date ${today}, timezone ${timezone}.`,
+      `Reset local disposable fixture account: 2 projects, 6 tasks (5 open, 1 completed), effective date ${today}, timezone ${timezone}.`,
     );
   } finally {
     await prisma.$disconnect();
@@ -173,6 +190,11 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+  // Database/client failures may include credentials or account details.
+  console.error(
+    error instanceof ReviewResetSafetyError
+      ? error.message
+      : "Local review fixture reset failed; inspect the disposable database privately before retrying.",
+  );
   process.exit(1);
 });

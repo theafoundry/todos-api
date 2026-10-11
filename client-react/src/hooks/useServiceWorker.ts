@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 
 export function useServiceWorker(
   onSyncComplete?: (replayed: number, failed: number) => void,
@@ -6,11 +6,9 @@ export function useServiceWorker(
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
-    navigator.serviceWorker
-      .register("/app/sw.js")
-      .catch(() => {
-        // SW registration failed — no offline support
-      });
+    navigator.serviceWorker.register("/app/sw.js").catch(() => {
+      // SW registration failed — no offline support
+    });
 
     // Listen for sync complete messages
     const handler = (event: MessageEvent) => {
@@ -20,23 +18,8 @@ export function useServiceWorker(
     };
     navigator.serviceWorker.addEventListener("message", handler);
 
-    // Trigger replay when coming back online
-    const onOnline = () => {
-      navigator.serviceWorker.controller?.postMessage("replay-mutations");
-    };
-    window.addEventListener("online", onOnline);
-
     return () => {
       navigator.serviceWorker.removeEventListener("message", handler);
-      window.removeEventListener("online", onOnline);
     };
   }, [onSyncComplete]);
-
-  const triggerSync = useCallback(() => {
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage("replay-mutations");
-    }
-  }, []);
-
-  return { triggerSync };
 }
