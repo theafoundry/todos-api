@@ -8,16 +8,15 @@ import { createFocusBriefRouter } from "./routes/focusBriefRouter";
 import { createPrioritiesBriefRouter } from "./routes/prioritiesBriefRouter";
 import { AdaptationLlmInferenceService } from "./services/adaptationLlmInference";
 import { AdaptationProjectInferenceService } from "./services/adaptationProjectInferenceService";
+import type { AiProviderAdmissionService } from "./services/aiProviderAdmissionService";
+import { runWithAiProviderContext } from "./services/aiProviderContext";
 import { AiPlannerService } from "./services/aiService";
 import { FeedbackTriageService } from "./services/feedbackTriageService";
 import { callLlm, LlmProviderNotConfiguredError } from "./services/llmService";
 import type { UserAdaptationService } from "./services/userAdaptationService";
 
 const fixtureKey = "synthetic-provider-key-never-sent";
-const originalProviderConfig = {
-  enabled: config.aiProviderEnabled,
-  key: config.aiProviderApiKey,
-};
+const originalProviderConfig = { ...config };
 
 function createPlanner(alreadyCreated: boolean): AiPlannerService {
   // Exercise the concrete HTTP provider selected at construction, including an
@@ -54,8 +53,21 @@ function feedbackFixture() {
   return { prisma, failureService };
 }
 
-function briefApp(kind: "focus" | "priorities", userId: string) {
+function briefApp(
+  kind: "focus" | "priorities",
+  userId: string,
+  admission?: AiProviderAdmissionService,
+) {
   const app = express();
+  if (admission) {
+    app.use((_req, _res, next) =>
+      runWithAiProviderContext(
+        { userId, source: "application" },
+        next,
+        admission,
+      ),
+    );
+  }
   const deps = {
     todoService: {
       findAll: jest.fn().mockResolvedValue([]),
@@ -87,8 +99,7 @@ describe("hosted AI disabled", () => {
   });
 
   afterEach(() => {
-    config.aiProviderEnabled = originalProviderConfig.enabled;
-    config.aiProviderApiKey = originalProviderConfig.key;
+    Object.assign(config, originalProviderConfig);
     jest.restoreAllMocks();
   });
 
@@ -188,7 +199,28 @@ describe("hosted AI disabled", () => {
   it.each(["focus", "priorities"] as const)(
     "does not call a provider when disabled after caching a %s brief",
     async (kind) => {
-      const app = briefApp(kind, `synthetic-cached-${kind}`);
+      const userId = `synthetic-cached-${kind}`;
+      const reservation = {
+        id: `synthetic-reservation-${kind}`,
+        userId,
+        requestKey: "synthetic-request-key",
+        fingerprint: "synthetic-fingerprint",
+        dayStart: new Date("2026-10-11T00:00:00.000Z"),
+        status: "reserved",
+        reservedCostMicros: 2300,
+        chargedCostMicros: null,
+      };
+      const admission = {
+        reserve: jest.fn().mockResolvedValue({ kind: "new", reservation }),
+        settle: jest
+          .fn()
+          .mockResolvedValue({ reservation, exceededReservation: false }),
+      };
+      const app = briefApp(
+        kind,
+        userId,
+        admission as unknown as AiProviderAdmissionService,
+      );
       const content =
         kind === "focus"
           ? JSON.stringify({
@@ -201,20 +233,48 @@ describe("hosted AI disabled", () => {
               panelRanking: [],
             })
           : "<div>Synthetic brief</div>";
-      fetchSpy.mockResolvedValue({
-        ok: true,
-        json: async () => ({ choices: [{ message: { content } }] }),
-      } as Response);
-      config.aiProviderEnabled = true;
+      // Synthetic verified pricing exercises the real guarded HTTP boundary;
+      // these fixture values do not configure application allowances or prices.
+      Object.assign(config, {
+        aiProviderEnabled: true,
+        aiProviderModel: "synthetic-model",
+        aiProviderBillingModel: "synthetic-model",
+        aiProviderBaseUrl: "https://provider.invalid/v1",
+        aiProviderBillingBaseUrl: "https://provider.invalid/v1",
+        aiProviderInputTokenCeiling: 1000,
+        aiProviderInputPriceMicrosPerMillionTokens: 2_000_000,
+        aiProviderOutputPriceMicrosPerMillionTokens: 3_000_000,
+        aiProviderMaxPromptBytes: 32768,
+        aiProviderMaxOutputTokens: 100,
+        aiProviderMaxResponseBytes: 131072,
+        aiProviderTimeoutMs: 15000,
+      });
+      fetchSpy.mockImplementation(
+        async () =>
+          new Response(
+            JSON.stringify({
+              choices: [{ message: { content } }],
+              usage: { prompt_tokens: 7, completion_tokens: 2 },
+            }),
+          ),
+      );
       await request(app).get(`/ai/${kind}-brief`).expect(200);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(admission.reserve).toHaveBeenCalledWith(
+        expect.objectContaining({ userId, maxCostMicros: 2300 }),
+      );
+      expect(admission.settle).toHaveBeenCalledTimes(1);
 
       config.aiProviderEnabled = false;
       fetchSpy.mockClear();
-      await request(app).get(`/ai/${kind}-brief`);
-      await request(app).post(`/ai/${kind}-brief/refresh`);
-      await request(app).get(`/ai/${kind}-brief`);
+      admission.reserve.mockClear();
+      admission.settle.mockClear();
+      await request(app).get(`/ai/${kind}-brief`).expect(200);
+      await request(app).post(`/ai/${kind}-brief/refresh`).expect(503);
+      await request(app).get(`/ai/${kind}-brief`).expect(200);
       expect(fetchSpy).not.toHaveBeenCalled();
+      expect(admission.reserve).not.toHaveBeenCalled();
+      expect(admission.settle).not.toHaveBeenCalled();
     },
   );
 

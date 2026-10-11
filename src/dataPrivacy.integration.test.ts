@@ -7,6 +7,11 @@ import { AuthService } from "./services/authService";
 import { DataExportService } from "./services/dataExportService";
 import { DataRetentionService } from "./services/dataRetentionService";
 import { PrismaTodoService } from "./services/prismaTodoService";
+import {
+  assertTestDatabaseIdentity,
+  validateTestDatabaseUrl,
+  type TestDatabaseIdentity,
+} from "../test/testDatabaseSafety";
 
 const SUFFIX = "@data-privacy.example.test";
 const SECRET_MARKER = "synthetic-private-credential";
@@ -307,13 +312,20 @@ async function completeFixture(label: string) {
 
 describe("Account privacy controls (disposable PostgreSQL)", () => {
   let disposableDatabaseApproved = false;
-  beforeAll(() => {
-    const db = new URL(config.databaseUrl || "");
-    if (
-      !["localhost", "127.0.0.1", "[::1]"].includes(db.hostname) ||
-      !db.pathname.includes("test")
-    ) {
-      throw new Error("Privacy fixtures require a local test database");
+  const providerFixtureIds: string[] = [];
+  const providerBudgetFixtureDays: Date[] = [];
+  beforeAll(async () => {
+    const db = validateTestDatabaseUrl(config.databaseUrl || "");
+    try {
+      const [identity] = await prisma.$queryRaw<TestDatabaseIdentity[]>`
+        SELECT current_database() AS "databaseName",
+               host(inet_server_addr()) AS "serverAddress",
+               inet_server_port() AS "serverPort"
+      `;
+      assertTestDatabaseIdentity(db, identity);
+    } catch (error) {
+      await prisma.$disconnect();
+      throw error;
     }
     disposableDatabaseApproved = true;
   });
@@ -324,9 +336,19 @@ describe("Account privacy controls (disposable PostgreSQL)", () => {
   });
   afterAll(async () => {
     if (!disposableDatabaseApproved) return;
-    await prisma.user.deleteMany({ where: { email: { endsWith: SUFFIX } } });
-    await prisma.$executeRaw`DROP TABLE IF EXISTS agent_runner_job_runs`;
-    await prisma.$executeRaw`DROP TABLE IF EXISTS agent_runner_audit_log`;
+    try {
+      await prisma.user.deleteMany({ where: { email: { endsWith: SUFFIX } } });
+      await prisma.aiProviderReservation.deleteMany({
+        where: { id: { in: providerFixtureIds } },
+      });
+      await prisma.aiProviderBudgetDay.deleteMany({
+        where: { dayStart: { in: providerBudgetFixtureDays } },
+      });
+      await prisma.$executeRaw`DROP TABLE IF EXISTS agent_runner_job_runs`;
+      await prisma.$executeRaw`DROP TABLE IF EXISTS agent_runner_audit_log`;
+    } finally {
+      await prisma.$disconnect();
+    }
   });
 
   it("exports and deletes accounts when optional runner tables have never existed", async () => {
@@ -536,6 +558,18 @@ describe("Account privacy controls (disposable PostgreSQL)", () => {
   it("rolls back account cascades if optional runner cleanup fails", async () => {
     await createRunnerTables();
     const owner = await completeFixture("rollback-owner");
+    const admissionRecord = await prisma.aiProviderReservation.create({
+      data: {
+        userId: owner.user.id,
+        requestKey: randomUUID(),
+        fingerprint: "a".repeat(64),
+        dayStart: new Date("1980-02-04T00:00:00Z"),
+        status: "completed",
+        reservedCostMicros: 100n,
+        chargedCostMicros: 50n,
+      },
+    });
+    providerFixtureIds.push(admissionRecord.id);
     await prisma.$executeRaw`CREATE FUNCTION privacy_fixture_block_delete() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''fixture blocks deletion''; END'`;
     await prisma.$executeRaw`CREATE TRIGGER privacy_fixture_delete BEFORE DELETE ON agent_runner_job_runs FOR EACH ROW EXECUTE FUNCTION privacy_fixture_block_delete()`;
     try {
@@ -551,10 +585,193 @@ describe("Account privacy controls (disposable PostgreSQL)", () => {
       expect(
         await prisma.refreshToken.count({ where: { userId: owner.user.id } }),
       ).toBe(1);
+      expect(
+        await prisma.aiProviderReservation.findUniqueOrThrow({
+          where: { id: admissionRecord.id },
+        }),
+      ).toEqual(admissionRecord);
     } finally {
       await prisma.$executeRaw`DROP TRIGGER privacy_fixture_delete ON agent_runner_job_runs`;
       await prisma.$executeRaw`DROP FUNCTION privacy_fixture_block_delete()`;
     }
+  });
+
+  it("exports owned admission metadata and removes account attribution without refunding latched costs", async () => {
+    const owner = await account("provider-owner");
+    const other = await account("provider-other");
+    const dayStart = new Date("1980-02-03T00:00:00Z");
+    providerBudgetFixtureDays.push(dayStart);
+    const ownerReservation = await prisma.aiProviderReservation.create({
+      data: {
+        userId: owner.id,
+        requestKey: `${INTERNAL_MARKER}-${randomUUID()}`,
+        fingerprint: "f".repeat(64),
+        dayStart,
+        status: "uncertain",
+        reservedCostMicros: 90_071_992_547_409_931n,
+        chargedCostMicros: null,
+      },
+    });
+    providerFixtureIds.push(ownerReservation.id);
+    const otherReservation = await prisma.aiProviderReservation.create({
+      data: {
+        userId: other.id,
+        requestKey: `${INTERNAL_MARKER}-${randomUUID()}`,
+        fingerprint: "e".repeat(64),
+        dayStart,
+        status: "completed",
+        reservedCostMicros: 50_000n,
+        chargedCostMicros: 12_000n,
+      },
+    });
+    providerFixtureIds.push(otherReservation.id);
+    await prisma.aiProviderBudgetDay.create({
+      data: {
+        dayStart,
+        reservedCostMicros: 90_071_992_547_409_931n,
+        spentCostMicros: 12_000n,
+      },
+    });
+    for (const userId of [owner.id, other.id]) {
+      await prisma.aiProviderUserDay.create({
+        data: { userId, dayStart, requestCount: 2 },
+      });
+      await prisma.aiSuggestionReservation.create({
+        data: { userId, dayStart, dailyLimit: 3 },
+      });
+    }
+    const exported = await new DataExportService(prisma).exportAllUserData(
+      owner.id,
+    );
+    expect(exported.aiProviderReservations).toEqual([
+      expect.objectContaining({
+        status: "uncertain",
+        reservedCostMicros: "90071992547409931",
+        chargedCostMicros: null,
+      }),
+    ]);
+    expect(exported.aiProviderUserDays).toEqual([
+      { dayStart, requestCount: 2 },
+    ]);
+    expect(exported.aiSuggestionReservations).toEqual([
+      expect.objectContaining({ dayStart, dailyLimit: 3 }),
+    ]);
+    const serialized = JSON.stringify(exported);
+    expect(serialized).not.toContain(INTERNAL_MARKER);
+    expect(serialized).not.toContain(ownerReservation.fingerprint);
+    expect(serialized).not.toContain(otherReservation.id);
+    expect(serialized).not.toContain(other.id);
+    expect(exported).not.toHaveProperty("aiProviderBudgetDays");
+    const budgetBeforeDeletion =
+      await prisma.aiProviderBudgetDay.findUniqueOrThrow({
+        where: { dayStart },
+      });
+    await new AuthService(prisma).deleteUser(owner.id);
+    expect(
+      await prisma.aiProviderUserDay.count({ where: { userId: owner.id } }),
+    ).toBe(0);
+    expect(
+      await prisma.aiSuggestionReservation.count({
+        where: { userId: owner.id },
+      }),
+    ).toBe(0);
+    const retained = await prisma.aiProviderReservation.findUniqueOrThrow({
+      where: { id: ownerReservation.id },
+    });
+    expect(retained).toMatchObject({
+      userId: null,
+      fingerprint: "0".repeat(64),
+      status: "uncertain",
+      reservedCostMicros: ownerReservation.reservedCostMicros,
+      chargedCostMicros: null,
+    });
+    expect(
+      await prisma.aiProviderBudgetDay.findUniqueOrThrow({
+        where: { dayStart },
+      }),
+    ).toEqual(budgetBeforeDeletion);
+    expect(
+      await prisma.aiProviderReservation.findUniqueOrThrow({
+        where: { id: otherReservation.id },
+      }),
+    ).toEqual(otherReservation);
+    expect(
+      await prisma.aiProviderUserDay.count({ where: { userId: other.id } }),
+    ).toBe(1);
+    expect(
+      await prisma.aiSuggestionReservation.count({
+        where: { userId: other.id },
+      }),
+    ).toBe(1);
+  });
+
+  it("scrubs a reservation admitted before a concurrently waiting account deletion", async () => {
+    const owner = await account("provider-deletion-race");
+    const reservationId = randomUUID();
+    providerFixtureIds.push(reservationId);
+    let signalLocked!: () => void;
+    const locked = new Promise<void>((resolve) => {
+      signalLocked = resolve;
+    });
+    let releaseWriter!: () => void;
+    const release = new Promise<void>((resolve) => {
+      releaseWriter = resolve;
+    });
+    const writer = prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${owner.id} FOR UPDATE`;
+        signalLocked();
+        await release;
+        await tx.aiProviderReservation.create({
+          data: {
+            id: reservationId,
+            userId: owner.id,
+            requestKey: randomUUID(),
+            fingerprint: "c".repeat(64),
+            dayStart: new Date("1980-02-05T00:00:00Z"),
+            status: "uncertain",
+            reservedCostMicros: 5_000n,
+          },
+        });
+      },
+      { timeout: 10_000 },
+    );
+    await locked;
+    const deletion = new AuthService(prisma).deleteUser(owner.id);
+    try {
+      // Wait for an actual database lock, not a timing assumption about the race.
+      const deadline = Date.now() + 3_000;
+      let deletionWaiting = false;
+      while (Date.now() < deadline && !deletionWaiting) {
+        const rows = await prisma.$queryRaw<{ waiting: boolean }[]>`
+          SELECT EXISTS (
+            SELECT 1 FROM pg_stat_activity
+            WHERE datname = current_database() AND wait_event_type = 'Lock'
+              AND query LIKE '%users%' AND state = 'active'
+          ) AS waiting
+        `;
+        deletionWaiting = rows[0].waiting;
+        if (!deletionWaiting)
+          await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      expect(deletionWaiting).toBe(true);
+    } finally {
+      releaseWriter();
+      await Promise.all([writer, deletion]);
+    }
+    expect(
+      await prisma.user.findUnique({ where: { id: owner.id } }),
+    ).toBeNull();
+    expect(
+      await prisma.aiProviderReservation.findUniqueOrThrow({
+        where: { id: reservationId },
+      }),
+    ).toMatchObject({
+      userId: null,
+      fingerprint: "0".repeat(64),
+      status: "uncertain",
+      reservedCostMicros: 5_000n,
+    });
   });
 
   it("retains exact cutoff records and deletes only the actor's older history", async () => {

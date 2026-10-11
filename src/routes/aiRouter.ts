@@ -3,6 +3,7 @@ import { AiPlannerService } from "../services/aiService";
 import {
   IAiSuggestionStore,
   InMemoryAiSuggestionStore,
+  AiSuggestionSlot,
 } from "../services/aiSuggestionStore";
 import {
   validateApplySuggestionInput,
@@ -153,6 +154,27 @@ export function createAiRouter({
     return true;
   };
 
+  const reserveDailySuggestion = async (userId: string, res: Response) => {
+    const admitted = await quotaService.reserveSuggestion(userId);
+    if (!admitted.slot) {
+      res.status(429).json({
+        error: "Daily AI suggestion limit reached",
+        usage: admitted.usage,
+      });
+    }
+    return admitted.slot;
+  };
+
+  const releaseDailySuggestion = async (slot?: AiSuggestionSlot) => {
+    if (!slot) return;
+    try {
+      await quotaService.releaseSuggestion(slot);
+    } catch {
+      // A failed release retains the slot, so admission remains conservative.
+      console.error("AI suggestion reservation release failed");
+    }
+  };
+
   const ensureDecisionAssistFeatureEnabled = (res: Response): boolean => {
     if (guards.isFeatureEnabled()) return true;
     res.status(403).json({ error: "Decision assist disabled" });
@@ -191,6 +213,7 @@ export function createAiRouter({
   router.post(
     "/decision-assist/stub",
     async (req: Request, res: Response, next: NextFunction) => {
+      let slot: AiSuggestionSlot | undefined;
       try {
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
@@ -240,13 +263,16 @@ export function createAiRouter({
             });
           }
         }
+        const admittedSlot = await reserveDailySuggestion(userId, res);
+        if (!admittedSlot) return;
+        slot = admittedSlot;
         const output = validateDecisionAssistOutput(
           await runtimeAiPlannerService.generateDecisionAssistStub(input, {
             userId,
           }),
         );
 
-        const suggestion = await suggestionStore.create({
+        const suggestion = await quotaService.saveSuggestion(slot, {
           userId,
           type:
             input.surface === "today_plan" ? "plan_from_goal" : "task_critic",
@@ -255,6 +281,7 @@ export function createAiRouter({
           },
           output: output as unknown as Record<string, unknown>,
         });
+        slot = undefined;
 
         emitDecisionAssistTelemetrySafe({
           eventName: "ai_suggestion_generated",
@@ -272,6 +299,8 @@ export function createAiRouter({
         });
       } catch (error) {
         next(error);
+      } finally {
+        await releaseDailySuggestion(slot);
       }
     },
   );
@@ -294,6 +323,7 @@ export function createAiRouter({
   router.post(
     "/task-critic",
     async (req: Request, res: Response, next: NextFunction) => {
+      let slot: AiSuggestionSlot | undefined;
       try {
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
@@ -309,13 +339,16 @@ export function createAiRouter({
             ? (req.body.__evalPromptOverride as string | undefined)
             : undefined;
 
+        const admittedSlot = await reserveDailySuggestion(userId, res);
+        if (!admittedSlot) return;
+        slot = admittedSlot;
         const result = await runtimeAiPlannerService.critiqueTask(
           input,
           feedbackContext,
           promptOverride,
         );
 
-        const suggestion = await suggestionStore.create({
+        const suggestion = await quotaService.saveSuggestion(slot, {
           userId,
           type: "task_critic",
           input: {
@@ -326,6 +359,7 @@ export function createAiRouter({
             ...result,
           },
         });
+        slot = undefined;
 
         res.json({
           ...result,
@@ -333,6 +367,8 @@ export function createAiRouter({
         });
       } catch (error) {
         next(error);
+      } finally {
+        await releaseDailySuggestion(slot);
       }
     },
   );
@@ -355,6 +391,7 @@ export function createAiRouter({
   router.post(
     "/plan-from-goal",
     async (req: Request, res: Response, next: NextFunction) => {
+      let slot: AiSuggestionSlot | undefined;
       try {
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
@@ -362,12 +399,15 @@ export function createAiRouter({
 
         const input = validatePlanFromGoalInput(req.body);
         const feedbackContext = await quotaService.getFeedbackContext(userId);
+        const admittedSlot = await reserveDailySuggestion(userId, res);
+        if (!admittedSlot) return;
+        slot = admittedSlot;
         const result = await runtimeAiPlannerService.planFromGoal(
           input,
           feedbackContext,
         );
 
-        const suggestion = await suggestionStore.create({
+        const suggestion = await quotaService.saveSuggestion(slot, {
           userId,
           type: "plan_from_goal",
           input: {
@@ -382,6 +422,7 @@ export function createAiRouter({
             })),
           },
         });
+        slot = undefined;
 
         res.json({
           ...result,
@@ -389,6 +430,8 @@ export function createAiRouter({
         });
       } catch (error) {
         next(error);
+      } finally {
+        await releaseDailySuggestion(slot);
       }
     },
   );

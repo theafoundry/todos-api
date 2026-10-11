@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from "express";
 import { callLlm, LlmProviderNotConfiguredError } from "../services/llmService";
+import { AiProviderAdmissionError } from "../services/aiProviderAdmissionService";
+import { BriefGenerationCache } from "../services/briefGenerationCache";
 import { config } from "../config";
 import { ITodoService } from "../interfaces/ITodoService";
 import { IProjectService } from "../interfaces/IProjectService";
@@ -37,10 +39,8 @@ interface Deps {
 interface CacheEntry {
   brief: FocusBriefResponse;
   expiresAt: number;
-  refreshPromise: Promise<void> | null;
 }
 
-const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 type DeterministicKey = Exclude<PanelType, "whatNext"> | "todayAgenda";
@@ -468,6 +468,7 @@ export function createFocusBriefRouter({
   resolveUserId,
 }: Deps): Router {
   const router = Router();
+  const cache = new BriefGenerationCache(generateEntry);
 
   async function generateEntry(userId: string): Promise<CacheEntry> {
     const today = new Date();
@@ -496,27 +497,36 @@ export function createFocusBriefRouter({
       generatedAt,
     );
 
-    return { brief, expiresAt, refreshPromise: null };
+    return { brief, expiresAt };
   }
 
-  function startBackgroundRefresh(userId: string, existingEntry: CacheEntry) {
-    if (existingEntry.refreshPromise) return existingEntry.refreshPromise;
+  function startBackgroundRefresh(userId: string) {
+    cache.refreshInBackground(userId, (error) => {
+      console.error("focus-brief background refresh error:", error);
+    });
+  }
 
-    const refreshPromise = (async () => {
-      try {
-        const nextEntry = await generateEntry(userId);
-        cache.set(userId, nextEntry);
-      } catch (err) {
-        const current = cache.get(userId);
-        if (current) {
-          cache.set(userId, { ...current, refreshPromise: null });
-        }
-        console.error("focus-brief background refresh error:", err);
+  function sendGenerationError(error: unknown, res: Response) {
+    if (res.destroyed || res.writableEnded) return;
+    if (error instanceof AiProviderAdmissionError) {
+      const retryAt = error.retryAt ? Date.parse(error.retryAt) : NaN;
+      if (Number.isFinite(retryAt) && retryAt > Date.now()) {
+        res.setHeader(
+          "Retry-After",
+          String(Math.ceil((retryAt - Date.now()) / 1000)),
+        );
       }
-    })();
-
-    cache.set(userId, { ...existingEntry, refreshPromise });
-    return refreshPromise;
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+        ...(error.retryAt ? { retryAt: error.retryAt } : {}),
+      });
+    }
+    if (error instanceof LlmProviderNotConfiguredError) {
+      return res.status(503).json({ error: error.message });
+    }
+    console.error("focus-brief error:", error);
+    return res.status(500).json({ error: "Failed to generate focus brief" });
   }
 
   router.get("/focus-brief", async (req: Request, res: Response) => {
@@ -536,7 +546,7 @@ export function createFocusBriefRouter({
       }
 
       if (cached) {
-        startBackgroundRefresh(userId, cached);
+        startBackgroundRefresh(userId);
         const response: FocusBriefResponse = {
           ...cached.brief,
           cached: true,
@@ -545,31 +555,31 @@ export function createFocusBriefRouter({
         return res.json(response);
       }
 
-      const freshEntry = await generateEntry(userId);
-      cache.set(userId, freshEntry);
+      const freshEntry = await cache.generate(userId);
+      if (res.destroyed || res.writableEnded) return;
       return res.json(freshEntry.brief);
     } catch (err) {
-      if (err instanceof LlmProviderNotConfiguredError) {
-        return res.status(503).json({ error: err.message });
-      }
-      console.error("focus-brief error:", err);
-      return res.status(500).json({ error: "Failed to generate focus brief" });
+      return sendGenerationError(err, res);
     }
   });
 
-  router.post("/focus-brief/refresh", (req: Request, res: Response) => {
-    const userId = resolveUserId(req, res);
-    if (!userId) return;
+  router.post("/focus-brief/refresh", async (req: Request, res: Response) => {
+    try {
+      const userId = resolveUserId(req, res);
+      if (!userId) return;
 
-    const existing = cache.get(userId);
-    if (!existing) {
+      const existing = cache.get(userId);
+      if (!existing && !cache.hasInFlight(userId)) {
+        return res.json({ ok: true, refreshInFlight: false });
+      }
+
+      if (existing) cache.markStale(userId);
+      await cache.generate(userId);
+      if (res.destroyed || res.writableEnded) return;
       return res.json({ ok: true, refreshInFlight: false });
+    } catch (err) {
+      return sendGenerationError(err, res);
     }
-
-    const staleEntry: CacheEntry = { ...existing, expiresAt: 0 };
-    cache.set(userId, staleEntry);
-    startBackgroundRefresh(userId, staleEntry);
-    return res.json({ ok: true, refreshInFlight: true });
   });
 
   return router;

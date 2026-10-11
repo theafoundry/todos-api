@@ -1,5 +1,6 @@
 import request from "supertest";
-import type { Express } from "express";
+import express, { type Express } from "express";
+import type { PrismaClient } from "@prisma/client";
 import { createApp } from "./app";
 import { AuthService } from "./services/authService";
 import { TodoService } from "./services/todoService";
@@ -9,7 +10,17 @@ import type {
   Project,
   ProjectTaskDisposition,
   UpdateProjectDto,
+  Todo,
 } from "./types";
+import { AgentExecutor } from "./agent/agentExecutor";
+import {
+  AgentConfigService,
+  type AgentConfigRecord,
+} from "./services/agentConfigService";
+import { AgentService } from "./services/agentService";
+import { AiPlannerService } from "./services/aiService";
+import { createAgentRouter } from "./routes/agentRouter";
+import { createMcpRouter } from "./routes/mcpRouter";
 
 function createProjectServiceMock(): jest.Mocked<IProjectService> {
   const projects: Project[] = [];
@@ -758,3 +769,204 @@ describe("Agent router", () => {
     expect(response.body.data.project.archived).toBe(true);
   });
 });
+
+describe.each(["agent", "mcp"] as const)(
+  "Legacy AI policy through %s",
+  (surface) => {
+    let app: Express;
+    let agentConfig: AgentConfigRecord;
+    let providerCall: jest.Mock;
+    let todoService: TodoService;
+    let projectService: jest.Mocked<IProjectService>;
+    let tasks: Todo[];
+
+    async function addStaleProjectTask() {
+      const project = await projectService.create("user-1", {
+        name: "Synthetic launch plan",
+      });
+      const task = await todoService.create("user-1", {
+        title: "Write launch checklist",
+        projectId: project.id,
+        status: "next",
+      });
+      task.updatedAt = new Date(Date.now() - 8 * 86_400_000);
+      tasks.push(task);
+    }
+
+    async function callAction(name: string) {
+      const response =
+        surface === "agent"
+          ? await request(app)
+              .post(`/agent/write/${name}`)
+              .set("Authorization", "Bearer synthetic-access-token")
+              .send({})
+              .expect(200)
+          : await request(app)
+              .post("/mcp")
+              .set("Authorization", "Bearer synthetic-mcp-token")
+              .send({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "tools/call",
+                params: { name, arguments: {} },
+              })
+              .expect(200);
+      const envelope =
+        surface === "agent"
+          ? response.body
+          : response.body.result.structuredContent;
+      expect(envelope.ok).toBe(true);
+      return envelope.data;
+    }
+
+    beforeEach(async () => {
+      agentConfig = {
+        ...(await new AgentConfigService().getConfig("user-1")),
+        aiOptOut: true,
+      };
+      jest
+        .spyOn(AgentConfigService.prototype, "getConfig")
+        .mockImplementation(async (userId) => {
+          expect(userId).toBe("user-1");
+          return agentConfig;
+        });
+      jest
+        .spyOn(global, "fetch")
+        .mockRejectedValue(new Error("Unexpected HTTP"));
+
+      tasks = [];
+      todoService = new TodoService();
+      projectService = createProjectServiceMock();
+      await addStaleProjectTask();
+      jest
+        .spyOn(AgentService.prototype, "listTasks")
+        .mockImplementation(async (userId, query) =>
+          tasks.filter(
+            (task) =>
+              task.userId === userId &&
+              (!query.projectId || task.projectId === query.projectId),
+          ),
+        );
+      jest
+        .spyOn(AgentService.prototype, "analyzeProjectHealthForUser")
+        .mockResolvedValue({ healthScore: 10 } as any);
+      jest
+        .spyOn(AgentService.prototype, "ensureNextActionForUser")
+        .mockResolvedValue({ created: false } as any);
+      jest.spyOn(todoService, "createSubtask");
+
+      providerCall = jest.fn().mockResolvedValue({
+        brief: "Provider morning brief",
+        subtasks: [{ title: "Provider subtask" }],
+      });
+      const aiPlannerService = new AiPlannerService({
+        provider: { generateJson: providerCall },
+      });
+      const persistencePrisma = {
+        userInsight: { findMany: jest.fn().mockResolvedValue([]) },
+        userPlanningPreferences: {
+          findUnique: jest.fn().mockResolvedValue(null),
+        },
+        agentActionAudit: { create: jest.fn().mockResolvedValue({}) },
+      } as unknown as PrismaClient;
+      const agentExecutor = new AgentExecutor({
+        todoService,
+        projectService,
+        persistencePrisma,
+        aiPlannerService,
+      });
+      const authService = {
+        verifyActiveToken: jest.fn().mockResolvedValue({
+          userId: "user-1",
+          email: "synthetic@example.com",
+        }),
+        verifyMcpToken: jest.fn().mockResolvedValue({
+          userId: "user-1",
+          email: "synthetic@example.com",
+          tokenType: "mcp",
+          scopes: ["tasks.read", "tasks.write", "projects.read"],
+        }),
+        getUserById: jest.fn().mockResolvedValue({
+          id: "user-1",
+          email: "synthetic@example.com",
+          role: "user",
+          plan: "free",
+        }),
+      } as unknown as AuthService;
+      app = express();
+      app.use(express.json());
+      app.use("/agent", createAgentRouter({ agentExecutor, authService }));
+      app.use("/mcp", createMcpRouter({ agentExecutor, authService }));
+    });
+
+    afterEach(() => {
+      expect(global.fetch).not.toHaveBeenCalled();
+      jest.restoreAllMocks();
+    });
+
+    it("returns the deterministic morning brief without provider access on opt-out", async () => {
+      const data = await callAction("generate_morning_brief");
+
+      expect(data.deterministic).toBe(true);
+      expect(data.brief).toContain("Write launch checklist");
+      expect(providerCall).not.toHaveBeenCalled();
+    });
+
+    it("keeps provider morning briefs available when the user allows AI", async () => {
+      agentConfig.aiOptOut = false;
+
+      const data = await callAction("generate_morning_brief");
+
+      expect(data).toMatchObject({
+        deterministic: false,
+        brief: "Provider morning brief",
+      });
+      expect(providerCall).toHaveBeenCalledTimes(1);
+    });
+
+    it("falls back to the deterministic morning brief when the provider fails", async () => {
+      agentConfig.aiOptOut = false;
+      providerCall.mockRejectedValue(new Error("Synthetic provider failure"));
+
+      const data = await callAction("generate_morning_brief");
+
+      expect(data.deterministic).toBe(true);
+      expect(data.brief).toContain("Write launch checklist");
+      expect(providerCall).toHaveBeenCalledTimes(1);
+    });
+
+    it("uses deterministic project breakdown on opt-out and preserves the write cap", async () => {
+      agentConfig.maxWriteActionsPerRun = 2;
+
+      const data = await callAction("project_health_intervention");
+
+      expect(data.totalWriteActions).toBe(2);
+      expect(data.interventions[0].subtasksCreated).toBe(2);
+      expect(todoService.createSubtask).toHaveBeenCalledTimes(2);
+      expect(providerCall).not.toHaveBeenCalled();
+    });
+
+    it("preserves the existing project-health enable gate", async () => {
+      agentConfig.projectHealthEnabled = false;
+      agentConfig.aiOptOut = false;
+
+      const data = await callAction("project_health_intervention");
+
+      expect(data).toMatchObject({ skipped: true });
+      expect(todoService.createSubtask).not.toHaveBeenCalled();
+      expect(providerCall).not.toHaveBeenCalled();
+    });
+
+    it("keeps provider project breakdown bounded to three critical projects", async () => {
+      agentConfig.aiOptOut = false;
+      for (let index = 0; index < 3; index++) await addStaleProjectTask();
+
+      const data = await callAction("project_health_intervention");
+
+      expect(data.projectsAnalyzed).toBe(4);
+      expect(data.criticalCount).toBe(3);
+      expect(data.totalWriteActions).toBe(3);
+      expect(providerCall).toHaveBeenCalledTimes(3);
+    });
+  },
+);

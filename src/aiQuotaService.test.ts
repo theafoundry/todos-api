@@ -18,6 +18,8 @@ function buildMockStore(
 ): IAiSuggestionStore {
   return {
     create: jest.fn(),
+    reserveSlot: jest.fn(),
+    releaseSlot: jest.fn(),
     listByUser: jest.fn(),
     getById: jest.fn(),
     countByUserSince: jest.fn().mockResolvedValue(0),

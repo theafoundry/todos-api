@@ -5,12 +5,14 @@ import { agentAuthMiddleware } from "../middleware/agentAuthMiddleware";
 import { getAgentRequestContext } from "../agent/agentContext";
 import { AgentActionName, AgentExecutor } from "../agent/agentExecutor";
 import { AgentJobRunService } from "../services/agentJobRunService";
+import type { AiProviderAdmissionService } from "../services/aiProviderAdmissionService";
 import { createAgentRunQueue } from "../domains/agent/runs/agentRunQueue";
 
 interface AgentRouterDeps {
   agentExecutor: AgentExecutor;
   authService?: AuthService;
   jobRunService?: AgentJobRunService;
+  providerAdmissionService?: AiProviderAdmissionService;
 }
 
 function getAgentUserId(req: Request): string {
@@ -46,6 +48,7 @@ export function createAgentRouter({
   agentExecutor,
   authService,
   jobRunService,
+  providerAdmissionService,
 }: AgentRouterDeps): Router {
   const router = Router();
 
@@ -70,7 +73,7 @@ export function createAgentRouter({
   });
 
   if (authService) {
-    router.use(agentAuthMiddleware(authService));
+    router.use(agentAuthMiddleware(authService, providerAdmissionService));
   }
 
   router.post(

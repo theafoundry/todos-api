@@ -2,6 +2,12 @@ import { PrismaClient } from "@prisma/client";
 import { createLogger } from "../infra/logging/logger";
 import { AdaptationLlmInferenceService } from "./adaptationLlmInference";
 import { UserAdaptationService } from "./userAdaptationService";
+import { AgentConfigService } from "./agentConfigService";
+import {
+  type AdaptationFlags,
+  getDefaultFlags,
+  isUserEligible,
+} from "./adaptationFlags";
 
 const log = createLogger("adaptationProjectInferenceService");
 
@@ -15,11 +21,13 @@ export class AdaptationProjectInferenceService {
     private readonly prisma: PrismaClient,
     private readonly adaptationService: UserAdaptationService,
     private readonly llmInferenceService: AdaptationLlmInferenceService,
+    private readonly agentConfigService = new AgentConfigService(prisma),
   ) {}
 
   async getSoftInference(
     userId: string,
     projectId: string,
+    flags: AdaptationFlags = getDefaultFlags(),
   ): Promise<AdaptationProjectInferenceResult> {
     const project = await this.prisma.project.findFirst({
       where: { id: projectId, userId },
@@ -36,6 +44,24 @@ export class AdaptationProjectInferenceService {
       return {
         status: 404,
         body: { error: "Project not found" },
+      };
+    }
+
+    if (!isUserEligible(userId, flags) || !flags.guidancePersonalization) {
+      return {
+        status: 200,
+        body: {
+          inference: null,
+          reason: "adaptation guidance not enabled for this user",
+        },
+      };
+    }
+
+    const agentConfig = await this.agentConfigService.getConfig(userId);
+    if (agentConfig.aiOptOut) {
+      return {
+        status: 200,
+        body: { inference: null, reason: "AI opt-out enabled" },
       };
     }
 

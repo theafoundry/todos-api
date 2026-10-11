@@ -1,5 +1,11 @@
-import { IAiSuggestionStore } from "./aiSuggestionStore";
+import {
+  IAiSuggestionStore,
+  AiSuggestionCreateInput,
+  AiSuggestionRecord,
+  AiSuggestionSlot,
+} from "./aiSuggestionStore";
 import { config } from "../config";
+import { nextUtcDayStart, utcDayStart } from "./aiDailyWindow";
 
 export type UserPlan = "free" | "pro" | "team";
 
@@ -17,15 +23,12 @@ export interface AiFeedbackContext {
 }
 
 export function getCurrentUtcDayStart(): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
+  return utcDayStart();
 }
 
 export function getNextUtcDayStart(): Date {
   const dayStart = getCurrentUtcDayStart();
-  return new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  return nextUtcDayStart(dayStart);
 }
 
 export function buildInsightsRecommendation(params: {
@@ -86,7 +89,7 @@ export class AiQuotaService {
       used,
       remaining,
       limit: dailyLimit,
-      resetAt: getNextUtcDayStart().toISOString(),
+      resetAt: nextUtcDayStart(dayStart).toISOString(),
     };
   }
 
@@ -96,6 +99,43 @@ export class AiQuotaService {
       return usage;
     }
     return null;
+  }
+
+  async reserveSuggestion(userId: string): Promise<{
+    slot: AiSuggestionSlot | null;
+    usage: AiUsage & { pending: number };
+  }> {
+    const result = await this.suggestionStore.reserveSlot({
+      userId,
+      limitsByPlan: this.limitsByPlan,
+      fallbackPlan: await this.getUserPlan(userId),
+    });
+    return {
+      slot: result.slot,
+      usage: {
+        plan: result.plan,
+        used: result.used,
+        pending: result.pending,
+        remaining: Math.max(result.limit - result.used - result.pending, 0),
+        limit: result.limit,
+        resetAt: nextUtcDayStart(result.dayStart).toISOString(),
+      },
+    };
+  }
+
+  async saveSuggestion(
+    slot: AiSuggestionSlot,
+    record: AiSuggestionCreateInput,
+  ): Promise<AiSuggestionRecord> {
+    return this.suggestionStore.create(record, {
+      id: slot.id,
+      limitsByPlan: this.limitsByPlan,
+      fallbackPlan: await this.getUserPlan(record.userId),
+    });
+  }
+
+  async releaseSuggestion(slot: AiSuggestionSlot): Promise<void> {
+    await this.suggestionStore.releaseSlot(slot.userId, slot.id);
   }
 
   async getFeedbackContext(userId: string): Promise<AiFeedbackContext> {

@@ -9,7 +9,7 @@ import {
 import { validateFeedbackTriageOutput } from "../validation/feedbackTriageContracts";
 import { FailedAutomationActionService } from "./failedAutomationActionService";
 import { FeedbackFailureService } from "./feedbackFailureService";
-import { assertLlmProviderConfigured } from "./llmService";
+import { callAiProvider } from "./aiProviderClient";
 
 interface AiProvider {
   generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T>;
@@ -35,41 +35,13 @@ type FeedbackRecord = {
 
 class OpenAiCompatibleProvider implements AiProvider {
   async generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
-    assertLlmProviderConfigured();
-    const response = await fetch(
-      `${config.aiProviderBaseUrl}/chat/completions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.aiProviderApiKey}`,
-        },
-        body: JSON.stringify({
-          model: config.aiProviderModel,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: 0,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `AI provider request failed with status ${response.status}`,
-      );
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("AI provider returned empty content");
-    }
-
+    const content = await callAiProvider({
+      operation: "feedback_triage_json",
+      systemPrompt,
+      userPrompt,
+      json: true,
+      temperature: 0,
+    });
     return JSON.parse(content) as T;
   }
 }

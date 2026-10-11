@@ -1,5 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService";
+import type { AiProviderAdmissionService } from "../services/aiProviderAdmissionService";
+import {
+  runWithAiProviderContext,
+  type AiProviderSource,
+} from "../services/aiProviderContext";
 
 // Extend Express Request to include user
 declare global {
@@ -18,7 +23,11 @@ declare global {
  * Middleware to authenticate JWT tokens
  * Expects Authorization header: "Bearer <token>"
  */
-export function authMiddleware(authService: AuthService) {
+export function authMiddleware(
+  authService: AuthService,
+  providerAdmissionService?: AiProviderAdmissionService,
+  providerSource: AiProviderSource = "application",
+) {
   return async (
     req: Request,
     res: Response,
@@ -56,7 +65,11 @@ export function authMiddleware(authService: AuthService) {
           : {}),
       };
 
-      next();
+      runWithAiProviderContext(
+        { userId: payload.userId, source: providerSource },
+        next,
+        providerAdmissionService,
+      );
     } catch (error: any) {
       if (error.message === "Token expired") {
         res.status(401).json({ error: "Token expired" });

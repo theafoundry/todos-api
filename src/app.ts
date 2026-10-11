@@ -8,6 +8,7 @@ import { swaggerSpec } from "./swagger";
 import { ITodoService } from "./interfaces/ITodoService";
 import { TodoService } from "./services/todoService";
 import { AuthService } from "./services/authService";
+import { AiProviderAdmissionService } from "./services/aiProviderAdmissionService";
 import { SocialAuthService } from "./services/socialAuthService";
 import { GoogleAuthService } from "./services/googleAuthService";
 import { AppleAuthService } from "./services/appleAuthService";
@@ -120,6 +121,9 @@ export function createApp(deps: AppDependencies = {}) {
     authService instanceof AuthService
       ? authService.getPrismaClient()
       : undefined;
+  const providerAdmissionService = new AiProviderAdmissionService({
+    prisma: persistencePrisma,
+  });
   const runtimeAiSuggestionStore =
     aiSuggestionStore ||
     (persistencePrisma
@@ -210,7 +214,7 @@ export function createApp(deps: AppDependencies = {}) {
   };
 
   const requireAuthIfConfigured: RequestHandler = authService
-    ? authMiddleware(authService)
+    ? authMiddleware(authService, providerAdmissionService)
     : (_req: Request, res: Response) => {
         res.status(501).json({ error: "Authentication not configured" });
       };
@@ -379,7 +383,7 @@ export function createApp(deps: AppDependencies = {}) {
   );
 
   if (authService) {
-    const auth = authMiddleware(authService);
+    const auth = authMiddleware(authService, providerAdmissionService);
     const protectedRoutes = [
       "/todos",
       "/users",
@@ -400,7 +404,11 @@ export function createApp(deps: AppDependencies = {}) {
     for (const route of protectedRoutes) {
       app.use(route, auth);
     }
-    app.use("/admin", auth, adminMiddleware(authService));
+    app.use(
+      "/admin",
+      authMiddleware(authService, providerAdmissionService, "admin"),
+      adminMiddleware(authService),
+    );
   }
 
   app.use(
@@ -475,6 +483,7 @@ export function createApp(deps: AppDependencies = {}) {
     createAgentRouter({
       agentExecutor,
       authService,
+      providerAdmissionService,
     }),
   );
   app.use("/api", createInternalAgentProfileRouter());
@@ -485,6 +494,7 @@ export function createApp(deps: AppDependencies = {}) {
       authService,
       mcpOAuthService,
       projectService,
+      providerAdmissionService,
     }),
   );
   app.use(
@@ -493,6 +503,7 @@ export function createApp(deps: AppDependencies = {}) {
       agentExecutor,
       authService,
       mcpOAuthService,
+      providerAdmissionService,
     }),
   );
 

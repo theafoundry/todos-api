@@ -6,6 +6,8 @@
 
 import { Router, Request, Response } from "express";
 import { callLlm, LlmProviderNotConfiguredError } from "../services/llmService";
+import { AiProviderAdmissionError } from "../services/aiProviderAdmissionService";
+import { BriefGenerationCache } from "../services/briefGenerationCache";
 import { ITodoService } from "../interfaces/ITodoService";
 import { IProjectService } from "../interfaces/IProjectService";
 
@@ -19,10 +21,8 @@ interface CacheEntry {
   html: string;
   generatedAt: string;
   expiresAt: number;
-  refreshPromise: Promise<void> | null;
 }
 
-const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 function getCacheResponse(
@@ -53,6 +53,7 @@ export function createPrioritiesBriefRouter({
   resolveUserId,
 }: PrioritiesBriefRouterDeps): Router {
   const router = Router();
+  const cache = new BriefGenerationCache(generateBriefEntry);
 
   async function generateBriefEntry(userId: string): Promise<CacheEntry> {
     const [todosResult, projectsResult] = await Promise.allSettled([
@@ -177,35 +178,38 @@ Rules:
       html,
       generatedAt,
       expiresAt: Date.now() + CACHE_TTL_MS,
-      refreshPromise: null,
     };
   }
 
-  function startBackgroundRefresh(userId: string, existingEntry: CacheEntry) {
-    if (existingEntry.refreshPromise) return existingEntry.refreshPromise;
-
-    const refreshPromise = (async () => {
-      try {
-        const nextEntry = await generateBriefEntry(userId);
-        cache.set(userId, nextEntry);
-      } catch (err) {
-        const current = cache.get(userId);
-        if (current) {
-          cache.set(userId, {
-            ...current,
-            refreshPromise: null,
-          });
-        }
-        console.error("priorities-brief background refresh error:", err);
-      }
-    })();
-
-    cache.set(userId, {
-      ...existingEntry,
-      refreshPromise,
+  function startBackgroundRefresh(userId: string) {
+    cache.refreshInBackground(userId, (error) => {
+      console.error("priorities-brief background refresh error:", error);
     });
+  }
 
-    return refreshPromise;
+  function sendGenerationError(error: unknown, res: Response) {
+    if (res.destroyed || res.writableEnded) return;
+    if (error instanceof AiProviderAdmissionError) {
+      const retryAt = error.retryAt ? Date.parse(error.retryAt) : NaN;
+      if (Number.isFinite(retryAt) && retryAt > Date.now()) {
+        res.setHeader(
+          "Retry-After",
+          String(Math.ceil((retryAt - Date.now()) / 1000)),
+        );
+      }
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+        ...(error.retryAt ? { retryAt: error.retryAt } : {}),
+      });
+    }
+    if (error instanceof LlmProviderNotConfiguredError) {
+      return res.status(503).json({ error: error.message });
+    }
+    console.error("priorities-brief error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to generate priorities brief" });
   }
 
   router.get("/priorities-brief", async (req: Request, res: Response) => {
@@ -219,24 +223,24 @@ Rules:
           getCacheResponse(cached, {
             cached: true,
             isStale: false,
-            refreshInFlight: !!cached.refreshPromise,
+            refreshInFlight: cache.hasInFlight(userId),
           }),
         );
       }
 
       if (cached) {
-        startBackgroundRefresh(userId, cached);
+        startBackgroundRefresh(userId);
         return res.json(
           getCacheResponse(cached, {
             cached: true,
             isStale: true,
-            refreshInFlight: true,
+            refreshInFlight: cache.hasInFlight(userId),
           }),
         );
       }
 
-      const freshEntry = await generateBriefEntry(userId);
-      cache.set(userId, freshEntry);
+      const freshEntry = await cache.generate(userId);
+      if (res.destroyed || res.writableEnded) return;
       return res.json(
         getCacheResponse(freshEntry, {
           cached: false,
@@ -245,33 +249,31 @@ Rules:
         }),
       );
     } catch (err) {
-      if (err instanceof LlmProviderNotConfiguredError) {
-        return res.status(503).json({ error: err.message });
+      return sendGenerationError(err, res);
+    }
+  });
+
+  router.post(
+    "/priorities-brief/refresh",
+    async (req: Request, res: Response) => {
+      try {
+        const userId = resolveUserId(req, res);
+        if (!userId) return;
+
+        const existing = cache.get(userId);
+        if (!existing && !cache.hasInFlight(userId)) {
+          return res.json({ ok: true, refreshInFlight: false });
+        }
+
+        if (existing) cache.markStale(userId);
+        await cache.generate(userId);
+        if (res.destroyed || res.writableEnded) return;
+        return res.json({ ok: true, refreshInFlight: false });
+      } catch (err) {
+        return sendGenerationError(err, res);
       }
-      console.error("priorities-brief error:", err);
-      return res
-        .status(500)
-        .json({ error: "Failed to generate priorities brief" });
-    }
-  });
-
-  router.post("/priorities-brief/refresh", (req: Request, res: Response) => {
-    const userId = resolveUserId(req, res);
-    if (!userId) return;
-
-    const cached = cache.get(userId);
-    if (!cached) {
-      return res.json({ ok: true, refreshInFlight: false });
-    }
-
-    const staleEntry = {
-      ...cached,
-      expiresAt: 0,
-    };
-    cache.set(userId, staleEntry);
-    startBackgroundRefresh(userId, staleEntry);
-    return res.json({ ok: true, refreshInFlight: true });
-  });
+    },
+  );
 
   return router;
 }

@@ -40,6 +40,9 @@ export class DataExportService {
           failedAutomationActions,
           actionHistory,
           actionReceipts,
+          providerReservations,
+          providerUserDays,
+          suggestionReservations,
         ] = await Promise.all([
           tx.user.findUnique({
             where: { id: userId },
@@ -205,6 +208,27 @@ export class DataExportService {
               updatedAt: true,
             },
           }),
+          tx.aiProviderReservation.findMany({
+            where: { userId },
+            select: {
+              dayStart: true,
+              status: true,
+              reservedCostMicros: true,
+              chargedCostMicros: true,
+              settledAt: true,
+              reconciledAt: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          }),
+          tx.aiProviderUserDay.findMany({
+            where: { userId },
+            select: { dayStart: true, requestCount: true },
+          }),
+          tx.aiSuggestionReservation.findMany({
+            where: { userId },
+            select: { dayStart: true, dailyLimit: true, createdAt: true },
+          }),
         ]);
 
         const [runnerTables] = await tx.$queryRaw<
@@ -240,6 +264,8 @@ export class DataExportService {
               "Internal support triage and cross-account references, automation payloads/results/errors, receipt payloads/hashes/keys and internal request/session identifiers are excluded; safe lifecycle metadata is included.",
             externalCopies:
               "Linked screenshots and promoted GitHub issues are references only; their externally hosted contents are not included.",
+            excludedProviderIdentifiers:
+              "Provider admission request identifiers and content fingerprints, and global budget aggregates, are excluded; your quota and accounting metadata are included.",
           },
           user,
           todos,
@@ -268,6 +294,14 @@ export class DataExportService {
           actionReceipts,
           runnerJobRuns,
           runnerActionHistory,
+          aiProviderReservations: providerReservations.map((reservation) => ({
+            ...reservation,
+            reservedCostMicros: reservation.reservedCostMicros.toString(),
+            chargedCostMicros:
+              reservation.chargedCostMicros?.toString() ?? null,
+          })),
+          aiProviderUserDays: providerUserDays,
+          aiSuggestionReservations: suggestionReservations,
         };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },

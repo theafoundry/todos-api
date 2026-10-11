@@ -58,6 +58,35 @@ const aiProviderBaseUrl = (
 ).trim();
 const aiProviderApiKey = (process.env.AI_PROVIDER_API_KEY || "").trim();
 const aiProviderModel = (process.env.AI_PROVIDER_MODEL || "gpt-4o-mini").trim();
+
+// Financial limits have no defaults: enabling a key alone must never authorize spend.
+function positiveIntegerSetting(name: string): number | undefined {
+  const raw = (process.env[name] || "").trim();
+  if (!/^\d+$/.test(raw)) return undefined;
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value > 0 ? value : undefined;
+}
+
+function usdMicrosSetting(name: string): number | undefined {
+  const raw = (process.env[name] || "").trim();
+  if (!/^\d+(?:\.\d{1,6})?$/.test(raw)) return undefined;
+  const [whole, fraction = ""] = raw.split(".");
+  const value = BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, "0"));
+  return value > 0n && value <= BigInt(Number.MAX_SAFE_INTEGER)
+    ? Number(value)
+    : undefined;
+}
+
+const providerRequestLimits = {
+  free: positiveIntegerSetting("AI_PROVIDER_DAILY_REQUEST_LIMIT_FREE"),
+  pro: positiveIntegerSetting("AI_PROVIDER_DAILY_REQUEST_LIMIT_PRO"),
+  team: positiveIntegerSetting("AI_PROVIDER_DAILY_REQUEST_LIMIT_TEAM"),
+};
+const hasProviderRequestOverride = ["FREE", "PRO", "TEAM"].some(
+  (plan) =>
+    (process.env[`AI_PROVIDER_DAILY_REQUEST_LIMIT_${plan}`] || "").trim()
+      .length > 0,
+);
 const githubRepo = (process.env.GITHUB_REPO || "karthikg80/todos-api").trim();
 const githubApiBaseUrl = (
   process.env.GITHUB_API_BASE_URL || "https://api.github.com"
@@ -93,6 +122,24 @@ const aiDailySuggestionLimitTeam = Number.parseInt(
   aiDailySuggestionLimitTeamRaw,
   10,
 );
+const suggestionLimitsByPlan = {
+  free:
+    Number.isInteger(aiDailySuggestionLimitFree) &&
+    aiDailySuggestionLimitFree > 0
+      ? aiDailySuggestionLimitFree
+      : Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
+        ? aiDailySuggestionLimit
+        : 50,
+  pro:
+    Number.isInteger(aiDailySuggestionLimitPro) && aiDailySuggestionLimitPro > 0
+      ? aiDailySuggestionLimitPro
+      : 250,
+  team:
+    Number.isInteger(aiDailySuggestionLimitTeam) &&
+    aiDailySuggestionLimitTeam > 0
+      ? aiDailySuggestionLimitTeam
+      : 1000,
+};
 const aiDecisionAssistEnabled = ["1", "true"].includes(
   (process.env.AI_DECISION_ASSIST || "false").toLowerCase(),
 );
@@ -238,6 +285,44 @@ export const config = {
   aiProviderBaseUrl,
   aiProviderApiKey,
   aiProviderModel,
+  aiProviderDailyBudgetMicros: usdMicrosSetting("AI_PROVIDER_DAILY_BUDGET_USD"),
+  aiProviderDailyRequestLimitByPlan: !hasProviderRequestOverride
+    ? { ...suggestionLimitsByPlan }
+    : providerRequestLimits.free &&
+        providerRequestLimits.pro &&
+        providerRequestLimits.team
+      ? {
+          free: providerRequestLimits.free,
+          pro: providerRequestLimits.pro,
+          team: providerRequestLimits.team,
+        }
+      : undefined,
+  aiProviderBillingModel: (process.env.AI_PROVIDER_BILLING_MODEL || "").trim(),
+  aiProviderBillingBaseUrl: (
+    process.env.AI_PROVIDER_BILLING_BASE_URL || ""
+  ).trim(),
+  aiProviderInputPriceMicrosPerMillionTokens: usdMicrosSetting(
+    "AI_PROVIDER_INPUT_USD_PER_MILLION_TOKENS",
+  ),
+  aiProviderOutputPriceMicrosPerMillionTokens: usdMicrosSetting(
+    "AI_PROVIDER_OUTPUT_USD_PER_MILLION_TOKENS",
+  ),
+  // This must be the verified provider/model context ceiling, including protocol overhead.
+  aiProviderInputTokenCeiling: positiveIntegerSetting(
+    "AI_PROVIDER_INPUT_TOKEN_CEILING",
+  ),
+  aiProviderMaxPromptBytes:
+    positiveIntegerSetting("AI_PROVIDER_MAX_PROMPT_BYTES") ?? 32_768,
+  aiProviderMaxOutputTokens:
+    positiveIntegerSetting("AI_PROVIDER_MAX_OUTPUT_TOKENS") ?? 1_500,
+  aiProviderMaxResponseBytes:
+    positiveIntegerSetting("AI_PROVIDER_MAX_RESPONSE_BYTES") ?? 131_072,
+  aiProviderTimeoutMs:
+    positiveIntegerSetting("AI_PROVIDER_TIMEOUT_MS") ?? 15_000,
+  aiProviderMaxConcurrent:
+    positiveIntegerSetting("AI_PROVIDER_MAX_CONCURRENT") ?? 4,
+  aiProviderMaxConcurrentPerUser:
+    positiveIntegerSetting("AI_PROVIDER_MAX_CONCURRENT_PER_USER") ?? 1,
   githubRepo,
   githubApiBaseUrl,
   githubToken,
@@ -245,25 +330,7 @@ export const config = {
     Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
       ? aiDailySuggestionLimit
       : 50,
-  aiDailySuggestionLimitByPlan: {
-    free:
-      Number.isInteger(aiDailySuggestionLimitFree) &&
-      aiDailySuggestionLimitFree > 0
-        ? aiDailySuggestionLimitFree
-        : Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
-          ? aiDailySuggestionLimit
-          : 50,
-    pro:
-      Number.isInteger(aiDailySuggestionLimitPro) &&
-      aiDailySuggestionLimitPro > 0
-        ? aiDailySuggestionLimitPro
-        : 250,
-    team:
-      Number.isInteger(aiDailySuggestionLimitTeam) &&
-      aiDailySuggestionLimitTeam > 0
-        ? aiDailySuggestionLimitTeam
-        : 1000,
-  },
+  aiDailySuggestionLimitByPlan: suggestionLimitsByPlan,
   aiDecisionAssistEnabled,
   enableEvalPromptOverride,
 

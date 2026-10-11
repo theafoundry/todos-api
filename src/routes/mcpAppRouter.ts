@@ -42,6 +42,8 @@ import {
   TODAY_PLAN_RESOURCE_DESCRIPTOR,
 } from "../mcp/todayPlanResource";
 import { config } from "../config";
+import type { AiProviderAdmissionService } from "../services/aiProviderAdmissionService";
+import { runWithAiProviderContext } from "../services/aiProviderContext";
 import { McpScope } from "../types";
 
 interface McpAppRouterDeps {
@@ -49,6 +51,7 @@ interface McpAppRouterDeps {
   authService?: AuthService;
   mcpOAuthService: McpOAuthService;
   projectService?: IProjectService;
+  providerAdmissionService?: AiProviderAdmissionService;
 }
 
 function toolError(input: {
@@ -170,19 +173,25 @@ function createNativeAppServer(req: Request, deps: McpAppRouterDeps) {
       });
     }
 
+    const authContext = auth.context;
     try {
-      const structuredContent = await executeNativeAppTool(
-        definition.name as NativeAppToolName,
-        request.params.arguments,
-        {
-          agentExecutor: deps.agentExecutor,
-          projectService: deps.projectService,
-          prisma: deps.authService?.getPrismaClient(),
-          userId: auth.context.user.id,
-          sessionId: auth.context.session.sessionId,
-          requestId,
-          actor: buildMcpActor(req, auth.context.session),
-        },
+      const structuredContent = await runWithAiProviderContext(
+        { userId: authContext.user.id, source: "native-mcp" },
+        () =>
+          executeNativeAppTool(
+            definition.name as NativeAppToolName,
+            request.params.arguments,
+            {
+              agentExecutor: deps.agentExecutor,
+              projectService: deps.projectService,
+              prisma: deps.authService?.getPrismaClient(),
+              userId: authContext.user.id,
+              sessionId: authContext.session.sessionId,
+              requestId,
+              actor: buildMcpActor(req, authContext.session),
+            },
+          ),
+        deps.providerAdmissionService,
       );
       const output = definition.outputSchema.safeParse(structuredContent);
       if (!output.success) {
