@@ -433,6 +433,12 @@
 
 /* ── Entrance ────────────────────────────────────────────────────────── */
 
+.auth-card__footer {
+  margin-top: var(--s-4);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--pw-border);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .auth-card {
     animation: auth-rise 420ms var(--ease-out) both;

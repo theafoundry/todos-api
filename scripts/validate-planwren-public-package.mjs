@@ -127,7 +127,7 @@ function listFiles(root) {
           `${relative}: exceeds entry size limit`,
         );
         assert.ok(
-          /^(?:plugin\.json|mcp\.json|assets\/[^/]+\.(?:png|svg)|skills\/today-planning\/SKILL\.md|skills\/today-planning\/agents\/openai\.yaml)$/.test(
+          /^(?:plugin\.json|mcp\.json|assets\/[^/]+\.png|skills\/today-planning\/SKILL\.md|skills\/today-planning\/agents\/openai\.yaml)$/.test(
             relative,
           ),
           `${relative}: unrelated or unsupported package file`,
@@ -229,11 +229,11 @@ function validateInterface(root, value) {
     displayName: 30,
     shortDescription: 30,
     longDescription: 4000,
-    developerName: 80,
   }))
     text(value[key], `interface.${key}`, max, key === "longDescription");
   assert.equal(value.displayName, "Planwren");
-  assert.equal(value.developerName, "Thea Foundry");
+  if (value.developerName !== undefined)
+    text(value.developerName, "interface.developerName", 80);
   assert.equal(value.category, "Productivity");
   for (const [key, expected] of Object.entries(permittedUrls)) {
     httpsUrl(value[key], `interface.${key}`);
@@ -308,7 +308,14 @@ function validateInterface(root, value) {
     { encoding: "utf8" },
   );
   assert.equal(images.status, 0, `image validation failed: ${images.stderr}`);
-  return JSON.parse(images.stdout);
+  const inspected = JSON.parse(images.stdout);
+  for (const [index, key] of icons.entries()) {
+    assert.ok(
+      inspected[index].width >= (key.startsWith("logo") ? 256 : 48),
+      `${key} must be at least ${key.startsWith("logo") ? 256 : 48} pixels`,
+    );
+  }
+  return inspected;
 }
 
 function validateReview(review) {
@@ -322,11 +329,10 @@ function validateReview(review) {
     assert.equal(typeof review.commerce, "boolean");
   if (review.commerce_description !== undefined)
     text(review.commerce_description, "commerce_description", 4000, true);
-  assert.equal(
-    review.demo_recording_url,
-    undefined,
-    "fresh authenticated recording is pending; omit demo_recording_url",
-  );
+  if (review.demo_recording_url !== undefined)
+    httpsUrl(review.demo_recording_url, "demo recording URL");
+  if (review.commerce === true)
+    text(review.commerce_description, "commerce_description", 4000, true);
   if (review.test_cases !== undefined) {
     object(review.test_cases, "test_cases", ["positive", "negative"]);
     for (const [type, count] of [
@@ -487,15 +493,17 @@ export function validatePackage(
     "semantic version numeric prerelease identifiers cannot have leading zeroes",
   );
   text(manifest.description, "description", 4000, true);
-  object(manifest.author, "author", ["name", "email", "url"]);
-  assert.equal(manifest.author.name, "Thea Foundry");
-  text(manifest.author.name, "author.name", 120);
-  if (manifest.author.email !== undefined) {
+  if (manifest.author !== undefined) {
+    object(manifest.author, "author", ["name", "email", "url"]);
+    if (manifest.author.name !== undefined)
+      text(manifest.author.name, "author.name", 120);
+  }
+  if (manifest.author?.email !== undefined) {
     text(manifest.author.email, "author.email", 320);
     assert.match(manifest.author.email, /^[^\s@]+@[^\s@]+\.[^\s@]+$/);
   }
   for (const [label, url] of [
-    ["author.url", manifest.author.url],
+    ["author.url", manifest.author?.url],
     ["homepage", manifest.homepage],
     ["repository", manifest.repository],
   ])
@@ -509,6 +517,12 @@ export function validatePackage(
     "publication",
   ]);
   const images = validateInterface(root, openai.interface);
+  if (manifest.author?.name && openai.interface.developerName)
+    assert.equal(
+      manifest.author.name,
+      openai.interface.developerName,
+      "author.name and developerName must match the selected publishing identity",
+    );
   const referencedAssets = [
     "logo",
     "composerIcon",
@@ -528,11 +542,73 @@ export function validatePackage(
   );
   if (openai.onboardingSkill !== undefined)
     assert.equal(openai.onboardingSkill, "./skills/today-planning/SKILL.md");
-  if (openai.review !== undefined) validateReview(openai.review);
+  validateReview(openai.review);
+  assert.ok(
+    openai.review.test_cases,
+    "review test_cases are required for this MCP package",
+  );
   if (openai.publication !== undefined) {
-    object(openai.publication, "publication", ["release_notes"]);
+    object(openai.publication, "publication", [
+      "release_notes",
+      "countries",
+      "translations",
+    ]);
     if (openai.publication.release_notes !== undefined)
       text(openai.publication.release_notes, "release notes", 4000, true);
+    if (openai.publication.countries !== undefined) {
+      assert.ok(
+        Array.isArray(openai.publication.countries),
+        "countries must be an array",
+      );
+      const regions = new Intl.DisplayNames(["en"], {
+        type: "region",
+        fallback: "none",
+      });
+      const countries = new Set();
+      for (const country of openai.publication.countries) {
+        assert.ok(
+          typeof country === "string" && /^[A-Z]{2}$/.test(country),
+          "country codes must be uppercase ISO alpha-2 codes",
+        );
+        assert.ok(
+          regions.of(country) &&
+            !["ZZ", "EU", "UN", "QO", "XA", "XB"].includes(country),
+          "country code is not a recognized country",
+        );
+        assert.ok(!countries.has(country), "duplicate country code");
+        countries.add(country);
+      }
+    }
+    if (
+      openai.publication.translations !== undefined &&
+      openai.publication.translations !== null
+    ) {
+      object(openai.publication.translations, "translations");
+      for (const [locale, translation] of Object.entries(
+        openai.publication.translations,
+      )) {
+        text(locale, "translation locale", 120);
+        assert.ok(
+          Intl.getCanonicalLocales(locale).length === 1,
+          "invalid translation locale",
+        );
+        object(translation, `translation.${locale}`, [
+          "subtitle",
+          "description",
+        ]);
+        for (const [key, max] of [
+          ["subtitle", 30],
+          ["description", 4000],
+        ])
+          if (translation[key] !== undefined && translation[key] !== null)
+            text(
+              translation[key],
+              `translation.${locale}.${key}`,
+              max,
+              key === "description",
+            );
+      }
+    }
   }
   assert.deepEqual(
     Object.keys(mcp.mcpServers),
@@ -578,8 +654,19 @@ export function validatePackage(
         `${file.path} contains a ${label}`,
       );
   }
+  const preparationGaps = [];
+  if (!openai.interface.developerName)
+    preparationGaps.push("confirmed publisher identity");
+  if (openai.publication?.countries === undefined)
+    preparationGaps.push("owner-selected country availability");
+  if (openai.review.commerce === undefined)
+    preparationGaps.push("owner-confirmed commerce declaration");
+  if (!openai.review.demo_recording_url)
+    preparationGaps.push("verified authenticated demo recording URL");
   return {
     valid: true,
+    metadataComplete: preparationGaps.length === 0,
+    preparationGaps,
     scope:
       "local public package; publisher/domain verification, dashboard scans, demo account, authenticated ChatGPT QA and recording remain pending",
     packageName: manifest.name,

@@ -1,26 +1,57 @@
 # Public Planwren package validation
 
-These two JSON files are unchanged public schema snapshots fetched on 2026-10-03:
+The vendored Agent Plugins 1.0.0 manifest and MCP schema snapshots were retrieved
+on October 3, 2026. `provenance.json` records their official URLs and SHA-256
+hashes. They are validation inputs outside the public ZIP. The ZIP declares the
+public schema URLs, and existing Ajv/js-yaml dependencies validate the manifest,
+MCP configuration and skill YAML without runtime network requests.
 
-- [Agent Plugins 1.0.0 manifest schema](https://agent-plugins.org/schemas/1.0.0/plugin.schema.json)
-- [Agent Plugins 1.0.0 MCP schema](https://agent-plugins.org/schemas/1.0.0/mcp.schema.json)
+The current [submission reference](https://developers.openai.com/plugins/deploy/submission)
+was retrieved October 11, 2026 by the parent task. The supplied Plugin Creator
+submission skill was also read. The official portable schema does not itself
+establish directory readiness or publisher verification.
 
-`provenance.json` records their source URLs and SHA-256 hashes. They are validation inputs outside the plugin ZIP; the ZIP declares the public schema URLs. Ajv's existing draft 2020-12 implementation validates these snapshots. Existing `js-yaml` parses the skill metadata with its JSON schema; neither utility adds a dependency or fetches resources at runtime.
+The validator checks listing limits, four canonical HTTPS listing URLs, exactly
+five positive/three negative case expectations for this single-server package,
+semantic version, starter prompts, skill tools/dependency, images and safe file
+inventory. Unknown publishing identity, countries, commerce and demo metadata may
+remain absent in a draft and are reported as `preparationGaps`. Selected identities
+must agree across `author.name` and `developerName`. Supported current metadata
+includes a recording URL, commerce declaration, country allowlist and optional
+localized text; local syntax validation does not verify URL playback, business
+identity, language quality or portal country support. Only owner-confirmed facts
+and actually verified evidence may be written into the real manifest.
 
-The schema alone does not define directory readiness. The utilities additionally apply the current [OpenAI submission field reference](https://developers.openai.com/plugins/deploy/submission), [submission error reference](https://developers.openai.com/plugins/deploy/submission-errors), and [skill metadata guidance](https://developers.openai.com/plugins/build/skills). They check final listing limits, the four publisher URLs, five positive and three negative proposed review cases, icon budgets/dimensions/contrast, the skill contract, and MCP dependency alignment.
+This Planwren package deliberately uses only PNG icons and a 256px logo minimum
+to satisfy the supplied preparation skill as well as current portal requirements.
+The current official portal guide also permits JPEG, WebP and SVG, with square
+icons at least 48px. PNG-only and 256px are this package's narrower choices, not
+claims about portal restrictions. All images are at most 5 MiB; PNG CRCs,
+dimensions, compression payload and scanline filters are checked. The utility's
+standalone SVG inspector remains defensive, but SVG files are outside this
+public package inventory. Optional authenticated screenshots remain absent for
+this draft.
 
-This package's narrower local policy allows one fixed remote MCP endpoint and six existing tools; it excludes app mappings, lifecycle hooks, shell commands, environment variables, auth headers, executable files, symlinks, credentials, local paths, expanded permissions, unused assets, and compatibility overlays. Static Fold SVGs allow only `svg`, `g`, `rect`, `path`, `title`, and `desc`, with no external references or processing instructions. PNG validation checks chunk CRCs, dimensions, complete decompression, and scanline filters. A local 1,024-byte path limit supplements the documented 20-segment limit.
-
-Screenshots and `demo_recording_url` are intentionally rejected for this candidate until the separate authenticated acceptance and recording gates are completed. Passing these utilities confirms package structure and bytes, not publisher verification, domain verification, dashboard scans, reviewer-account access, authenticated ChatGPT acceptance, upload, submission, or publication. Future approved assets require updating the local package policy.
-
-Run from the linked worktree with the repository's supported Node version:
+The package has one fixed remote MCP endpoint and six existing conversational
+tools. Local policy excludes app mappings, hidden compatibility overlays,
+lifecycle hooks, shell commands, environment variables, auth headers, executable
+files, symlinks, credentials, local paths, expanded permissions and unused assets.
+The archive builder uses sorted regular files, fixed timestamps/permissions and
+standard-library ZIP encoding. It checks archive counts, sizes, paths, collisions,
+entry types, comments and extra metadata, compares every source hash, safely
+extracts the ZIP and validates the extracted copy. Focused tests cover hostile
+metadata, credentials, invalid assets, archive tampering and reproducibility.
 
 ```sh
 node scripts/validate-planwren-public-package.mjs
 node --test scripts/review/planwren-public-package.test.mjs
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/review/test-planwren-public-package.py
-python3 scripts/build-planwren-public-package.py --output /tmp/planwren-public-0.2.0.zip
-python3 scripts/build-planwren-public-package.py --verify /tmp/planwren-public-0.2.0.zip
+python3 scripts/build-planwren-public-package.py --output .local/publication/planwren-public-0.3.0-draft.zip
+python3 scripts/build-planwren-public-package.py --verify .local/publication/planwren-public-0.3.0-draft.zip
 ```
 
-Use `--package PATH` to validate a different extracted copy when building or verifying. The ZIP builder uses sorted regular files, fixed timestamps, fixed permissions and compression, then checks archive paths, collisions, entry types, counts and sizes. Comments and extra metadata are excluded by local policy. It compares every file against validated source hashes and validates a safely extracted copy. Focused tests exercise malformed assets/metadata, unsafe archives, byte tampering and byte-for-byte reproducibility. The archive has `plugin.json`, `mcp.json`, `assets/` and `skills/` at its root, with no enclosing directory or repository files.
+Passing confirms structure and exact bytes. `metadataComplete` means required
+preparation values are present, not that their real-world facts were verified.
+It cannot complete owner/business/domain verification, policy coverage,
+authentication, reviewer access, host cases, recording review, metadata/skill/tool
+scans, legal attestations, upload, submission, approval or publication.

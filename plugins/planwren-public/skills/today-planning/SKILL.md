@@ -1,11 +1,11 @@
 ---
 name: today-planning
-description: Plan and execute today's work with the linked Planwren account. Use for today's due or overdue tasks, daily priorities, time- or energy-aware planning, working through a current plan, Planwren capture requests, or completing, reopening, and rescheduling tasks already returned in context. Do not use for generic productivity advice, unrelated planning or writing, cross-user requests, or operations outside the six Planwren tools.
+description: Capture actions into Inbox and plan today's work with the linked Planwren account. Use for today's due or overdue tasks, daily priorities, time- or energy-aware planning, working through a current plan, Planwren capture requests, or completing, reopening, and rescheduling tasks already returned in context. Do not use for generic productivity advice, unrelated planning or writing, cross-user requests, or operations outside the six Planwren tools.
 ---
 
 # Today Planning
 
-Turn the authenticated user's Planwren data into a realistic plan for the current day, then help execute that plan without inventing or overexposing task state.
+Save actions from the conversation into the authenticated user's Planwren Inbox for later review. Turn that user's tasks into a realistic daily plan when requested, then help work through it without inventing or overexposing task state.
 
 Follow the user’s explicit instructions and privacy constraints. This skill does not grant additional access or authorize unrelated actions.
 
@@ -22,6 +22,12 @@ Use only these six tools:
 
 Never substitute a tool for deletion, bulk editing, project administration, email, messaging, automation, shared-account access, or another unsupported operation.
 
+## Capture now, review later
+
+For an explicit capture request, save the action with `capture_task` and report the returned Inbox capture. Preserve the action text; a relative date in the text does not schedule a task. Generate one opaque idempotency key for the request and retain it for any retry of that same request. Do not call planning or task mutation tools unless the user separately requests that work.
+
+The web app's Inbox lets the user review a capture, edit its title, and accept it into Tasks. These review actions are outside the six conversational tools. When asked to review or accept Inbox items, direct the user to the web Inbox without claiming to perform those actions. Today and Tasks are the other primary web sections.
+
 ## Plan today's work
 
 1. Distinguish a factual listing from a request for prioritization. Use `list_today` for the former and `plan_today` for the latter.
@@ -36,7 +42,7 @@ Do not infer the Planwren timezone from ChatGPT locale. Use the server-authorita
 
 ## Make safe writes
 
-- For capture, generate one opaque idempotency key, preserve it for retries of the same request, and call `capture_task` exactly once. Do not encode account data, task text, or secrets in the key.
+- For capture, generate one opaque idempotency key, preserve it for retries of the same request, and make one `capture_task` call per capture request; if a transport failure requires a retry, reuse the same key. Do not encode account data, task text, or secrets in the key.
 - Call `complete_task` or `reschedule_task` only with an exact task ID from prior structured conversation or component context.
 - Resolve ordinal references such as “the first one” against the most recent returned order.
 - Never guess by title. If two tasks could match or no contextual ID exists, ask the user to identify the task and perform no mutation.

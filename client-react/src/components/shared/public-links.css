@@ -1,0 +1,24 @@
+.pw-public-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2) var(--s-4);
+}
+
+.pw-public-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--pw-target, 44px);
+  color: var(--pw-muted);
+  font-size: 0.875rem;
+  text-underline-offset: 3px;
+}
+
+.pw-public-links a:hover {
+  color: var(--pw-coral-text);
+}
+
+.pw-public-links a:focus-visible {
+  outline: 2px solid var(--pw-coral-text);
+  outline-offset: 3px;
+}

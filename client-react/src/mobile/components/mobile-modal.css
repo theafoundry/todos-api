@@ -179,3 +179,21 @@
   flex-wrap: wrap;
   gap: var(--s-2);
 }
+
+.m-profile-content .pw-public-links a {
+  color: var(--m-muted);
+}
+
+.m-profile-content .pw-public-links a:focus-visible {
+  outline-color: var(--m-accent);
+}
+
+.m-profile-content .mcp-session {
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+.m-profile-content .mcp-session__body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

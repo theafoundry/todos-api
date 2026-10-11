@@ -1994,7 +1994,8 @@
 /* --- Onboarding --- */
 .m-onboarding__backdrop {
   position: fixed;
-  inset: 0;
+  inset: var(--m-modal-top, 0px) 0 auto;
+  height: var(--m-modal-height, 100dvh);
   background: rgba(0, 0, 0, 0.6);
   z-index: 200;
   display: flex;
@@ -2010,6 +2011,9 @@
   text-align: center;
   max-width: 320px;
   width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   animation: m-bounce-in 400ms var(--ease-spring) both;
 }
 
@@ -2057,6 +2061,16 @@
   display: flex;
   justify-content: center;
   gap: var(--s-4);
+}
+
+.m-onboarding__actions button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.m-onboarding__actions button:focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 2px;
 }
 
 .m-onboarding__skip {

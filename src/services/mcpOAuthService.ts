@@ -1,7 +1,8 @@
 import { createHash, createHmac, randomUUID } from "crypto";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { config } from "../config";
 import { McpOAuthScope, normalizeMcpOAuthScopes } from "../mcp/mcpScopes";
+import { validateId } from "../validation/validation";
 
 export interface CreateMcpAuthorizationCodeInput {
   userId: string;
@@ -107,7 +108,9 @@ function toIso(value?: number | null): string | undefined {
 }
 
 export class McpOAuthService {
-  constructor(private readonly prisma?: PrismaClient) {}
+  constructor(
+    private readonly prisma?: PrismaClient | Prisma.TransactionClient,
+  ) {}
 
   private readonly authCodes = new Map<string, AuthorizationCodeRecord>();
   private readonly assistantSessions = new Map<
@@ -130,7 +133,8 @@ export class McpOAuthService {
   private pruneExpiredRefreshTokens() {
     const now = Date.now();
     for (const [token, record] of this.refreshTokens.entries()) {
-      if (record.expiresAt <= now || record.revoked || record.rotated) {
+      // Keep rotated records until expiry so reuse can revoke their session.
+      if (record.expiresAt <= now) {
         this.refreshTokens.delete(token);
       }
     }
@@ -228,6 +232,13 @@ export class McpOAuthService {
 
   async exchangeAuthorizationCode(input: ExchangeMcpAuthorizationCodeInput) {
     this.pruneExpiredCodes();
+    // Issued codes are UUIDs. Reject malformed values before querying the UUID
+    // column so invalid credentials stay protocol errors rather than DB errors.
+    try {
+      validateId(input.code);
+    } catch (_error) {
+      throw new Error("Invalid authorization code");
+    }
 
     let record:
       | {
@@ -325,12 +336,25 @@ export class McpOAuthService {
     }
 
     if (this.prisma) {
-      await this.prisma.mcpAuthorizationCode.update({
-        where: { code: input.code },
+      const consumed = await this.prisma.mcpAuthorizationCode.updateMany({
+        where: {
+          code: input.code,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
         data: {
           usedAt: new Date(),
         },
       });
+      if (consumed.count !== 1) {
+        const current = await this.prisma.mcpAuthorizationCode.findUnique({
+          where: { code: input.code },
+        });
+        if (current && current.expiresAt.getTime() <= Date.now()) {
+          throw new Error("Authorization code expired");
+        }
+        throw new Error("Authorization code already used");
+      }
     } else {
       const memoryRecord = this.authCodes.get(input.code);
       if (memoryRecord) {
@@ -380,6 +404,12 @@ export class McpOAuthService {
       };
     }
 
+    return this.createAssistantSessionInMemory(input);
+  }
+
+  private createAssistantSessionInMemory(
+    input: CreateMcpAssistantSessionInput,
+  ) {
     const now = Date.now();
     const session: AssistantSessionRecord = {
       id: randomUUID(),
@@ -589,7 +619,7 @@ export class McpOAuthService {
       return input.sessionId;
     }
 
-    const session = await this.createAssistantSession({
+    const sessionInput: CreateMcpAssistantSessionInput = {
       userId: input.userId,
       scopes: input.scopes,
       assistantName: input.assistantName,
@@ -597,7 +627,10 @@ export class McpOAuthService {
       source: "oauth",
       resource: input.resource,
       timezone: input.timezone,
-    });
+    };
+    const session = this.prisma
+      ? await this.createAssistantSession(sessionInput)
+      : this.createAssistantSessionInMemory(sessionInput);
 
     if (this.prisma) {
       await this.prisma.mcpRefreshToken.update({
@@ -737,27 +770,83 @@ export class McpOAuthService {
     if (!record) {
       throw new Error("Invalid refresh token");
     }
-    if (record.sessionRevoked) {
-      throw new Error("Assistant session revoked");
-    }
-    if (record.revoked && !record.rotated) {
-      throw new Error("Assistant session revoked");
-    }
-    if (record.rotated) {
-      throw new Error("Refresh token already rotated");
-    }
     if (record.expiresAt <= Date.now()) {
       throw new Error("Refresh token expired");
     }
-    if (
-      record.clientId &&
-      input.clientId &&
-      record.clientId !== input.clientId
-    ) {
+    if (record.clientId && record.clientId !== input.clientId) {
       throw new Error("Refresh token client mismatch");
     }
     if (record.resource !== input.resource) {
       throw new Error("Refresh token resource mismatch");
+    }
+    if (record.sessionRevoked || (record.revoked && !record.rotated)) {
+      throw new Error("Assistant session revoked");
+    }
+    if (record.rotated) {
+      await this.revokeRefreshToken(input);
+      throw new Error("Refresh token already rotated");
+    }
+
+    try {
+      // Claim and persist the successor together. A concurrent replica's stale
+      // read must not issue another successor, and persistence failure must not
+      // consume the only refresh credential.
+      if (this.prisma && "$transaction" in this.prisma) {
+        return await this.prisma.$transaction((transaction) =>
+          new McpOAuthService(transaction).rotateRefreshToken(record, input),
+        );
+      }
+      return await this.rotateRefreshToken(record, input);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Refresh token already rotated"
+      ) {
+        // The transaction has finished, so a winner's migrated legacy session
+        // binding is now visible when invalidating the refresh-token family.
+        await this.revokeRefreshToken(input);
+      }
+      throw error;
+    }
+  }
+
+  private async rotateRefreshToken(
+    record: CreateMcpRefreshTokenInput & { tokenHash: string },
+    input: ExchangeMcpRefreshTokenInput,
+  ) {
+    const now = new Date();
+    if (this.prisma) {
+      const consumed = await this.prisma.mcpRefreshToken.updateMany({
+        where: {
+          tokenHash: record.tokenHash,
+          revokedAt: null,
+          rotatedAt: null,
+          expiresAt: { gt: now },
+          ...(record.sessionId
+            ? { session: { is: { userId: record.userId, revokedAt: null } } }
+            : {}),
+        },
+        data: { revokedAt: now, rotatedAt: now },
+      });
+      if (consumed.count !== 1) {
+        const current = await this.prisma.mcpRefreshToken.findUnique({
+          where: { tokenHash: record.tokenHash },
+        });
+        if (!current) throw new Error("Invalid refresh token");
+        if (current.expiresAt.getTime() <= Date.now()) {
+          throw new Error("Refresh token expired");
+        }
+        if (current.rotatedAt) throw new Error("Refresh token already rotated");
+        throw new Error("Assistant session revoked");
+      }
+    } else {
+      const memoryRecord = this.refreshTokens.get(input.refreshToken);
+      if (!memoryRecord || memoryRecord.revoked || memoryRecord.rotated) {
+        throw new Error("Refresh token already rotated");
+      }
+      // Consume synchronously before any session/successor awaits.
+      memoryRecord.revoked = true;
+      memoryRecord.rotated = true;
     }
 
     const sessionId = await this.ensureSessionForRefreshTokenRecord({
@@ -781,25 +870,6 @@ export class McpOAuthService {
       resource: record.resource,
       timezone: record.timezone,
     });
-
-    if (this.prisma) {
-      await this.prisma.mcpRefreshToken.update({
-        where: {
-          tokenHash: record.tokenHash,
-        },
-        data: {
-          revokedAt: new Date(),
-          rotatedAt: new Date(),
-        },
-      });
-    } else {
-      const memoryRecord = this.refreshTokens.get(input.refreshToken);
-      if (memoryRecord) {
-        memoryRecord.revoked = true;
-        memoryRecord.rotated = true;
-        this.refreshTokens.delete(input.refreshToken);
-      }
-    }
 
     return {
       userId: record.userId,

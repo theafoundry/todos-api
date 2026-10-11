@@ -248,14 +248,10 @@ describe("LandingPage", () => {
 
   it("renders all four feature cards", () => {
     render(createElement(LandingPage));
-    expect(
-      screen.getByText(/A daily plan that balances priorities and deadlines/),
-    ).toBeTruthy();
-    expect(screen.getByText(/Capture anything, organize later/)).toBeTruthy();
+    expect(screen.getByText("Plan a realistic day")).toBeTruthy();
+    expect(screen.getByText("Capture actions, review later")).toBeTruthy();
     expect(screen.getByText(/Review your week, stay honest/)).toBeTruthy();
-    expect(
-      screen.getByText(/Your AI assistant already knows your tasks/),
-    ).toBeTruthy();
+    expect(screen.getByText("Capture with your AI assistant")).toBeTruthy();
   });
 
   it("renders the capabilities section with heading", () => {
@@ -268,7 +264,7 @@ describe("LandingPage", () => {
     expect(screen.getByText("Projects & Areas")).toBeTruthy();
     expect(screen.getByText("Filters & Views")).toBeTruthy();
     expect(screen.getByText("Focus Dashboard")).toBeTruthy();
-    expect(screen.getByText("Desk")).toBeTruthy();
+    expect(screen.getByText("Inbox")).toBeTruthy();
     expect(screen.getByText("Keyboard First")).toBeTruthy();
     expect(screen.getByText("Dark Mode")).toBeTruthy();
   });
@@ -293,6 +289,20 @@ describe("LandingPage", () => {
     render(createElement(LandingPage));
     const year = new Date().getFullYear();
     expect(screen.getByText(new RegExp(`© ${year} Planwren`))).toBeTruthy();
+  });
+
+  it("exposes policies and support on the public landing page", () => {
+    render(createElement(LandingPage));
+    expect(
+      screen.getByRole("navigation", { name: "Help and policies" }),
+    ).toBeTruthy();
+    for (const [name, href] of [
+      ["Privacy", "/privacy"],
+      ["Terms", "/terms"],
+      ["Support", "/support"],
+    ]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    }
   });
 
   it("has correct anchor links in navigation", () => {

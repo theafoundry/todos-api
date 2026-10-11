@@ -40,12 +40,67 @@ function reject(name, update, expected) {
   );
 }
 
-test("valid deployed-brand public package validates repeatedly offline", () => {
+test("valid public draft reports missing metadata and validates repeatedly offline", () => {
   const first = validatePackage(source);
   assert.equal(first.files.length, 8);
   assert.equal(first.tools.length, 6);
+  assert.equal(first.metadataComplete, false);
+  assert.deepEqual(first.preparationGaps, [
+    "owner-confirmed commerce declaration",
+    "verified authenticated demo recording URL",
+  ]);
   assert.deepEqual(validatePackage(source), first);
 });
+
+test("permits unknown owner fields to remain absent and reports their gaps", () =>
+  fixture((root) => {
+    edit(root, "plugin.json", (value) => {
+      delete value.author;
+      delete value.extensions["com.openai"].interface.developerName;
+      delete value.extensions["com.openai"].publication.countries;
+    });
+    assert.deepEqual(validatePackage(root).preparationGaps, [
+      "confirmed publisher identity",
+      "owner-selected country availability",
+      "owner-confirmed commerce declaration",
+      "verified authenticated demo recording URL",
+    ]);
+  }));
+
+test("accepts selected identity and current publication fields without claiming external readiness", () =>
+  fixture((root) => {
+    edit(root, "plugin.json", (value) => {
+      value.author = { name: "Synthetic Publisher" };
+      const openai = value.extensions["com.openai"];
+      openai.interface.developerName = "Synthetic Publisher";
+      openai.review.demo_recording_url =
+        "https://www.planwren.com/review/test-only.mp4";
+      openai.review.commerce = false;
+      openai.publication.countries = ["US", "GB"];
+      openai.publication.translations = {
+        "fr-FR": {
+          subtitle: "Planifier une journée",
+          description: "Description de test.",
+        },
+      };
+    });
+    const report = validatePackage(root);
+    assert.equal(report.metadataComplete, true);
+    assert.deepEqual(report.preparationGaps, []);
+    assert.match(report.scope, /publisher\/domain verification/);
+  }));
+
+test("accepts an explicit unrestricted country selection and omitted optional translations", () =>
+  fixture((root) => {
+    edit(root, "plugin.json", (value) => {
+      value.extensions["com.openai"].publication.countries = [];
+    });
+    assert.ok(
+      !validatePackage(root).preparationGaps.includes(
+        "owner-selected country availability",
+      ),
+    );
+  }));
 reject(
   "reject invalid numeric semver prerelease",
   (root) => {
@@ -59,7 +114,7 @@ reject(
   "reject unescaped spaces in optional publisher URLs",
   (root) => {
     edit(root, "plugin.json", (value) => {
-      value.author.url = "https://www.planwren.com/a b";
+      value.author = { url: "https://www.planwren.com/a b" };
     });
   },
   /unescaped whitespace/,
@@ -207,14 +262,57 @@ reject(
   /test_credentials is outside/,
 );
 reject(
-  "reject recording claim before authenticated recording",
+  "reject recording URL with embedded credentials",
   (root) => {
     edit(root, "plugin.json", (value) => {
       value.extensions["com.openai"].review.demo_recording_url =
-        "https://www.planwren.com/review/demo.mp4";
+        "https://reviewer:secret@www.planwren.com/review/demo.mp4";
     });
   },
-  /recording is pending/,
+  /must not embed credentials/,
+);
+reject(
+  "reject inconsistent package publishing names",
+  (root) =>
+    edit(root, "plugin.json", (value) => {
+      value.author = { name: "Publisher A" };
+      value.extensions["com.openai"].interface.developerName = "Publisher B";
+    }),
+  /publishing identity/,
+);
+reject(
+  "reject malformed or duplicate country targeting",
+  (root) =>
+    edit(root, "plugin.json", (value) => {
+      value.extensions["com.openai"].publication.countries = ["US", "US"];
+    }),
+  /duplicate country/,
+);
+reject(
+  "reject unrecognized country targeting",
+  (root) =>
+    edit(root, "plugin.json", (value) => {
+      value.extensions["com.openai"].publication.countries = ["ZZ"];
+    }),
+  /recognized country/,
+);
+reject(
+  "reject oversized translated subtitle",
+  (root) =>
+    edit(root, "plugin.json", (value) => {
+      value.extensions["com.openai"].publication.translations = {
+        "fr-FR": { subtitle: "a".repeat(31) },
+      };
+    }),
+  /exceeds 30/,
+);
+reject(
+  "reject commerce without a description",
+  (root) =>
+    edit(root, "plugin.json", (value) => {
+      value.extensions["com.openai"].review.commerce = true;
+    }),
+  /commerce_description/,
 );
 reject(
   "reject incorrect final negative case count",
@@ -285,33 +383,24 @@ reject(
   /CRC mismatch|invalid|incomplete/,
 );
 reject(
-  "reject active SVG content",
+  "reject non-PNG branding under this public package policy",
   (root) => {
-    const target = path.join(root, "assets/logo-dark.svg");
     fs.writeFileSync(
-      target,
-      fs
-        .readFileSync(target, "utf8")
-        .replace("</svg>", "<script>alert(1)</script></svg>"),
+      path.join(root, "assets/extra.svg"),
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"/>',
     );
   },
-  /active\/external/,
+  /unsupported package file/,
 );
 reject(
-  "reject SVG stylesheet external imports",
+  "reject a listing logo below the chosen 256-pixel minimum",
   (root) => {
-    const target = path.join(root, "assets/logo-dark.svg");
-    fs.writeFileSync(
-      target,
-      fs
-        .readFileSync(target, "utf8")
-        .replace(
-          "</svg>",
-          '<style>@import "https://example.com/style.css";</style></svg>',
-        ),
+    fs.copyFileSync(
+      path.resolve(source, "../../client-react/public/icon-192.png"),
+      path.join(root, "assets/logo.png"),
     );
   },
-  /active\/external/,
+  /must be at least 256 pixels/,
 );
 reject(
   "reject malformed skill YAML",

@@ -437,7 +437,7 @@ function mapTokenExchangeError(error: unknown) {
         error: "invalid_grant",
         description: "Refresh token already used",
         code: "MCP_REFRESH_TOKEN_REUSED",
-        hint: "Retry with the newest refresh token returned by the prior exchange.",
+        hint: "Refresh token reuse revoked this assistant session. Reconnect the assistant to authorize a new session.",
       };
     case "Refresh token client mismatch":
       return {

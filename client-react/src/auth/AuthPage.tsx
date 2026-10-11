@@ -8,6 +8,7 @@ import { ResetPasswordForm } from "./ResetPasswordForm";
 import { PhoneLoginForm } from "./PhoneLoginForm";
 import { navigateWithFade } from "../utils/pageTransitions";
 import { BrandMark } from "../components/ui/BrandMark";
+import { PublicLinks } from "../components/shared/PublicLinks";
 import { usePublicTheme } from "../styles/publicTheme";
 import "./auth.css";
 
@@ -259,6 +260,9 @@ export function AuthPage() {
         ) : view === "phone" ? (
           <PhoneLoginForm onBack={switchToLogin} />
         ) : null}
+        <footer className="auth-card__footer">
+          <PublicLinks />
+        </footer>
       </div>
     </main>
   );
