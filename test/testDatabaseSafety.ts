@@ -1,3 +1,5 @@
+import { hasLocalPostgresContainerProof } from "./localPostgresContainerProof";
+
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const loopbackAddresses = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const connectionOverrides = [
@@ -70,10 +72,23 @@ export function assertTestDatabaseIdentity(
     !identity.serverAddress ||
     !Number.isInteger(identity.serverPort) ||
     !identity.serverPort ||
-    (local &&
-      (!loopbackAddresses.has(identity.serverAddress) ||
-        identity.serverPort !== Number(parsed.port || 5432))) ||
     (!local && !options.allowRemote)
+  ) {
+    throw new Error(
+      "Connected test database identity does not match the approved target",
+    );
+  }
+  if (
+    local &&
+    !(
+      loopbackAddresses.has(identity.serverAddress) &&
+      identity.serverPort === Number(parsed.port || 5432)
+    ) &&
+    !hasLocalPostgresContainerProof({
+      serverAddress: identity.serverAddress,
+      serverPort: identity.serverPort,
+      hostPort: Number(parsed.port || 5432),
+    })
   ) {
     throw new Error(
       "Connected test database identity does not match the approved target",
