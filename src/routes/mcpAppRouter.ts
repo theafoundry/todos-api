@@ -15,6 +15,7 @@ import { AuthService } from "../services/authService";
 import { McpOAuthService } from "../services/mcpOAuthService";
 import {
   buildMcpActor,
+  buildMcpAgentId,
   buildMcpRequestId,
   buildMcpWwwAuthenticateHeader,
   buildScopeError,
@@ -189,6 +190,7 @@ function createNativeAppServer(req: Request, deps: McpAppRouterDeps) {
               sessionId: authContext.session.sessionId,
               requestId,
               actor: buildMcpActor(req, authContext.session),
+              agentId: buildMcpAgentId(req, authContext.session),
             },
           ),
         deps.providerAdmissionService,

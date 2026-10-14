@@ -1,6 +1,7 @@
 import path from "path";
 
 const DEFAULT_DB_REQUIRED_TEST_PATTERNS = [
+  "src/auditAttribution.integration.test.ts",
   "src/ai.api.integration.test.ts",
   "src/adaptation.api.integration.test.ts",
   "src/auth.api.test.ts",

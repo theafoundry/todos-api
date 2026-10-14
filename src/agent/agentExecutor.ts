@@ -18,6 +18,7 @@ import { ITodoService } from "../interfaces/ITodoService";
 import agentManifest from "./agent-manifest.json";
 import { AgentIdempotencyService } from "../services/agentIdempotencyService";
 import { AgentAuditService } from "../services/agentAuditService";
+import { assertValidTraceIds } from "../services/auditAttribution";
 import { AgentJobRunService } from "../services/agentJobRunService";
 import { FailedAutomationActionService } from "../services/failedAutomationActionService";
 import { AgentConfigService } from "../services/agentConfigService";
@@ -426,6 +427,7 @@ export class AgentExecutor {
       userId: context.userId,
       requestId: context.requestId,
       actor: context.actor,
+      agentId: context.agentId,
       idempotencyKey: context.idempotencyKey,
       replayed: payload.replayed,
       errorCode: payload.errorCode,
@@ -497,6 +499,13 @@ export class AgentExecutor {
     context: AgentExecutionContext,
   ): Promise<AgentExecutionResult> {
     const readOnly = READ_ONLY_ACTIONS.has(action);
+
+    // Reject oversized lookup ids before any handler or mutation runs.
+    try {
+      assertValidTraceIds(context);
+    } catch (error) {
+      return this.failure(action, readOnly, context, error);
+    }
 
     // Build the shared runtime once — used by both registered handler paths.
     const runtime: ActionRuntime = {
@@ -1466,6 +1475,7 @@ export class AgentExecutor {
                         userId: context.userId,
                         requestId: context.requestId,
                         actor: context.actor,
+                        agentId: context.agentId,
                         triggeredBy: "automation",
                         jobName: "project_health_intervention",
                       });
@@ -1500,6 +1510,7 @@ export class AgentExecutor {
                     userId: context.userId,
                     requestId: context.requestId,
                     actor: context.actor,
+                    agentId: context.agentId,
                     triggeredBy: "automation",
                     jobName: "project_health_intervention",
                   });

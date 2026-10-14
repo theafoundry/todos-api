@@ -6,6 +6,7 @@ import { buildStructuredMcpError } from "./mcpErrors";
 import { hasAllMcpScopes } from "./mcpScopes";
 import { config } from "../config";
 import { McpOAuthService } from "../services/mcpOAuthService";
+import { boundDisplayLabel, deriveAgentId } from "../services/auditAttribution";
 
 type JsonRpcId = number | string | null;
 
@@ -21,6 +22,7 @@ export interface ResolvedMcpAuthContext {
   };
   requestId: string;
   actor: string;
+  agentId: string;
 }
 
 function readHeader(req: Request, name: string): string | undefined {
@@ -47,17 +49,39 @@ export function buildMcpActor(
   req: Request,
   session?: Pick<McpTokenPayload, "assistantName" | "clientId">,
 ): string {
-  const headerActor = readHeader(req, "x-assistant-name");
-  if (headerActor) {
-    return headerActor;
+  // Verified attribution first: assistantName/clientId are claims from
+  // the signed MCP token. Caller headers are untrusted display labels
+  // and must never override verified attribution.
+  const verified =
+    boundDisplayLabel(session?.assistantName, "") ||
+    boundDisplayLabel(session?.clientId, "");
+  if (verified) {
+    return verified;
   }
-  if (session?.assistantName) {
-    return session.assistantName;
-  }
-  if (session?.clientId) {
-    return session.clientId;
-  }
-  return readHeader(req, "user-agent") || "unknown-assistant";
+  return boundDisplayLabel(
+    readHeader(req, "x-assistant-name") || readHeader(req, "user-agent"),
+    "unknown-assistant",
+  );
+}
+
+/**
+ * Stable audit identity, separate from the display label above.
+ * Prefers the authenticated client identity (the signed token's
+ * clientId claim); the assistant display name and caller headers are
+ * only fallbacks. Always derived from the full source value, never
+ * from the bounded display text.
+ */
+export function buildMcpAgentId(
+  req: Request,
+  session?: Pick<McpTokenPayload, "assistantName" | "clientId">,
+): string {
+  const identitySource =
+    session?.clientId ||
+    session?.assistantName ||
+    readHeader(req, "x-assistant-name") ||
+    readHeader(req, "user-agent") ||
+    "unknown-assistant";
+  return deriveAgentId(identitySource);
 }
 
 export async function resolveMcpAuthContext(input: {
@@ -183,6 +207,7 @@ export async function resolveMcpAuthContext(input: {
       },
       requestId: input.requestId,
       actor: buildMcpActor(input.req, session),
+      agentId: buildMcpAgentId(input.req, session),
     },
   };
 }

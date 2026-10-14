@@ -1,9 +1,13 @@
 import { randomUUID } from "crypto";
 import { Request } from "express";
+import { boundDisplayLabel, deriveAgentId } from "../services/auditAttribution";
 
 export interface AgentRequestContext {
   requestId: string;
+  /** Bounded untrusted display label (255 chars). Never used as identity. */
   actor: string;
+  /** Stable audit identity derived from the full, untruncated label. */
+  agentId: string;
   idempotencyKey?: string;
 }
 
@@ -29,10 +33,17 @@ export function getAgentRequestContext(req: Request): AgentRequestContext {
     return req.agentContext;
   }
 
-  const actor =
+  // Display and identity are separated: the display label is bounded
+  // to the audit column limit, while the stable agent identity is
+  // derived from the full untruncated source. Both are untrusted on
+  // this surface; authenticated identity comes from the verified
+  // token, never these values.
+  const rawLabel =
     readOptionalHeader(req, "x-agent-name") ||
     readOptionalHeader(req, "user-agent") ||
     "unknown-agent";
+  const actor = boundDisplayLabel(rawLabel, "unknown-agent");
+  const agentId = deriveAgentId(rawLabel);
   const requestId =
     req.requestId ||
     readOptionalHeader(req, "x-request-id") ||
@@ -43,6 +54,7 @@ export function getAgentRequestContext(req: Request): AgentRequestContext {
   req.agentContext = {
     requestId,
     actor,
+    agentId,
     ...(idempotencyKey ? { idempotencyKey } : {}),
   };
 

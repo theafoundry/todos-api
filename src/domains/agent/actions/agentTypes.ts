@@ -110,7 +110,10 @@ export type AgentActionName =
 export interface AgentExecutionContext {
   userId: string;
   requestId: string;
+  /** Bounded untrusted display label. Never used as identity. */
   actor: string;
+  /** Stable audit identity derived from full/authenticated source. */
+  agentId?: string;
   surface: "agent" | "mcp";
   idempotencyKey?: string;
   effectiveDate?: string;

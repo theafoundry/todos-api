@@ -624,6 +624,7 @@ export function createMcpRouter({
               userId: user.id,
               requestId,
               actor,
+              agentId: context.agentId,
               surface: "mcp",
               idempotencyKey,
             }),

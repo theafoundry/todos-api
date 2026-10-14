@@ -9,6 +9,7 @@ module.exports = {
     "**/src/authValidation.test.ts",
     "**/src/authTokenBoundary.test.ts",
     "**/src/services/dataRetentionService.test.ts",
+    "**/src/services/auditAttribution.test.ts",
     "**/src/hostedAiDisabled.test.ts",
     "**/src/googleWebAuth.test.ts",
     "**/src/googleAuthService.test.ts",
