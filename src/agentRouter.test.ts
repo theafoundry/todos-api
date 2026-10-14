@@ -244,6 +244,43 @@ describe("Agent router", () => {
     expect(response.body.error.code).toBe("IDEMPOTENCY_CONFLICT");
   });
 
+  it("rejects an oversized idempotency key before creating a task", async () => {
+    const response = await request(app)
+      .post("/agent/write/create_task")
+      .set("Idempotency-Key", "k".repeat(256))
+      .send({ title: "Must not be created" })
+      .expect(400);
+
+    expect(response.body.ok).toBe(false);
+    expect(response.body.error.code).toBe("INVALID_INPUT");
+
+    const list = await request(app)
+      .post("/agent/read/list_tasks")
+      .send({})
+      .expect(200);
+    const tasks = list.body.data.tasks as Array<{ title: string }>;
+    expect(tasks.some((task) => task.title === "Must not be created")).toBe(
+      false,
+    );
+  });
+
+  it("keeps distinct boundary-length idempotency keys distinct", async () => {
+    const shared = "k".repeat(254);
+    const first = await request(app)
+      .post("/agent/write/create_task")
+      .set("Idempotency-Key", `${shared}a`)
+      .send({ title: "Boundary key A" })
+      .expect(201);
+    const second = await request(app)
+      .post("/agent/write/create_task")
+      .set("Idempotency-Key", `${shared}b`)
+      .send({ title: "Boundary key B" })
+      .expect(201);
+
+    expect(first.body.data.task.id).not.toBe(second.body.data.task.id);
+    expect(second.body.trace.replayed).toBeUndefined();
+  });
+
   it("logs agent-triggered mutations with request trace metadata", async () => {
     const logSpy = jest.spyOn(console, "info").mockImplementation(() => {});
 
@@ -779,6 +816,7 @@ describe.each(["agent", "mcp"] as const)(
     let todoService: TodoService;
     let projectService: jest.Mocked<IProjectService>;
     let tasks: Todo[];
+    let auditCreate: jest.Mock;
 
     async function addStaleProjectTask() {
       const project = await projectService.create("user-1", {
@@ -867,7 +905,9 @@ describe.each(["agent", "mcp"] as const)(
         userPlanningPreferences: {
           findUnique: jest.fn().mockResolvedValue(null),
         },
-        agentActionAudit: { create: jest.fn().mockResolvedValue({}) },
+        agentActionAudit: {
+          create: (auditCreate = jest.fn().mockResolvedValue({})),
+        },
       } as unknown as PrismaClient;
       const agentExecutor = new AgentExecutor({
         todoService,
@@ -933,6 +973,59 @@ describe.each(["agent", "mcp"] as const)(
       expect(data.deterministic).toBe(true);
       expect(data.brief).toContain("Write launch checklist");
       expect(providerCall).toHaveBeenCalledTimes(1);
+    });
+
+    it("persists the request agent identity on project-health child audit writes", async () => {
+      const { deriveAgentId } = await import("./services/auditAttribution");
+      agentConfig.maxWriteActionsPerRun = 5;
+      (
+        AgentService.prototype.ensureNextActionForUser as jest.Mock
+      ).mockResolvedValue({ created: true });
+
+      // Label exceeds the 255-char display bound; identity must come
+      // from the full label, not the truncated display text.
+      const label = `health-agent-${"h".repeat(300)}`;
+      if (surface === "agent") {
+        await request(app)
+          .post("/agent/write/project_health_intervention")
+          .set("Authorization", "Bearer [REDACTED]")
+          .set("X-Agent-Name", label)
+          .send({})
+          .expect(200);
+      } else {
+        await request(app)
+          .post("/mcp")
+          .set("Authorization", "Bearer [REDACTED]")
+          .set("X-Assistant-Name", label)
+          .send({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "tools/call",
+            params: { name: "project_health_intervention", arguments: {} },
+          })
+          .expect(200);
+      }
+
+      const childWrites = auditCreate.mock.calls
+        .map((call) => call[0].data)
+        .filter(
+          (data) =>
+            data.jobName === "project_health_intervention" &&
+            (data.action === "add_subtask" ||
+              data.action === "ensure_next_action"),
+        );
+      expect(childWrites.length).toBeGreaterThan(0);
+      expect(childWrites.some((data) => data.action === "add_subtask")).toBe(
+        true,
+      );
+      expect(
+        childWrites.some((data) => data.action === "ensure_next_action"),
+      ).toBe(true);
+      for (const data of childWrites) {
+        expect(data.agentId).toBe(deriveAgentId(label));
+        expect(data.agentId).not.toBe(deriveAgentId(label.slice(0, 255)));
+        expect(data.actor).toHaveLength(255);
+      }
     });
 
     it("uses deterministic project breakdown on opt-out and preserves the write cap", async () => {

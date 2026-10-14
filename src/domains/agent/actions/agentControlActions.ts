@@ -29,6 +29,11 @@ import {
   validateAgentUpdateActionPolicyInput,
 } from "../../../validation/agentValidation";
 import { getFailureNarrationForJob } from "../jobs/activityPolicy";
+import {
+  boundDisplayLabel,
+  deriveAgentId,
+  truncateToCodePoints,
+} from "../../../services/auditAttribution";
 import { AgentExecutionError } from "./agentExecutionError";
 import type { ActionRegistry, ActionRuntime } from "./actionRegistry";
 import type { AgentExecutionContext, AgentExecutionResult } from "./agentTypes";
@@ -127,19 +132,49 @@ async function recordJobNarration(
       status: 200,
       userId: context.userId,
       requestId: context.requestId,
-      actor: context.actor,
+      actor: boundDisplayLabel(context.actor, "unknown-agent"),
       replayed: false,
       jobName: input.jobName,
       jobPeriodKey: input.periodKey,
       triggeredBy: "agent",
-      agentId: context.actor,
-      narration: input.narration,
+      agentId: context.agentId ?? deriveAgentId(context.actor),
+      narration: truncateToCodePoints(input.narration, 500),
       metadata:
         input.metadata !== undefined
           ? (input.metadata as unknown as Prisma.InputJsonValue)
           : undefined,
     },
   });
+}
+
+/**
+ * Post-commit narration for complete/fail_job_run: the job-run state
+ * change has already committed, so an audit failure must not turn the
+ * response into a misleading failure. The failure stays observable
+ * through a structured error log, matching the non-fatal audit policy
+ * in AgentAuditService.
+ */
+async function recordJobNarrationBestEffort(
+  runtime: ActionRuntime,
+  context: AgentExecutionContext,
+  input: {
+    jobName: string;
+    periodKey: string;
+    narration: string;
+    metadata?: Record<string, unknown>;
+  },
+): Promise<void> {
+  try {
+    await recordJobNarration(runtime, context, input);
+  } catch (error) {
+    console.error("Non-fatal error recording job narration audit:", {
+      jobName: input.jobName,
+      periodKey: input.periodKey,
+      userId: context.userId,
+      requestId: context.requestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 export function registerAgentControlActions(registry: ActionRegistry): void {
@@ -187,7 +222,7 @@ export function registerAgentControlActions(registry: ActionRegistry): void {
           "Ensure claim_job_run was called first for this job/period combination.",
         );
       }
-      await recordJobNarration(runtime, context, {
+      await recordJobNarrationBestEffort(runtime, context, {
         jobName,
         periodKey,
         narration: buildSuccessNarration(jobName, metadata),
@@ -227,7 +262,7 @@ export function registerAgentControlActions(registry: ActionRegistry): void {
       }
       const failureNarration = getFailureNarrationForJob(jobName, errorMessage);
       if (failureNarration) {
-        await recordJobNarration(runtime, context, {
+        await recordJobNarrationBestEffort(runtime, context, {
           jobName,
           periodKey,
           narration: failureNarration,
@@ -501,6 +536,20 @@ export function registerAgentControlActions(registry: ActionRegistry): void {
           400,
           "INVALID_INPUT",
           "jobName, periodKey, and narration are required",
+          false,
+        );
+      }
+      // Validate against storage limits before writing, so a column
+      // error can never surface as a generic persistence failure.
+      if (
+        jobName.length > 100 ||
+        periodKey.length > 20 ||
+        [...narration].length > 500
+      ) {
+        throw new AgentExecutionError(
+          400,
+          "INVALID_INPUT",
+          "jobName cannot exceed 100 characters, periodKey cannot exceed 20 characters, and narration cannot exceed 500 characters",
           false,
         );
       }

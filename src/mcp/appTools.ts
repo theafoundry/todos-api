@@ -161,6 +161,7 @@ export interface NativeAppToolRuntime {
   sessionId?: string;
   requestId: string;
   actor: string;
+  agentId?: string;
 }
 
 async function executeNativeDayPlan(input: {
@@ -287,6 +288,7 @@ export async function executeNativeAppTool(
     userId: runtime.userId,
     requestId: runtime.requestId,
     actor: runtime.actor,
+    agentId: runtime.agentId,
     surface: "mcp",
     timezone,
     effectiveDate,

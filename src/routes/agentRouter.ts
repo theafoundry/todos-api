@@ -25,6 +25,7 @@ function buildExecutionContext(req: Request) {
     userId: getAgentUserId(req),
     requestId: requestContext.requestId,
     actor: requestContext.actor,
+    agentId: requestContext.agentId,
     idempotencyKey: requestContext.idempotencyKey,
     surface: "agent" as const,
   };
