@@ -25,6 +25,7 @@ import { SnoozePicker } from "./components/SnoozePicker";
 import { InstallBanner } from "./components/InstallBanner";
 import { Onboarding } from "./components/Onboarding";
 import { IllustrationConstruction } from "./components/Illustrations";
+import { PageOverlay } from "./components/PageOverlay";
 import { FocusScreen } from "./screens/FocusScreen";
 import { InboxScreen } from "./screens/InboxScreen";
 import { TodayScreen } from "./screens/TodayScreen";
@@ -606,37 +607,30 @@ export function MobileShell() {
         onFabPress={() => openSurface({ mode: "capture" })}
       />
       {page !== "todos" && (
-        <div className="m-shell__page-overlay">
-          <header className="m-header">
-            <button className="m-header__back" onClick={closePage}>
-              ← Back
-            </button>
-            <div className="m-header__text">
-              <h1 className="m-header__title">
-                {page === "ai"
-                  ? "AI Workspace"
-                  : page === "review"
-                    ? "Weekly Review"
-                    : "Admin"}
-              </h1>
+        <PageOverlay
+          title={
+            page === "ai"
+              ? "AI Workspace"
+              : page === "review"
+                ? "Weekly Review"
+                : "Admin"
+          }
+          onBack={closePage}
+        >
+          <div className="m-empty">
+            <IllustrationConstruction />
+            <div className="m-empty__title">
+              {page === "ai"
+                ? "Hosted AI is currently unavailable"
+                : "Coming soon on mobile"}
             </div>
-          </header>
-          <div className="m-shell__page-content">
-            <div className="m-empty">
-              <IllustrationConstruction />
-              <div className="m-empty__title">
-                {page === "ai"
-                  ? "Hosted AI is currently unavailable"
-                  : "Coming soon on mobile"}
-              </div>
-              <div className="m-empty__hint">
-                {page === "ai"
-                  ? "Capture from connected assistants, review Inbox, and plan your day in Today."
-                  : "Use the desktop app for full access"}
-              </div>
+            <div className="m-empty__hint">
+              {page === "ai"
+                ? "Capture from connected assistants, review Inbox, and plan your day in Today."
+                : "Use the desktop app for full access"}
             </div>
           </div>
-        </div>
+        </PageOverlay>
       )}
       <Onboarding />
     </div>

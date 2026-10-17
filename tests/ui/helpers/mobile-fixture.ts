@@ -71,20 +71,24 @@ export class WriteGate {
   }
 }
 
+export type MobileCustomTab = "all" | "horizon" | "completed" | "home";
+
 export async function installMobileFixture(
   context: BrowserContext,
   baseURL: string,
   initialTodos: Todo[] = [mobileTask()],
+  // One seeding script: init-script order across separate registrations is undefined.
+  { customTab = "all" }: { customTab?: MobileCustomTab } = {},
 ) {
   const origin = new URL(baseURL).origin;
   if (!["127.0.0.1", "localhost", "[::1]"].includes(new URL(origin).hostname)) {
     throw new Error("Mobile fixtures must never navigate a production origin");
   }
   await bootstrapTodosContext(context);
-  await context.addInitScript(() => {
+  await context.addInitScript((seededCustomTab) => {
     localStorage.setItem("darkMode", "false");
-    localStorage.setItem("mobile:customTab", "all");
-  });
+    localStorage.setItem("mobile:customTab", seededCustomTab);
+  }, customTab);
   let todos = structuredClone(initialTodos);
   let nextId = 0;
   const writes: FixtureWrite[] = [];
