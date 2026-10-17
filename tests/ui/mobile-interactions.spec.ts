@@ -15,12 +15,19 @@ import {
   pointerDrag,
   taskRow,
   touchDrag,
+  type MobileCustomTab,
   type MobileFixture,
 } from "./helpers/mobile-fixture";
 
-const test = base.extend<{ mobileApi: MobileFixture }>({
-  mobileApi: async ({ context, baseURL }, use) => {
-    const api = await installMobileFixture(context, baseURL!);
+const test = base.extend<{
+  mobileApi: MobileFixture;
+  mobileCustomTab: MobileCustomTab;
+}>({
+  mobileCustomTab: ["all", { option: true }],
+  mobileApi: async ({ context, baseURL, mobileCustomTab }, use) => {
+    const api = await installMobileFixture(context, baseURL!, undefined, {
+      customTab: mobileCustomTab,
+    });
     await use(api);
     api.assertIsolated();
   },
@@ -1595,4 +1602,484 @@ test("scrolling the still-visible list during a gated refresh is retained when t
   expect(
     mobileApi.writes.filter((write) => write.path.startsWith("/todos")),
   ).toEqual([]);
+});
+
+async function openSecondaryPage(page: Page, name: string) {
+  await page
+    .getByRole("button", { name: "Profile and settings", exact: true })
+    .tap();
+  await page
+    .getByRole("dialog", { name: "Profile and settings", exact: true })
+    .getByRole("button", { name, exact: true })
+    .tap();
+  const overlay = page.locator(".m-shell__page-overlay");
+  await expect(overlay.locator(".m-header__title")).toHaveText(name);
+  return overlay;
+}
+
+/** True when focus is on a live control inside the named page, not in covered background. */
+function focusOwnedByDialog(page: Page) {
+  return page.evaluate(() => {
+    const active = document.activeElement;
+    const dialog = document.querySelector(".m-shell__page-overlay");
+    if (!active || !dialog?.contains(active) || active.closest("[inert]"))
+      return false;
+    const rect = active.getBoundingClientRect();
+    const hit = document.elementFromPoint(
+      rect.x + rect.width / 2,
+      rect.y + rect.height / 2,
+    );
+    return Boolean(hit && (hit === active || active.contains(hit)));
+  });
+}
+
+test("secondary pages own focus, isolate covered navigation, and restore the opener", async ({
+  page,
+  mobileApi,
+}) => {
+  await openMobileApp(page);
+  await page.getByRole("tab", { name: "Inbox", exact: true }).tap();
+  await expect(
+    page.getByRole("textbox", { name: "Save an intention for review" }),
+  ).toBeVisible();
+  // Focus returns to the visible avatar that opened Profile and settings.
+  const avatar = page.locator(":focus");
+  const expectOpenerFocused = async () => {
+    await expect(avatar).toHaveAccessibleName("Profile and settings");
+    await expect(avatar).toBeVisible();
+  };
+  await openSecondaryPage(page, "AI Workspace");
+  const workspace = page.getByRole("dialog", {
+    name: "AI Workspace",
+    exact: true,
+  });
+  await expect(workspace).toBeVisible();
+  await expect(workspace).toHaveAttribute("aria-modal", "true");
+  const back = workspace.getByRole("button", { name: "← Back", exact: true });
+  await expect(back).toBeFocused();
+  await expect(page.locator(".m-shell__content")).toHaveAttribute("inert", "");
+  await expect(page.locator(".m-tab-bar")).toHaveAttribute("inert", "");
+  for (const key of ["Tab", "Tab", "Shift+Tab", "Shift+Tab", "Shift+Tab"]) {
+    await page.keyboard.press(key);
+    expect(await focusOwnedByDialog(page)).toBe(true);
+  }
+  // A real tap where Today is drawn must not change navigation under the page.
+  const today = await page
+    .locator(".m-tab-bar__tab", { hasText: "Today" })
+    .boundingBox();
+  await page.touchscreen.tap(
+    today!.x + today!.width / 2,
+    today!.y + today!.height / 2,
+  );
+  await page.evaluate(
+    () => new Promise((done) => requestAnimationFrame(() => done(null))),
+  );
+  await expect(workspace).toBeVisible();
+  await expect(page.locator(".m-tab-bar__tab--active")).toHaveText("Inbox");
+  await page.keyboard.press("Escape");
+  await expect(workspace).toBeHidden();
+  await expectOpenerFocused();
+  await expect(page.locator(".m-tab-bar")).not.toHaveAttribute("inert", "");
+  await expect(page.locator(".m-shell__content")).not.toHaveAttribute(
+    "inert",
+    "",
+  );
+
+  const review = await openSecondaryPage(page, "Weekly Review");
+  await review.getByRole("button", { name: "← Back", exact: true }).tap();
+  await expect(review).toBeHidden();
+  await expectOpenerFocused();
+  await openSecondaryPage(page, "AI Workspace");
+  await page.goBack();
+  await expect(page.locator(".m-shell__page-overlay")).toHaveCount(0);
+  await expectOpenerFocused();
+  await page.getByRole("tab", { name: "Today", exact: true }).tap();
+  await expect(
+    page.getByRole("heading", { name: "Today", exact: true }),
+  ).toBeVisible();
+  expect(mobileApi.writes).toEqual([]);
+});
+
+test("secondary page and project Back controls keep a 44px reachable target", async ({
+  page,
+  mobileApi,
+}) => {
+  await openMobileApp(page);
+  const workspace = await openSecondaryPage(page, "AI Workspace");
+  const back = workspace.getByRole("button", { name: "← Back", exact: true });
+  const target = (await back.boundingBox())!;
+  expect(target.width).toBeGreaterThanOrEqual(44);
+  expect(target.height).toBeGreaterThanOrEqual(44);
+  const header = (await workspace.locator(".m-header").boundingBox())!;
+  const title = workspace.getByRole("heading", {
+    name: "AI Workspace",
+    exact: true,
+  });
+  const titleBox = (await title.boundingBox())!;
+  expect(target.y).toBeGreaterThanOrEqual(header.y - 0.5);
+  expect(target.y + target.height).toBeLessThanOrEqual(
+    header.y + header.height + 0.5,
+  );
+  expect(titleBox.x).toBeGreaterThanOrEqual(target.x + target.width - 0.5);
+  expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  );
+  expect(
+    await title.evaluate(
+      (element) => element.scrollWidth > element.clientWidth,
+    ),
+  ).toBe(false);
+  await back.tap();
+  await expect(workspace).toBeHidden();
+
+  await page.getByRole("tab", { name: "Projects", exact: true }).tap();
+  await page
+    .getByRole("button", { name: /^Mobile project/ })
+    .first()
+    .tap();
+  const projectBack = page.getByRole("button", { name: "← Back", exact: true });
+  const projectTarget = (await projectBack.boundingBox())!;
+  expect(projectTarget.width).toBeGreaterThanOrEqual(44);
+  expect(projectTarget.height).toBeGreaterThanOrEqual(44);
+  await projectBack.tap();
+  await expect(
+    page.getByRole("heading", { name: "Projects", exact: true }),
+  ).toBeVisible();
+  expect(mobileApi.writes).toEqual([]);
+});
+
+for (const [customView, customLabel] of [
+  ["all", "Tasks"],
+  ["completed", "Completed"],
+] as const) {
+  test.describe(`custom tab ${customLabel}`, () => {
+    test.use({ mobileCustomTab: customView });
+    test(`320px CSS 200% root text keeps navigation labels, Quick capture and content separate (${customLabel})`, async ({
+      page,
+      mobileApi,
+    }) => {
+      mobileApi.replaceTodos(
+        Array.from({ length: 6 }, (_, index) =>
+          mobileTask({
+            id: `large-text-${index}`,
+            title: `Large text task ${index + 1}`,
+            order: index,
+          }),
+        ),
+      );
+      await page.setViewportSize({ width: 320, height: 568 });
+      await openMobileApp(page);
+      const baseLabelSize = await page
+        .locator(".m-tab-bar__label")
+        .first()
+        .evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+      // CSS root-font enlargement, not browser zoom or OS Dynamic Type.
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = "200%";
+      });
+      const measure = () =>
+        page.evaluate(() => {
+          const box = (element: { getBoundingClientRect(): DOMRect }) => {
+            const { x, y, width, height } = element.getBoundingClientRect();
+            return { x, y, width, height };
+          };
+          type Box = ReturnType<typeof box>;
+          const overlap = (a: Box, b: Box) =>
+            Math.max(
+              0,
+              Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x),
+            ) *
+            Math.max(
+              0,
+              Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y),
+            );
+          const inside = (inner: Box, outer: Box) =>
+            inner.x >= outer.x - 0.5 &&
+            inner.y >= outer.y - 0.5 &&
+            inner.x + inner.width <= outer.x + outer.width + 0.5 &&
+            inner.y + inner.height <= outer.y + outer.height + 0.5;
+          const fab = box(document.querySelector(".m-tab-bar__fab")!);
+          const nav = box(document.querySelector(".m-tab-bar")!);
+          const viewport = {
+            x: 0,
+            y: 0,
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
+          const tabs = Array.from(
+            document.querySelectorAll<HTMLElement>(".m-tab-bar__tab"),
+          ).map((tab) => {
+            const label = tab.querySelector(".m-tab-bar__label")!;
+            // Actual rendered glyph bounds, independent of the label's own box.
+            const range = document.createRange();
+            range.selectNodeContents(label);
+            return {
+              name: label.textContent,
+              tab: box(tab),
+              label: box(label),
+              text: box(range),
+              fontSize: parseFloat(getComputedStyle(label).fontSize),
+              clipped: label.scrollWidth > label.clientWidth + 1,
+              clippedVertically:
+                label.scrollHeight > label.clientHeight + 1 ||
+                tab.scrollHeight > tab.clientHeight + 1,
+            };
+          });
+          const collisions: string[] = [];
+          tabs.forEach((a, index) => {
+            if (!inside(a.label, a.tab))
+              collisions.push(`${a.name} leaves its tab`);
+            if (!inside(a.text, a.tab))
+              collisions.push(`${a.name} text leaves its tab`);
+            if (!inside(a.text, nav) || !inside(a.text, viewport))
+              collisions.push(`${a.name} text leaves navigation`);
+            if (overlap(a.text, fab) > 0.5)
+              collisions.push(`${a.name} text under FAB`);
+            if (overlap(a.tab, fab) > 0.5)
+              collisions.push(`${a.name} under FAB`);
+            if (overlap(a.label, fab) > 0.5)
+              collisions.push(`${a.name} label under FAB`);
+            tabs.slice(index + 1).forEach((b) => {
+              if (overlap(a.tab, b.tab) > 0.5)
+                collisions.push(`${a.name} overlaps ${b.name}`);
+            });
+          });
+          return {
+            tabs,
+            fab,
+            collisions,
+            viewportWidth: window.innerWidth,
+            documentWidth: document.documentElement.scrollWidth,
+          };
+        });
+      for (const view of ["Inbox", "Today"]) {
+        await page.getByRole("tab", { name: view, exact: true }).tap();
+        await expect(page.locator(".m-tab-bar__tab--active")).toHaveText(view);
+        const layout = await measure();
+        expect(layout.collisions).toEqual([]);
+        expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+        expect(layout.tabs.map((tab) => tab.name)).toEqual([
+          "Inbox",
+          "Today",
+          "Projects",
+          customLabel,
+        ]);
+        await expect(
+          page.getByRole("tab", { name: customLabel, exact: true }),
+        ).toBeVisible();
+        for (const tab of layout.tabs) {
+          expect(tab.fontSize).toBeGreaterThanOrEqual(baseLabelSize * 2 - 0.5);
+          expect(tab.clipped).toBe(false);
+          expect(tab.clippedVertically).toBe(false);
+          expect(tab.tab.width).toBeGreaterThanOrEqual(44);
+          expect(tab.tab.height).toBeGreaterThanOrEqual(44);
+          expect(tab.tab.x).toBeGreaterThanOrEqual(0);
+          expect(tab.tab.x + tab.tab.width).toBeLessThanOrEqual(
+            layout.viewportWidth + 0.5,
+          );
+        }
+        expect(layout.fab.width).toBeGreaterThanOrEqual(44);
+        expect(layout.fab.height).toBeGreaterThanOrEqual(44);
+      }
+      // Content can scroll fully clear of the taller navigation.
+      const scroller = page.locator(".m-shell__content");
+      await scroller.evaluate((element) => {
+        element.scrollTop = element.scrollHeight;
+      });
+      const lastRow = (await page.locator(".m-todo-row").last().boundingBox())!;
+      const tabBar = (await page.locator(".m-tab-bar").boundingBox())!;
+      expect(lastRow.y + lastRow.height).toBeLessThanOrEqual(tabBar.y + 0.5);
+      expect(
+        await scroller.evaluate((element) =>
+          parseFloat(getComputedStyle(element).paddingBottom),
+        ),
+      ).toBeGreaterThanOrEqual(tabBar.height - 0.5);
+      await page
+        .getByRole("button", { name: "Quick capture", exact: true })
+        .tap();
+      const capture = page.getByRole("dialog", {
+        name: "Quick capture",
+        exact: true,
+      });
+      await expect(capture).toBeVisible();
+      await capture
+        .getByRole("button", { name: "Close Quick capture", exact: true })
+        .tap();
+      await expect(capture).toBeHidden();
+      await page.getByRole("tab", { name: "Projects", exact: true }).tap();
+      await expect(page.locator(".m-tab-bar__tab--active")).toHaveText(
+        "Projects",
+      );
+      await page.getByRole("tab", { name: customLabel, exact: true }).tap();
+      await expect(page.locator(".m-tab-bar__tab--active")).toHaveText(
+        customLabel,
+      );
+      expect(mobileApi.writes).toEqual([]);
+    });
+  });
+}
+
+test("secondary page header keeps enlarged title text visible with a 44px Back at 320px CSS 200%", async ({
+  page,
+  mobileApi,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openMobileApp(page);
+  const baseOverlay = await openSecondaryPage(page, "AI Workspace");
+  const baseTitleSize = await baseOverlay
+    .locator(".m-header__title")
+    .evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+  await page.keyboard.press("Escape");
+  await expect(baseOverlay).toHaveCount(0);
+  // CSS root-font enlargement, not browser zoom or OS Dynamic Type.
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  for (const name of ["AI Workspace", "Weekly Review"]) {
+    const overlay = await openSecondaryPage(page, name);
+    const back = overlay.getByRole("button", { name: "← Back", exact: true });
+    await expect(back).toBeFocused();
+    const header = await overlay.evaluate((element) => {
+      const box = (rect: DOMRect) => ({
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+      });
+      const backButton = element.querySelector(".m-header__back")!;
+      const title = element.querySelector<HTMLElement>(".m-header__title")!;
+      const range = document.createRange();
+      range.selectNodeContents(title);
+      const backRect = box(backButton.getBoundingClientRect());
+      const lines = Array.from(range.getClientRects()).map(box);
+      return {
+        content: title.textContent,
+        fontSize: parseFloat(getComputedStyle(title).fontSize),
+        back: backRect,
+        title: box(title.getBoundingClientRect()),
+        text: box(range.getBoundingClientRect()),
+        linesOverlappingBack: lines.filter(
+          (line) =>
+            line.left < backRect.right - 0.5 &&
+            line.right > backRect.left + 0.5 &&
+            line.top < backRect.bottom - 0.5 &&
+            line.bottom > backRect.top + 0.5,
+        ).length,
+        scrollOverflow:
+          title.scrollWidth > title.clientWidth + 1 ||
+          title.scrollHeight > title.clientHeight + 1,
+        viewportWidth: window.innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+      };
+    });
+    expect(header.content).toBe(name);
+    expect(header.fontSize).toBeGreaterThanOrEqual(baseTitleSize * 2 - 0.5);
+    expect(header.back.right - header.back.left).toBeGreaterThanOrEqual(44);
+    expect(header.back.bottom - header.back.top).toBeGreaterThanOrEqual(44);
+    expect(header.text.left).toBeGreaterThanOrEqual(-0.5);
+    expect(header.text.right).toBeLessThanOrEqual(header.viewportWidth + 0.5);
+    expect(header.text.right).toBeLessThanOrEqual(header.title.right + 0.5);
+    expect(header.text.bottom).toBeLessThanOrEqual(header.title.bottom + 0.5);
+    expect(header.scrollOverflow).toBe(false);
+    expect(header.linesOverlappingBack).toBe(0);
+    expect(header.documentWidth).toBeLessThanOrEqual(header.viewportWidth);
+    await expect(
+      overlay.getByRole("heading", { name, exact: true }),
+    ).toBeVisible();
+    if (name === "AI Workspace") await back.tap();
+    else await page.keyboard.press("Escape");
+    await expect(overlay).toHaveCount(0);
+    await expect(page.locator(":focus")).toHaveAccessibleName(
+      "Profile and settings",
+    );
+    await expect(page.locator("[inert]")).toHaveCount(0);
+  }
+  expect(mobileApi.writes).toEqual([]);
+});
+
+test("enlarged secondary page body scrolls its full text into view below a reachable Back at 320px CSS 200%", async ({
+  page,
+  mobileApi,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openMobileApp(page);
+  // CSS root-font enlargement, not browser zoom or OS Dynamic Type.
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  for (const name of ["AI Workspace", "Weekly Review"]) {
+    const overlay = await openSecondaryPage(page, name);
+    const back = overlay.getByRole("button", { name: "← Back", exact: true });
+    await expect(back).toBeFocused();
+    const measure = (selector: string, block: ScrollLogicalPosition) =>
+      overlay.evaluate(
+        (element, { selector, block }) => {
+          const target = element.querySelector(selector)!;
+          const range = document.createRange();
+          range.selectNodeContents(target);
+          const before = range.getBoundingClientRect();
+          const header = element.querySelector(".m-header")!;
+          const visibleTop = header.getBoundingClientRect().bottom;
+          const visibleBottom = Math.min(
+            window.innerHeight,
+            element.getBoundingClientRect().bottom,
+          );
+          let userScrollable = false;
+          for (
+            let node = target.parentElement;
+            node && element.contains(node);
+            node = node.parentElement
+          ) {
+            if (
+              /(auto|scroll)/.test(getComputedStyle(node).overflowY) &&
+              node.scrollHeight > node.clientHeight + 1
+            )
+              userScrollable = true;
+          }
+          target.scrollIntoView({ block });
+          const after = range.getBoundingClientRect();
+          const backRect = element
+            .querySelector(".m-header__back")!
+            .getBoundingClientRect();
+          const hit = document.elementFromPoint(
+            backRect.left + backRect.width / 2,
+            backRect.top + backRect.height / 2,
+          );
+          return {
+            initiallyHidden:
+              before.top < visibleTop - 0.5 ||
+              before.bottom > visibleBottom + 0.5,
+            userScrollable,
+            top: after.top,
+            bottom: after.bottom,
+            visibleTop,
+            visibleBottom,
+            backReachable:
+              backRect.top >= 0 &&
+              backRect.bottom <= window.innerHeight &&
+              Boolean(hit?.closest(".m-header__back")),
+          };
+        },
+        { selector, block },
+      );
+    for (const [selector, block] of [
+      [".m-empty__hint", "end"],
+      [".m-empty__title", "start"],
+    ] as const) {
+      const text = await measure(selector, block);
+      // Text that starts off-screen must be reachable by the user, not only programmatically.
+      if (text.initiallyHidden) expect(text.userScrollable).toBe(true);
+      expect(text.top).toBeGreaterThanOrEqual(text.visibleTop - 0.5);
+      expect(text.bottom).toBeLessThanOrEqual(text.visibleBottom + 0.5);
+      expect(text.backReachable).toBe(true);
+    }
+    await expect(back).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(overlay).toHaveCount(0);
+    await expect(page.locator(":focus")).toHaveAccessibleName(
+      "Profile and settings",
+    );
+    await expect(page.locator("[inert]")).toHaveCount(0);
+  }
+  expect(mobileApi.writes).toEqual([]);
 });

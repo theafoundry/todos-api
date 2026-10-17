@@ -20,7 +20,8 @@
   min-height: 0;
   overscroll-behavior-y: contain;
   overflow-y: auto;
-  padding-bottom: 80px; /* space for tab bar */
+  /* space for tab bar; TabBar measures taller enlarged-text layouts */
+  padding-bottom: max(80px, var(--m-tab-bar-height, 0px));
   -webkit-overflow-scrolling: touch;
 }
 
@@ -97,6 +98,12 @@
 }
 
 .m-header__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   color: var(--m-accent);
@@ -112,14 +119,18 @@
   bottom: 0;
   left: 0;
   right: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
+  container: m-tab-bar / inline-size;
   background: var(--m-surface);
   border-top: 1px solid var(--m-border);
   padding: var(--s-2) 0;
   padding-bottom: calc(var(--s-2) + env(safe-area-inset-bottom, 0px));
   z-index: 100;
+}
+
+.m-tab-bar__items {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
 }
 
 .m-tab-bar__tab {
@@ -179,6 +190,47 @@
   color: white;
   font-weight: 300;
   line-height: 1;
+}
+
+/* Enlarged root text on a narrow bar: keep full-size labels in two rows
+   (Inbox/Today left, Projects/Tasks right) around Quick capture. rem here
+   tracks the root font size, so this responds to text size, not only width. */
+@container m-tab-bar (max-width: 19rem) {
+  .m-tab-bar__items {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-auto-flow: column;
+    align-items: stretch;
+    column-gap: var(--s-1);
+    padding: 0 var(--s-1);
+  }
+
+  .m-tab-bar__tab {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--s-1);
+    min-width: 0;
+    padding: 0 var(--s-1);
+  }
+
+  .m-tab-bar__tab svg {
+    flex-shrink: 0;
+  }
+
+  .m-tab-bar__label {
+    min-width: 0;
+    margin-top: 0;
+    text-align: start;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .m-tab-bar__fab {
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin-top: 0;
+  }
 }
 
 /* --- Swipe row --- */
@@ -1590,19 +1642,40 @@
 }
 
 /* --- Page overlay --- */
+/* A modal page: the shell and tab bar are inert while it is open, so it
+   covers them instead of leaving untappable navigation visible. */
 .m-shell__page-overlay {
   position: fixed;
   inset: 0;
   background: var(--m-bg);
-  z-index: 80;
+  z-index: 101;
   display: flex;
   flex-direction: column;
 }
+/* Enlarged titles move below Back instead of overflowing beside it; normal
+   sizes keep one row because the title's content basis still fits. */
+.m-shell__page-overlay .m-header {
+  flex-wrap: wrap;
+}
+.m-shell__page-overlay .m-header__text {
+  flex: 1 1 auto;
+}
+.m-shell__page-overlay .m-header__title {
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+/* The page body scrolls under the fixed header (Back stays reachable) when
+   enlarged text outgrows the screen; auto margins center content that fits
+   without pushing overflow above the scroll origin. */
 .m-shell__page-content {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
-  align-items: center;
-  justify-content: center;
+}
+.m-shell__page-content > * {
+  margin: auto;
 }
 
 /* --- Empty states --- */
