@@ -34,16 +34,29 @@ jobs:
       - name: Run eval suites
         run: npm run eval:all
 
+      # The steps below run even when evals fail so failing trials' error.json
+      # artifacts are preserved; the eval step alone still fails the job.
+      - name: Verify eval harness guards
+        if: ${{ !cancelled() }}
+        run: NODE_ENV=test node --test evals/shared/app-harness.test.js
+
+      - name: Verify issue alert command
+        if: ${{ !cancelled() }}
+        run: node --test scripts/harness/issue-alert.test.mjs
+
       - name: Generate harness cleanup report
+        if: ${{ !cancelled() }}
         run: npm run harness:cleanup-report
 
       - name: Upload eval artifacts
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: harness-evals
           path: artifacts/evals
 
       - name: Upload harness report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: harness-cleanup-report

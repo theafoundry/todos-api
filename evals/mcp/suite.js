@@ -7,6 +7,7 @@ const {
   buildProject,
   createMcpEvalApp,
   createPkcePair,
+  withAuthFixtureParity,
 } = require("../shared/app-harness");
 
 const PROJECT_ID = "00000000-0000-4000-8000-000000000002";
@@ -210,6 +211,82 @@ module.exports = {
       },
     },
     {
+      id: "mcp-oauth-deleted-account-session",
+      type: "regression",
+      description:
+        "A signed OAuth link session for an account deleted after login cannot approve consent or receive a code.",
+      async run({ writeJson }) {
+        const session = buildMcpSession("user-1", ["projects.read", "tasks.read"]);
+        const { app, auth } = createMcpEvalApp({ session });
+        const agent = request.agent(app);
+        const pkce = createPkcePair(
+          "oauth-verifier-deleted-eval-11111111111111111111111111111",
+        );
+
+        const register = await request(app)
+          .post("/oauth/register")
+          .send({
+            redirect_uris: ["https://chat.openai.com/aip/callback"],
+            client_name: "ChatGPT",
+            grant_types: ["authorization_code", "refresh_token"],
+          })
+          .expect(201);
+
+        const fields = {
+          client_id: register.body.client_id,
+          redirect_uri: "https://chat.openai.com/aip/callback",
+          response_type: "code",
+          scope: "projects.read tasks.read",
+          state: "state-deleted",
+          code_challenge: pkce.challenge,
+          code_challenge_method: "S256",
+        };
+
+        await agent
+          .post("/oauth/authorize/login")
+          .type("form")
+          .send({ ...fields, email: "user-1@example.com", password: "password123" })
+          .expect(303);
+
+        // The consent page is gated only by the link-session check, so it
+        // isolates verifyActiveToken from the decision's own account lookup.
+        const activeView = await agent
+          .get("/oauth/authorize")
+          .query(fields)
+          .expect(200);
+        assert.match(activeView.text, /Authorize Assistant/);
+
+        auth.deleteUser("user-1");
+
+        const deletedView = await agent
+          .get("/oauth/authorize")
+          .query(fields)
+          .expect(200);
+        assert.match(deletedView.text, /Connect Assistant/);
+        assert.doesNotMatch(deletedView.text, /Authorize Assistant/);
+
+        const approve = await agent
+          .post("/oauth/authorize/decision")
+          .type("form")
+          .send({ ...fields, decision: "approve" })
+          .expect(400);
+
+        writeJson("decision.json", {
+          status: approve.status,
+          location: approve.headers.location ?? null,
+        });
+
+        assert.equal(approve.headers.location, undefined);
+        assert.doesNotMatch(approve.text, /[?&]code=/);
+        assert.match(approve.text, /Authorization Error/);
+
+        return {
+          status: approve.status,
+          codeIssued: false,
+        };
+      },
+    },
+    {
       id: "mcp-write-idempotent-flow",
       type: "capability",
       description:
@@ -276,5 +353,5 @@ module.exports = {
         };
       },
     },
-  ],
+  ].map((trial) => ({ ...trial, run: withAuthFixtureParity(trial.run) })),
 };
