@@ -6,7 +6,7 @@ pytz>=2026.1.post1
 
 # Postgres client — used for job-run state and audit log
 # psycopg2-binary ships the shared library; use psycopg2 for compile-from-source envs.
-psycopg2-binary>=2.9,<3.0
+psycopg2-binary>=2.9.12,<3.0
 
 # Environment variable loading from .env files (development convenience)
 python-dotenv>=1.2.2,<2.0
